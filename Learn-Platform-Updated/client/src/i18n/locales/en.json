@@ -1,0 +1,53 @@
+{
+  "nav": {
+    "home": "Home",
+    "tracks": "Tracks",
+    "courses": "All Courses",
+    "pricing": "Pricing",
+    "blog": "Blog",
+    "login": "Login",
+    "signup": "Sign Up"
+  },
+  "hero": {
+    "title": "The #1 Learning Platform in the Middle East",
+    "subtitle": "Learn — Premium Online Learning Platform",
+    "description": "Learn is an Arabic online learning platform offering practical courses and learning paths in programming and technology, with hands-on projects to help you learn from beginner to expert level.",
+    "cta": "Subscribe Now for $15/month"
+  },
+  "features": {
+    "title": "Why Choose Learn?",
+    "subtitle": "We provide everything you need to succeed in the tech job market",
+    "feature1": "Premium Arabic Content",
+    "feature1_desc": "In-depth explanations in Arabic combining simplicity with scientific accuracy",
+    "feature2": "Learn Anytime",
+    "feature2_desc": "Unlimited access to all courses and lessons, learn at your own pace",
+    "feature3": "Hands-On Projects",
+    "feature3_desc": "Real-world projects and practical applications ensure deep understanding"
+  },
+  "tracks": {
+    "title": "Learning Paths",
+    "subtitle": "Comprehensive study plans taking you from beginner to expert",
+    "viewAll": "View All"
+  },
+  "courses": {
+    "title": "Latest Courses",
+    "subtitle": "Discover the newest additions to our platform",
+    "browseCatalog": "Browse Catalog"
+  },
+  "cta": {
+    "title": "Start Your Learning Journey Today",
+    "subtitle": "Get unlimited access to all courses and learning paths with a single simple subscription",
+    "button": "Subscribe Now for $15/month",
+    "note": "You can cancel your subscription anytime"
+  },
+  "footer": {
+    "tracks": "Learning Paths",
+    "courses": "Browse Courses",
+    "pricing": "Pricing & Subscriptions",
+    "blog": "Blog",
+    "faq": "FAQ",
+    "contact": "Contact Us",
+    "terms": "Terms & Conditions",
+    "privacy": "Privacy Policy"
+  }
+}

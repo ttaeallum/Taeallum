@@ -1,0 +1,53 @@
+{
+  "nav": {
+    "home": "Accueil",
+    "tracks": "Parcours",
+    "courses": "Tous les Cours",
+    "pricing": "Tarification",
+    "blog": "Blog",
+    "login": "Connexion",
+    "signup": "S'inscrire"
+  },
+  "hero": {
+    "title": "La Plateforme d'Apprentissage #1 au Moyen-Orient",
+    "subtitle": "Learn — Plateforme d'Apprentissage en Ligne Premium",
+    "description": "Learn est une plateforme d'apprentissage en ligne arabe offrant des cours pratiques et des parcours d'apprentissage en programmation et technologie, avec des projets pratiques pour vous aider à apprendre du niveau débutant à expert.",
+    "cta": "S'abonner maintenant pour 15 $/mois"
+  },
+  "features": {
+    "title": "Pourquoi Choisir Learn?",
+    "subtitle": "Nous vous fournissons tout ce dont vous avez besoin pour réussir sur le marché de l'emploi technologique",
+    "feature1": "Contenu Arabe Premium",
+    "feature1_desc": "Explications approfondies en arabe combinant simplicité et précision scientifique",
+    "feature2": "Apprenez à Tout Moment",
+    "feature2_desc": "Accès illimité à tous les cours et leçons, apprenez à votre rythme",
+    "feature3": "Projets Pratiques",
+    "feature3_desc": "Des projets réels et des applications pratiques garantissent une compréhension approfondie"
+  },
+  "tracks": {
+    "title": "Parcours d'Apprentissage",
+    "subtitle": "Des plans d'étude complets vous menant du débutant à l'expert",
+    "viewAll": "Voir Tout"
+  },
+  "courses": {
+    "title": "Derniers Cours",
+    "subtitle": "Découvrez les derniers ajouts à notre plateforme",
+    "browseCatalog": "Parcourir le Catalogue"
+  },
+  "cta": {
+    "title": "Commencez Votre Parcours d'Apprentissage Aujourd'hui",
+    "subtitle": "Accédez à tous les cours et parcours d'apprentissage avec un seul abonnement simple",
+    "button": "S'abonner maintenant pour 15 $/mois",
+    "note": "Vous pouvez annuler votre abonnement à tout moment"
+  },
+  "footer": {
+    "tracks": "Parcours d'Apprentissage",
+    "courses": "Parcourir les Cours",
+    "pricing": "Tarification et Abonnements",
+    "blog": "Blog",
+    "faq": "FAQ",
+    "contact": "Nous Contacter",
+    "terms": "Conditions Générales",
+    "privacy": "Politique de Confidentialité"
+  }
+}
