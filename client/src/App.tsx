@@ -28,6 +28,8 @@ import Contact from "@/pages/contact";
 import Terms from "@/pages/terms";
 import Privacy from "@/pages/privacy";
 
+import { AIChatbot } from "@/components/AIChatbot";
+
 function Router() {
   return (
     <Switch>
@@ -82,6 +84,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
+        <AIChatbot />
         <Router />
       </TooltipProvider>
     </QueryClientProvider>
