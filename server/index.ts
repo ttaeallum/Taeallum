@@ -36,13 +36,19 @@ app.set("trust proxy", 1);
 const isProduction = process.env.NODE_ENV === "production";
 const useSecureCookies = process.env.SESSION_SECURE === "true" || isProduction;
 
+const sessionStore = new PostgresStore({
+  pool: pool,
+  tableName: "user_sessions",
+  createTableIfMissing: true
+});
+
+sessionStore.on('error', function (error) {
+  console.error('Session store error:', error);
+});
+
 app.use(
   session({
-    store: new PostgresStore({
-      pool: pool,
-      tableName: "user_sessions",
-      createTableIfMissing: true
-    }),
+    store: sessionStore,
     name: "connect.sid",
     secret: process.env.SESSIONSECRET || process.env.SESSION_SECRET || "hamza-platform-2026-secure",
     resave: false,
