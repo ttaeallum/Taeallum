@@ -188,13 +188,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// Register routes for both dev and prod (including Vercel)
-await registerRoutes(httpServer, app);
-
 export default app;
 
-if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
-  (async () => {
+(async () => {
+  await registerRoutes(httpServer, app);
+
+  if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
     app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
@@ -225,5 +224,5 @@ if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
         log(`serving on port ${port}`);
       },
     );
-  })();
-}
+  }
+})();
