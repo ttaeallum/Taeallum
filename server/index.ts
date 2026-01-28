@@ -36,26 +36,12 @@ app.use(express.json({
 app.use(express.urlencoded({ extended: false }));
 app.set("trust proxy", 1);
 
-// Session Configuration
+// Session Configuration (TEMPORARY MEMORY STORE FOR DIAGNOSTICS)
 const isProduction = process.env.NODE_ENV === "production";
 const useSecureCookies = process.env.SESSION_SECURE === "true" || isProduction;
 
-let sessionMiddleware;
-const dbConfig = getDbConfig();
-
-if (dbConfig.hasUrl) {
-  const sessionStore = new PostgresStore({
-    pool: pool,
-    tableName: "user_sessions",
-    createTableIfMissing: true
-  });
-
-  sessionStore.on('error', function (error) {
-    console.error('Session store error:', error);
-  });
-
-  sessionMiddleware = session({
-    store: sessionStore,
+app.use(
+  session({
     name: "connect.sid",
     secret: process.env.SESSIONSECRET || process.env.SESSION_SECRET || "hamza-platform-2026-secure",
     resave: false,
@@ -68,18 +54,8 @@ if (dbConfig.hasUrl) {
       path: "/",
     },
     rolling: true,
-  });
-} else {
-  console.warn("DB not connected, using memory session");
-  sessionMiddleware = session({
-    secret: "temp-secret",
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false }
-  });
-}
-
-app.use(sessionMiddleware);
+  })
+);
 
 // API Routes setup
 app.use("/api/admin", adminAuthRouter);
