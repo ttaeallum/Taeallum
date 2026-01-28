@@ -6,7 +6,7 @@
   "scripts": {
     "dev:client": "vite dev --port 3001",
     "dev": "cross-env NODE_ENV=development ESLINT_NO_DEV_ERRORS=true tsx server/index.ts",
-    "build": "(drizzle-kit push || true) && tsx script/build.ts",
+    "build": "tsx script/build.ts",
     "start": "NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
     "db:push": "drizzle-kit push"
