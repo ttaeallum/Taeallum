@@ -145,9 +145,21 @@ app.use("/api/chatbot", chatbotRouter);
 app.get("/api/health/db", async (_req, res) => {
   try {
     await db.execute(sql`select 1`);
-    res.json({ ok: true, db: "connected" });
+    // Query to see existing tables
+    const result = await pool.query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
+    const tables = result.rows.map(r => r.table_name);
+    res.json({
+      ok: true,
+      status: "connected",
+      tables: tables,
+      env_check: {
+        has_db: !!(process.env.DATABASE || process.env.DATABASE_URL),
+        has_openai: !!(process.env.OPENAI || process.env.OPENAI_API_KEY),
+        node_env: process.env.NODE_ENV
+      }
+    });
   } catch (e) {
-    res.status(500).json({ ok: false, db: "not connected", error: String(e) });
+    res.status(500).json({ ok: false, error: String(e) });
   }
 });
 
