@@ -94,8 +94,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Register routes
-await registerRoutes(httpServer, app);
+// Register routes (non-blocking for Vercel)
+registerRoutes(httpServer, app).catch(err => {
+  console.error("Failed to register routes:", err);
+});
 
 // Export for Vercel
 export default app;
@@ -103,15 +105,19 @@ export default app;
 // Local development server
 if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
   (async () => {
-    if (process.env.NODE_ENV === "production") {
-      serveStatic(app);
-    } else {
-      const { setupVite } = await import("./vite");
-      await setupVite(httpServer, app);
+    try {
+      if (process.env.NODE_ENV === "production") {
+        serveStatic(app);
+      } else {
+        const { setupVite } = await import("./vite");
+        await setupVite(httpServer, app);
+      }
+      const port = parseInt(process.env.PORT || "5000", 10);
+      httpServer.listen({ port, host: "0.0.0.0" }, () => {
+        console.log(`Serving on port ${port}`);
+      });
+    } catch (err) {
+      console.error("Failed to start local server:", err);
     }
-    const port = parseInt(process.env.PORT || "5000", 10);
-    httpServer.listen({ port, host: "0.0.0.0" }, () => {
-      console.log(`Serving on port ${port}`);
-    });
   })();
 }
