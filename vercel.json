@@ -2,10 +2,6 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/api/debug",
-      "destination": "/api/debug.ts"
-    },
-    {
       "source": "/api/(.*)",
       "destination": "/api/index.ts"
     },
