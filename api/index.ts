@@ -42,7 +42,7 @@ app.use("/api/course-content", courseContentRouter);
 app.use("/api/chatbot", chatbotRouter);
 
 app.get("/api/hello", (req, res) => {
-    res.json({ message: "Server is working perfectly!", time: new Date().toISOString() });
+    res.json({ message: "Server is working perfectly! Version 6.1", time: new Date().toISOString() });
 });
 
 app.get("/api/health/db", async (req, res) => {
