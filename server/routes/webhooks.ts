@@ -4,15 +4,16 @@ import * as schema from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import Stripe from "stripe";
 
-const stripe = process.env.STRIPE_SECRET_KEY 
-    ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+const stripeKey = process.env.STRIPEPRIVATE || process.env.STRIPE_SECRET_KEY;
+const stripe = stripeKey
+    ? new Stripe(stripeKey, {
         apiVersion: "2025-01-27.acacia" as any,
     })
     : null;
 
 const router = Router();
 
-router.post("/stripe", async (req, res) => {
+router.post("/stripe", async (req: any, res) => {
     const sig = req.headers["stripe-signature"] as string;
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
