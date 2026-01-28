@@ -3,7 +3,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import rateLimit from "express-rate-limit";
-import session, { type CookieOptions } from "express-session";
+import session from "express-session";
 import connectPg from "connect-pg-simple";
 const PostgresStore = connectPg(session);
 import adminAuthRouter from "./routes/admin-auth";
@@ -15,15 +15,13 @@ import webhooksRouter from "./routes/webhooks";
 import paymentsRouter from "./routes/payments";
 import courseContentRouter from "./routes/course-content";
 import chatbotRouter from "./routes/chatbot";
-import { db, pool } from "./db";
+import { db, pool, getDbConfig } from "./db";
 import { sql } from "drizzle-orm";
-
-// ... imports above remain same
 
 const app = express();
 const httpServer = createServer(app);
 
-console.log("--- SERVER INITIALIZING: VERSION 5.5 (FINAL STRETCH) ---");
+console.log("--- SERVER INITIALIZING: VERSION 5.6 (DIAGNOSTICS) ---");
 
 // Essential Middleware
 app.use(express.json({
@@ -73,12 +71,23 @@ app.use("/api/chatbot", chatbotRouter);
 
 // Database Health Check
 app.get("/api/health/db", async (_req, res) => {
+  const config = getDbConfig();
   try {
     await db.execute(sql`select 1`);
     const result = await pool.query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
-    res.json({ ok: true, status: "connected", tables: result.rows.map((r: any) => r.table_name) });
+    res.json({
+      ok: true,
+      status: "connected",
+      tables: result.rows.map((r: any) => r.table_name),
+      config: config
+    });
   } catch (e) {
-    res.status(500).json({ ok: false, error: String(e) });
+    res.status(500).json({
+      ok: false,
+      error: String(e),
+      config: config,
+      env_keys: Object.keys(process.env).filter(k => k.includes("DATABASE") || k.includes("URL"))
+    });
   }
 });
 
