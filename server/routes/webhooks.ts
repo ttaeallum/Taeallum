@@ -4,9 +4,11 @@ import * as schema from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-    apiVersion: "2025-01-27.acacia" as any,
-});
+const stripe = process.env.STRIPE_SECRET_KEY 
+    ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: "2025-01-27.acacia" as any,
+    })
+    : null;
 
 const router = Router();
 
@@ -17,7 +19,7 @@ router.post("/stripe", async (req, res) => {
     let event: Stripe.Event;
 
     try {
-        if (!webhookSecret || !req.rawBody) {
+        if (!webhookSecret || !req.rawBody || !stripe) {
             // Fallback for development if secret not set, but unsafe for production
             event = req.body;
         } else {

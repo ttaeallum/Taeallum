@@ -5,9 +5,11 @@ import { db } from "../db";
 import * as schema from "../db/schema";
 import { eq } from "drizzle-orm";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-    apiVersion: "2025-01-27.acacia" as any,
-});
+const stripe = process.env.STRIPE_SECRET_KEY 
+    ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: "2025-01-27.acacia" as any,
+    })
+    : null;
 
 const router = Router();
 
@@ -30,6 +32,10 @@ router.post("/create-checkout-session", requireAuth, async (req, res) => {
             }
             title = `دورة: ${course.title}`;
             amount = Math.round(Number(course.price) * 100);
+        }
+
+        if (!stripe) {
+            return res.status(400).json({ message: "Stripe is not configured" });
         }
 
         const session = await stripe.checkout.sessions.create({
