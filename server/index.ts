@@ -21,7 +21,7 @@ import { sql } from "drizzle-orm";
 const app = express();
 const httpServer = createServer(app);
 
-console.log("--- SERVER STARTED: VERSION 5.0 (FINAL FIX) ---");
+console.log("--- SERVER STARTED: VERSION 5.1 (READY FOR DEPLOY) ---");
 
 // Rate limiting for security
 const limiter = rateLimit({
