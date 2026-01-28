@@ -4,9 +4,9 @@ import { Pool } from "pg";
 import * as schema from "./schema";
 
 const rawDbUrl = process.env.DATABASE || process.env.DATABASE_URL;
-const cleanDbUrl = rawDbUrl?.replace(/^['"]|['"]$/g, "");
+const cleanDbUrl = (rawDbUrl && rawDbUrl.trim() !== "") ? rawDbUrl.replace(/^['"]|['"]$/g, "") : null;
 
-if (!cleanDbUrl && process.env.NODE_ENV === "production") {
+if (!cleanDbUrl && process.env.NODE_ENV === "production" && !process.env.VERCEL) {
     console.warn("WARNING: DATABASE_URL is missing in production environment!");
 }
 
