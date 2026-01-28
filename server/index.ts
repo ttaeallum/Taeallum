@@ -21,7 +21,11 @@ import { sql } from "drizzle-orm";
 const app = express();
 const httpServer = createServer(app);
 
-console.log("--- SERVER INITIALIZING: VERSION 5.7 (SUPER DEFENSIVE) ---");
+console.log("--- SERVER INITIALIZING: VERSION 5.8 (ROOT TEST) ---");
+
+app.get("/", (_req, res) => {
+  res.send("<h1>Taeallum Server is Live!</h1><p>Visit /api/health/db for diagnostics.</p>");
+});
 
 // Essential Middleware
 app.use(express.json({
