@@ -23,7 +23,7 @@ import { sql } from "drizzle-orm";
 const app = express();
 const httpServer = createServer(app);
 
-console.log("--- SERVER INITIALIZING: VERSION 5.4 ---");
+console.log("--- SERVER INITIALIZING: VERSION 5.5 (FINAL STRETCH) ---");
 
 // Essential Middleware
 app.use(express.json({
