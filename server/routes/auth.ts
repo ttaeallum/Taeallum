@@ -117,19 +117,14 @@ router.post("/login", async (req, res) => {
             .where(eq(users.id, user.id));
 
         const isAdminEmail = user.email.toLowerCase() === adminEmail;
-        if (isAdminEmail && user.role !== "admin") {
-            await db.update(users).set({ role: "admin" }).where(eq(users.id, user.id));
-            user.role = "admin";
-        }
-        if (!isAdminEmail && user.role === "admin") {
-            await db.update(users).set({ role: "user" }).where(eq(users.id, user.id));
-            user.role = "user";
-        }
-
-        // Set session data
         req.session.userId = user.id;
         req.session.isAdmin = isAdminEmail;
         
+        // Ensure role is updated in DB if needed
+        if (isAdminEmail && user.role !== "admin") {
+            await db.update(users).set({ role: "admin" }).where(eq(users.id, user.id));
+        }
+
         // Save session explicitly before sending response
         await new Promise<void>((resolve, reject) => {
             req.session.save((err) => {
@@ -143,6 +138,7 @@ router.post("/login", async (req, res) => {
         });
 
         const { passwordHash: _, ...userWithoutPassword } = user;
+        userWithoutPassword.role = isAdminEmail ? "admin" : "user";
         
         // إرسال بيانات المستخدم مع رسالة نجاح
         return res.status(200).json({
