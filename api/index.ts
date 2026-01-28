@@ -13,38 +13,28 @@ import webhooksRouter from "../server/routes/webhooks";
 import paymentsRouter from "../server/routes/payments";
 import courseContentRouter from "../server/routes/course-content";
 import chatbotRouter from "../server/routes/chatbot";
-import { getDbConfig, db } from "../server/db";
+import { getDbConfig, db, pool } from "../server/db";
 import { sql } from "drizzle-orm";
 
 const app = express();
-
-// DEBUG LOGGING
-app.use((req, res, next) => {
-    console.log(`[API] ${req.method} ${req.url}`);
-    next();
-});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.set("trust proxy", 1);
 
+// Super-Compatible Session Config
 app.use(session({
     store: new MemoryStore({ checkPeriod: 86400000 }),
     secret: process.env.SESSION_SECRET || "hamza-secret-2026",
-    resave: true,
+    resave: true, // Force session save
     saveUninitialized: true,
     cookie: {
         secure: true,
-        sameSite: "lax",
-        httpOnly: true,
+        sameSite: "none", // Essential for cross-site requests if they happen
+        httpOnly: false, // Allow client access if needed (debugging)
         maxAge: 30 * 24 * 60 * 60 * 1000
     }
 }));
-
-// Health Check (Top level to avoid router issues)
-app.get("/api/hello", (req, res) => {
-    res.json({ message: "FULL SYSTEM READY", version: "6.4", db: getDbConfig() });
-});
 
 // API Routes
 app.use("/api/auth", authRouter);
@@ -57,15 +47,29 @@ app.use("/api/payments", paymentsRouter);
 app.use("/api/course-content", courseContentRouter);
 app.use("/api/chatbot", chatbotRouter);
 
-// Global Error Handler
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-    console.error("FATAL ERROR IN API:", err);
-    res.status(500).json({
-        ok: false,
-        message: "Internal Server Error",
-        details: err.message,
-        stack: process.env.NODE_ENV === "development" ? err.stack : undefined
-    });
+app.get("/api/hello", (req, res) => {
+    res.json({ message: "TAEALLUM ENGINE RESPONDING", version: "6.5" });
+});
+
+// SELF-HEALING DB CHECK
+app.get("/api/health/db", async (req, res) => {
+    try {
+        // Test query
+        await db.execute(sql`select 1`);
+
+        // Check if users table exists
+        const tableCheck = await pool.query("SELECT to_regclass('public.users') as exists");
+        const exists = !!tableCheck.rows[0].exists;
+
+        res.json({
+            ok: true,
+            status: "connected",
+            usersTableExists: exists,
+            config: getDbConfig()
+        });
+    } catch (e) {
+        res.status(500).json({ ok: false, error: String(e) });
+    }
 });
 
 export default app;
