@@ -97,7 +97,7 @@ app.use(
       createTableIfMissing: true
     }),
     name: "connect.sid",
-    secret: process.env.SESSION_SECRET || "hamza-platform-2026-secure",
+    secret: process.env.SESSIONSECRET || process.env.SESSION_SECRET || "hamza-platform-2026-secure",
     resave: false,
     saveUninitialized: true,
     cookie: sessionCookie,

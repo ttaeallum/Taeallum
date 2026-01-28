@@ -5,8 +5,9 @@ import { db } from "../db";
 import * as schema from "../db/schema";
 import { eq } from "drizzle-orm";
 
-const stripe = process.env.STRIPE_SECRET_KEY 
-    ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+const stripeKey = process.env.STRIPEPRIVATE || process.env.STRIPE_SECRET_KEY;
+const stripe = stripeKey
+    ? new Stripe(stripeKey, {
         apiVersion: "2025-01-27.acacia" as any,
     })
     : null;

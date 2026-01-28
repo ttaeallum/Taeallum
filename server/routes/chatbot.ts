@@ -3,8 +3,9 @@ import OpenAI from "openai";
 
 const router = Router();
 
-const openai = process.env.OPENAI_API_KEY
-    ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+const openaiKey = process.env.OPENAI || process.env.OPENAI_API_KEY;
+const openai = openaiKey
+    ? new OpenAI({ apiKey: openaiKey })
     : null;
 
 router.post("/", async (req, res) => {
