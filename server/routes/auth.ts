@@ -1,6 +1,6 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { z } from "zod";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { db } from "../db";
 import { users } from "../db/schema";
 import { eq } from "drizzle-orm";
@@ -63,7 +63,7 @@ router.post("/register", async (req, res) => {
         // Set session
         req.session.userId = newUser.id;
         req.session.isAdmin = isAdminEmail;
-        
+
         // Save session explicitly
         await new Promise<void>((resolve, reject) => {
             req.session.save((err) => {
@@ -119,7 +119,7 @@ router.post("/login", async (req, res) => {
         const isAdminEmail = user.email.toLowerCase() === adminEmail;
         req.session.userId = user.id;
         req.session.isAdmin = isAdminEmail;
-        
+
         // Ensure role is updated in DB if needed
         if (isAdminEmail && user.role !== "admin") {
             await db.update(users).set({ role: "admin" }).where(eq(users.id, user.id));
@@ -139,7 +139,7 @@ router.post("/login", async (req, res) => {
 
         const { passwordHash: _, ...userWithoutPassword } = user;
         userWithoutPassword.role = isAdminEmail ? "admin" : "user";
-        
+
         // إرسال بيانات المستخدم مع رسالة نجاح
         return res.status(200).json({
             ...userWithoutPassword,
