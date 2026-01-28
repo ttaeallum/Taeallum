@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import { eq, and } from "drizzle-orm";
@@ -13,7 +13,7 @@ const stripe = stripeKey
 
 const router = Router();
 
-router.post("/stripe", async (req: any, res) => {
+router.post("/stripe", async (req: Request & { rawBody?: Buffer }, res: Response) => {
     const sig = req.headers["stripe-signature"] as string;
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 

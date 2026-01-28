@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request, type Response, type NextFunction } from "express";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import { eq, desc, sql, and, ilike } from "drizzle-orm";
@@ -9,9 +9,9 @@ const router = Router();
 const adminEmail = (process.env.ADMIN_EMAIL || "hamzali200410@gmail.com").toLowerCase();
 
 // --- Middleware: Verify Admin ---
-async function requireAdmin(req: any, res: any, next: any) {
-    if (!req.session?.userId) {
-        return res.status(401).json({ message: "Admin only" });
+async function requireAdmin(req: Request, res: Response, next: NextFunction) {
+    if (!req.session || !req.session.userId) {
+        return res.status(401).json({ message: "Admin access required" });
     }
     try {
         const [user] = await db.select().from(schema.users).where(eq(schema.users.id, req.session.userId)).limit(1);
@@ -49,7 +49,7 @@ async function logAudit(adminUsername: string, action: string, entityType: strin
 router.use(requireAdmin);
 
 // --- 1. Dashboard Stats ---
-router.get("/stats", async (req, res) => {
+router.get("/stats", async (req: Request, res: Response) => {
     try {
         const [userCount] = await db.select({ count: sql<number>`count(*)` }).from(schema.users);
         const [courseCount] = await db.select({ count: sql<number>`count(*)` }).from(schema.courses);
@@ -76,7 +76,7 @@ router.get("/stats", async (req, res) => {
 });
 
 // --- 2. Categories CRUD ---
-router.get("/categories", async (req, res) => {
+router.get("/categories", async (req: Request, res: Response) => {
     await db
         .insert(schema.categories)
         .values(specializationCategories)
@@ -86,7 +86,7 @@ router.get("/categories", async (req, res) => {
     res.json(allCategories);
 });
 
-router.post("/categories/seed-specializations", async (req, res) => {
+router.post("/categories/seed-specializations", async (req: Request, res: Response) => {
     try {
         const created = await db
             .insert(schema.categories)
@@ -100,28 +100,28 @@ router.post("/categories/seed-specializations", async (req, res) => {
     }
 });
 
-router.post("/categories", async (req, res) => {
+router.post("/categories", async (req: Request, res: Response) => {
     const { name, slug, description } = req.body;
     const [newCat] = await db.insert(schema.categories).values({ name, slug, description }).returning();
     await logAudit(adminEmail, "CREATE", "Category", newCat.id, newCat);
     res.json(newCat);
 });
 
-router.put("/categories/:id", async (req, res) => {
+router.put("/categories/:id", async (req: Request, res: Response) => {
     const { name, slug, description } = req.body;
     const [updated] = await db.update(schema.categories).set({ name, slug, description }).where(eq(schema.categories.id, req.params.id)).returning();
     await logAudit(adminEmail, "UPDATE", "Category", updated.id, updated);
     res.json(updated);
 });
 
-router.delete("/categories/:id", async (req, res) => {
+router.delete("/categories/:id", async (req: Request, res: Response) => {
     await db.delete(schema.categories).where(eq(schema.categories.id, req.params.id));
     await logAudit(adminEmail, "DELETE", "Category", req.params.id);
     res.json({ ok: true });
 });
 
 // --- 3. Courses CRUD ---
-router.get("/courses", async (req, res) => {
+router.get("/courses", async (req: Request, res: Response) => {
     const { q = "", page = "1", limit = "10" } = req.query;
     const offset = (Number(page) - 1) * Number(limit);
 
@@ -140,31 +140,31 @@ router.get("/courses", async (req, res) => {
     res.json({ data, total: totalCount.count });
 });
 
-router.post("/courses", async (req, res) => {
+router.post("/courses", async (req: Request, res: Response) => {
     // Force isPublished to true if not specified, so it appears immediately on the home page
-    const courseData = { 
-        ...req.body, 
-        isPublished: req.body.isPublished !== undefined ? req.body.isPublished : true 
+    const courseData = {
+        ...req.body,
+        isPublished: req.body.isPublished !== undefined ? req.body.isPublished : true
     };
     const [newCourse] = await db.insert(schema.courses).values(courseData).returning();
     await logAudit(adminEmail, "CREATE", "Course", newCourse.id, newCourse);
     res.json(newCourse);
 });
 
-router.put("/courses/:id", async (req, res) => {
+router.put("/courses/:id", async (req: Request, res: Response) => {
     const [updated] = await db.update(schema.courses).set({ ...req.body, updatedAt: new Date() }).where(eq(schema.courses.id, req.params.id)).returning();
     await logAudit(adminEmail, "UPDATE", "Course", updated.id, updated);
     res.json(updated);
 });
 
-router.delete("/courses/:id", async (req, res) => {
+router.delete("/courses/:id", async (req: Request, res: Response) => {
     await db.delete(schema.courses).where(eq(schema.courses.id, req.params.id));
     await logAudit(adminEmail, "DELETE", "Course", req.params.id);
     res.json({ ok: true });
 });
 
 // --- 4. Users ---
-router.get("/users", async (req, res) => {
+router.get("/users", async (req: Request, res: Response) => {
     const { q = "" } = req.query;
     const filter = q ? ilike(schema.users.fullName, `%${q}%`) : undefined;
 
@@ -173,7 +173,7 @@ router.get("/users", async (req, res) => {
 });
 
 // --- 5. Curriculum (Sections & Lessons) ---
-router.get("/courses/:courseId/curriculum", async (req, res) => {
+router.get("/courses/:courseId/curriculum", async (req: Request, res: Response) => {
     const sections = await db.select().from(schema.sections).where(eq(schema.sections.courseId, req.params.courseId)).orderBy(schema.sections.order);
     const curriculum = await Promise.all(sections.map(async (section) => {
         const lessons = await db.select().from(schema.lessons).where(eq(schema.lessons.sectionId, section.id)).orderBy(schema.lessons.order);
@@ -182,44 +182,44 @@ router.get("/courses/:courseId/curriculum", async (req, res) => {
     res.json(curriculum);
 });
 
-router.post("/sections", async (req, res) => {
+router.post("/sections", async (req: Request, res: Response) => {
     const [newSection] = await db.insert(schema.sections).values(req.body).returning();
     await logAudit(adminEmail, "CREATE", "Section", newSection.id, newSection);
     res.json(newSection);
 });
 
-router.put("/sections/:id", async (req, res) => {
+router.put("/sections/:id", async (req: Request, res: Response) => {
     const [updated] = await db.update(schema.sections).set(req.body).where(eq(schema.sections.id, req.params.id)).returning();
     await logAudit(adminEmail, "UPDATE", "Section", updated.id, updated);
     res.json(updated);
 });
 
-router.delete("/sections/:id", async (req, res) => {
+router.delete("/sections/:id", async (req: Request, res: Response) => {
     await db.delete(schema.sections).where(eq(schema.sections.id, req.params.id));
     await logAudit(adminEmail, "DELETE", "Section", req.params.id);
     res.json({ ok: true });
 });
 
-router.post("/lessons", async (req, res) => {
+router.post("/lessons", async (req: Request, res: Response) => {
     const [newLesson] = await db.insert(schema.lessons).values(req.body).returning();
     await logAudit(adminEmail, "CREATE", "Lesson", newLesson.id, newLesson);
     res.json(newLesson);
 });
 
-router.put("/lessons/:id", async (req, res) => {
+router.put("/lessons/:id", async (req: Request, res: Response) => {
     const [updated] = await db.update(schema.lessons).set(req.body).where(eq(schema.lessons.id, req.params.id)).returning();
     await logAudit(adminEmail, "UPDATE", "Lesson", updated.id, updated);
     res.json(updated);
 });
 
-router.delete("/lessons/:id", async (req, res) => {
+router.delete("/lessons/:id", async (req: Request, res: Response) => {
     await db.delete(schema.lessons).where(eq(schema.lessons.id, req.params.id));
     await logAudit(adminEmail, "DELETE", "Lesson", req.params.id);
     res.json({ ok: true });
 });
 
 // --- 6. Audit Logs ---
-router.get("/audit", async (req, res) => {
+router.get("/audit", async (req: Request, res: Response) => {
     const logs = await db.select().from(schema.adminAuditLogs).orderBy(desc(schema.adminAuditLogs.createdAt)).limit(100);
     res.json(logs);
 });

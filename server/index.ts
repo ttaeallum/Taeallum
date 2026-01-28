@@ -62,21 +62,21 @@ app.use("/api/course-content", courseContentRouter);
 app.use("/api/chatbot", chatbotRouter);
 
 // Health Check
-app.get("/api/health", (req, res) => {
+app.get("/api/health", (req: Request, res: Response) => {
   res.json({ status: "ok", time: new Date().toISOString(), config: getDbConfig() });
 });
 
-app.get("/api/health/db", async (_req, res) => {
+app.get("/api/health/db", async (_req: Request, res: Response) => {
   try {
     await db.execute(sql`select 1`);
     res.json({ ok: true, status: "connected" });
-  } catch (e) {
+  } catch (e: any) {
     res.status(500).json({ ok: false, error: String(e), config: getDbConfig() });
   }
 });
 
 // Root route for API debugging
-app.get("/api/hello", (req, res) => {
+app.get("/api/hello", (req: Request, res: Response) => {
   res.json({ message: "Taeallum API is responding!" });
 });
 

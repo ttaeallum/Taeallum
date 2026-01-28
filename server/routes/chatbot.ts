@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import OpenAI from "openai";
 
 const router = Router();
@@ -8,7 +8,7 @@ const openai = openaiKey
     ? new OpenAI({ apiKey: openaiKey })
     : null;
 
-router.post("/", async (req, res) => {
+router.post("/", async (req: Request, res: Response) => {
     try {
         const { message } = req.body;
 

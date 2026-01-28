@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 
 const router = Router();
@@ -8,7 +8,7 @@ const loginSchema = z.object({
     password: z.string().min(1),
 });
 
-router.post("/login", (req, res) => {
+router.post("/login", (req: Request, res: Response) => {
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: "بيانات غير صالحة" });
 
@@ -25,14 +25,14 @@ router.post("/login", (req, res) => {
     return res.json({ ok: true });
 });
 
-router.post("/logout", (req, res) => {
+router.post("/logout", (req: Request, res: Response) => {
     req.session.destroy(() => {
         res.clearCookie("connect.sid");
         res.json({ ok: true });
     });
 });
 
-router.get("/me", (req, res) => {
+router.get("/me", (req: Request, res: Response) => {
     res.json({ isAdmin: Boolean(req.session.isAdmin) });
 });
 

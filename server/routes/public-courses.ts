@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import { asc, desc, eq } from "drizzle-orm";
@@ -7,7 +7,7 @@ import { specializationCategories } from "../lib/specializations";
 const router = Router();
 
 // Get all specializations (categories)
-router.get("/categories", async (_req, res) => {
+router.get("/categories", async (req: Request, res: Response) => {
     try {
         await db
             .insert(schema.categories)
@@ -26,7 +26,7 @@ router.get("/categories", async (_req, res) => {
 });
 
 // Get all published courses
-router.get("/", async (req, res) => {
+router.get("/", async (req: Request, res: Response) => {
     try {
         const allCourses = await db.query.courses.findMany({
             where: eq(schema.courses.isPublished, true),
@@ -41,7 +41,7 @@ router.get("/", async (req, res) => {
 });
 
 // Get featured courses for homepage
-router.get("/featured", async (req, res) => {
+router.get("/featured", async (req: Request, res: Response) => {
     try {
         const featured = await db.query.courses.findMany({
             where: eq(schema.courses.isPublished, true),
@@ -57,7 +57,7 @@ router.get("/featured", async (req, res) => {
 });
 
 // Get single course by slug
-router.get("/:slug", async (req, res) => {
+router.get("/:slug", async (req: Request, res: Response) => {
     try {
         const [course] = await db.query.courses.findMany({
             where: eq(schema.courses.slug, req.params.slug),
@@ -77,7 +77,7 @@ router.get("/:slug", async (req, res) => {
 });
 
 // Get curriculum for a course
-router.get("/:courseId/curriculum", async (req, res) => {
+router.get("/:courseId/curriculum", async (req: Request, res: Response) => {
     try {
         const sections = await db.select().from(schema.sections).where(eq(schema.sections.courseId, req.params.courseId)).orderBy(schema.sections.order);
         const curriculum = await Promise.all(sections.map(async (section) => {
@@ -92,16 +92,16 @@ router.get("/:courseId/curriculum", async (req, res) => {
 });
 
 // Get single lesson detail
-router.get("/lesson/:lessonId", async (req, res) => {
+router.get("/lesson/:lessonId", async (req: Request, res: Response) => {
     try {
         const [lesson] = await db.select().from(schema.lessons).where(eq(schema.lessons.id, req.params.lessonId)).limit(1);
         if (!lesson) {
             return res.status(404).json({ message: "Lesson not found" });
         }
-        
+
         // Also need courseId to fetch curriculum, get it from section
         const [section] = await db.select().from(schema.sections).where(eq(schema.sections.id, lesson.sectionId)).limit(1);
-        
+
         res.json({ ...lesson, courseId: section.courseId });
     } catch (error) {
         console.error("Error fetching lesson:", error);

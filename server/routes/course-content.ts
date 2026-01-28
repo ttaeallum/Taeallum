@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import { eq, asc } from "drizzle-orm";
@@ -6,7 +6,7 @@ import { eq, asc } from "drizzle-orm";
 const router = Router();
 
 // Get course curriculum (sections and lessons)
-router.get("/:courseId/curriculum", async (req, res) => {
+router.get("/:courseId/curriculum", async (req: Request, res: Response) => {
     try {
         const { courseId } = req.params;
 
@@ -36,7 +36,7 @@ router.get("/:courseId/curriculum", async (req, res) => {
 });
 
 // Update lesson progress (mark as completed)
-router.post("/lesson/:lessonId/complete", async (req, res) => {
+router.post("/lesson/:lessonId/complete", async (req: Request, res: Response) => {
     try {
         const { lessonId } = req.params;
         const userId = req.session.userId;

@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import Stripe from "stripe";
 import { requireAuth } from "./auth";
 import { db } from "../db";
@@ -14,7 +14,7 @@ const stripe = stripeKey
 
 const router = Router();
 
-router.post("/create-checkout-session", requireAuth, async (req, res) => {
+router.post("/create-checkout-session", requireAuth, async (req: Request, res: Response) => {
     try {
         const { courseId } = req.body;
         const userId = req.session.userId;

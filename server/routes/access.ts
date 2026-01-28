@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import { and, eq } from "drizzle-orm";
@@ -7,7 +7,7 @@ import { requireAuth } from "./auth";
 const router = Router();
 
 // Check if a user has access to a specific course
-router.get("/course/:courseId", async (req, res) => {
+router.get("/course/:courseId", async (req: Request, res: Response) => {
     try {
         if (!req.session.userId) {
             return res.json({ allowed: false, reason: "not_logged_in" });
