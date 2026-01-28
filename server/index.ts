@@ -21,7 +21,7 @@ import { sql } from "drizzle-orm";
 const app = express();
 const httpServer = createServer(app);
 
-console.log("--- SERVER INITIALIZING: VERSION 5.6 (DIAGNOSTICS) ---");
+console.log("--- SERVER INITIALIZING: VERSION 5.7 (SUPER DEFENSIVE) ---");
 
 // Essential Middleware
 app.use(express.json({
@@ -36,18 +36,21 @@ app.set("trust proxy", 1);
 const isProduction = process.env.NODE_ENV === "production";
 const useSecureCookies = process.env.SESSION_SECURE === "true" || isProduction;
 
-const sessionStore = new PostgresStore({
-  pool: pool,
-  tableName: "user_sessions",
-  createTableIfMissing: true
-});
+let sessionMiddleware;
+const dbConfig = getDbConfig();
 
-sessionStore.on('error', function (error) {
-  console.error('Session store error:', error);
-});
+if (dbConfig.hasUrl) {
+  const sessionStore = new PostgresStore({
+    pool: pool,
+    tableName: "user_sessions",
+    createTableIfMissing: true
+  });
 
-app.use(
-  session({
+  sessionStore.on('error', function (error) {
+    console.error('Session store error:', error);
+  });
+
+  sessionMiddleware = session({
     store: sessionStore,
     name: "connect.sid",
     secret: process.env.SESSIONSECRET || process.env.SESSION_SECRET || "hamza-platform-2026-secure",
@@ -61,8 +64,18 @@ app.use(
       path: "/",
     },
     rolling: true,
-  })
-);
+  });
+} else {
+  console.warn("DB not connected, using memory session");
+  sessionMiddleware = session({
+    secret: "temp-secret",
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false }
+  });
+}
+
+app.use(sessionMiddleware);
 
 // API Routes setup
 app.use("/api/admin", adminAuthRouter);
@@ -79,6 +92,7 @@ app.use("/api/chatbot", chatbotRouter);
 app.get("/api/health/db", async (_req, res) => {
   const config = getDbConfig();
   try {
+    if (!config.hasUrl) throw new Error("Database URL is missing in Environment Variables");
     await db.execute(sql`select 1`);
     const result = await pool.query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
     res.json({
@@ -112,6 +126,17 @@ app.use((req, res, next) => {
 // Register routes (non-blocking for Vercel)
 registerRoutes(httpServer, app).catch(err => {
   console.error("Failed to register routes:", err);
+});
+
+// Global Error Handler
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error("UNHANDLED ERROR:", err);
+  res.status(500).json({
+    ok: false,
+    error: "Global Crash Protected",
+    details: err.message,
+    config: getDbConfig()
+  });
 });
 
 // Export for Vercel
