@@ -18,11 +18,16 @@ import { sql } from "drizzle-orm";
 
 const app = express();
 
+// DEBUG LOGGING
+app.use((req, res, next) => {
+    console.log(`[API] ${req.method} ${req.url}`);
+    next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.set("trust proxy", 1);
 
-// More resilient session config for cross-domain/serverless
 app.use(session({
     store: new MemoryStore({ checkPeriod: 86400000 }),
     secret: process.env.SESSION_SECRET || "hamza-secret-2026",
@@ -30,11 +35,16 @@ app.use(session({
     saveUninitialized: true,
     cookie: {
         secure: true,
-        sameSite: "lax", // Changed from 'none' to 'lax' for better compatibility
+        sameSite: "lax",
         httpOnly: true,
         maxAge: 30 * 24 * 60 * 60 * 1000
     }
 }));
+
+// Health Check (Top level to avoid router issues)
+app.get("/api/hello", (req, res) => {
+    res.json({ message: "FULL SYSTEM READY", version: "6.4", db: getDbConfig() });
+});
 
 // API Routes
 app.use("/api/auth", authRouter);
@@ -47,25 +57,15 @@ app.use("/api/payments", paymentsRouter);
 app.use("/api/course-content", courseContentRouter);
 app.use("/api/chatbot", chatbotRouter);
 
-// Root Hello
-app.get("/api/hello", (req, res) => {
-    res.json({ message: "FULL SYSTEM READY", version: "6.3" });
-});
-
-// DB Status Test
-app.get("/api/health/db", async (req, res) => {
-    try {
-        await db.execute(sql`select 1`);
-        res.json({ ok: true, status: "connected" });
-    } catch (e) {
-        res.status(500).json({ ok: false, error: String(e), config: getDbConfig() });
-    }
-});
-
-// Global Error Handler to prevent crash
+// Global Error Handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-    console.error(err);
-    res.status(500).json({ message: "Internal Server Error", error: err.message });
+    console.error("FATAL ERROR IN API:", err);
+    res.status(500).json({
+        ok: false,
+        message: "Internal Server Error",
+        details: err.message,
+        stack: process.env.NODE_ENV === "development" ? err.stack : undefined
+    });
 });
 
 export default app;
