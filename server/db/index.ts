@@ -4,14 +4,18 @@ import { Pool } from "pg";
 import * as schema from "./schema";
 
 const rawDbUrl = process.env.DATABASE || process.env.DATABASE_URL;
-const cleanDbUrl = (rawDbUrl && rawDbUrl.trim() !== "") ? rawDbUrl.replace(/^['"]|['"]$/g, "") : null;
+const cleanDbUrl = (rawDbUrl && rawDbUrl.trim().length > 10)
+    ? rawDbUrl.replace(/^['"]|['"]$/g, "").trim()
+    : null;
 
-if (!cleanDbUrl && process.env.NODE_ENV === "production" && !process.env.VERCEL) {
-    console.warn("WARNING: DATABASE_URL is missing in production environment!");
+if (cleanDbUrl) {
+    console.log(`[DB] Connection string found (Starts with: ${cleanDbUrl.substring(0, 15)}...)`);
+} else {
+    console.error("[DB] CRITICAL: Connection string is MISSING or too short!");
 }
 
 export const pool = new Pool({
-    connectionString: cleanDbUrl || "postgres://localhost:5432/postgres", // Fallback to avoid immediate crash
+    connectionString: cleanDbUrl || "postgresql://postgres:postgres@localhost:5432/postgres",
     ssl: cleanDbUrl ? { rejectUnauthorized: false } : false
 });
 
