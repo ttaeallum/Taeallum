@@ -3,72 +3,59 @@ import session from "express-session";
 import memorystore from "memorystore";
 const MemoryStore = memorystore(session);
 
-// Routers
-import authRouter from "../server/routes/auth";
-import adminAuthRouter from "../server/routes/admin-auth";
-import adminRouter from "../server/routes/admin";
-import publicCoursesRouter from "../server/routes/public-courses";
-import accessRouter from "../server/routes/access";
-import webhooksRouter from "../server/routes/webhooks";
-import paymentsRouter from "../server/routes/payments";
-import courseContentRouter from "../server/routes/course-content";
-import chatbotRouter from "../server/routes/chatbot";
-import { getDbConfig, db, pool } from "../server/db";
-import { sql } from "drizzle-orm";
-
 const app = express();
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.set("trust proxy", 1);
 
-// Super-Compatible Session Config
 app.use(session({
     store: new MemoryStore({ checkPeriod: 86400000 }),
     secret: process.env.SESSION_SECRET || "hamza-secret-2026",
-    resave: true, // Force session save
+    resave: true,
     saveUninitialized: true,
-    cookie: {
-        secure: true,
-        sameSite: "none", // Essential for cross-site requests if they happen
-        httpOnly: false, // Allow client access if needed (debugging)
-        maxAge: 30 * 24 * 60 * 60 * 1000
-    }
+    cookie: { secure: true, sameSite: "lax", httpOnly: true }
 }));
 
-// API Routes
-app.use("/api/auth", authRouter);
-app.use("/api/admin", adminAuthRouter);
-app.use("/api/admin-panel", adminRouter);
-app.use("/api/courses", publicCoursesRouter);
-app.use("/api/access", accessRouter);
-app.use("/api/webhooks", webhooksRouter);
-app.use("/api/payments", paymentsRouter);
-app.use("/api/course-content", courseContentRouter);
-app.use("/api/chatbot", chatbotRouter);
-
-app.get("/api/hello", (req, res) => {
-    res.json({ message: "TAEALLUM ENGINE RESPONDING", version: "6.5" });
+// SAFE ROUTE LOADING (Dynamic Imports to prevent boot crashes)
+app.post("/api/auth/:action", async (req, res, next) => {
+    try {
+        const auth = await import("../server/routes/auth");
+        return auth.default(req, res, next);
+    } catch (e: any) {
+        res.status(500).json({ message: "Auth Error", details: e.message });
+    }
 });
 
-// SELF-HEALING DB CHECK
-app.get("/api/health/db", async (req, res) => {
+app.get("/api/auth/me", async (req, res, next) => {
     try {
-        // Test query
-        await db.execute(sql`select 1`);
+        const auth = await import("../server/routes/auth");
+        return auth.default(req, res, next);
+    } catch (e: any) {
+        res.status(500).json({ message: "Auth Session Error", details: e.message });
+    }
+});
 
-        // Check if users table exists
-        const tableCheck = await pool.query("SELECT to_regclass('public.users') as exists");
-        const exists = !!tableCheck.rows[0].exists;
+// DEFAULT HELLO FOR VERIFICATION
+app.get("/api/hello", (req, res) => {
+    res.json({ status: "ok", msg: "SUPER STABLE API ONLINE" });
+});
 
-        res.json({
-            ok: true,
-            status: "connected",
-            usersTableExists: exists,
-            config: getDbConfig()
-        });
-    } catch (e) {
-        res.status(500).json({ ok: false, error: String(e) });
+// CATCH ALL OTHER API ROUTES
+app.all("/api/:path*", async (req, res, next) => {
+    const { path } = req.params;
+    try {
+        // Map path to router
+        let router;
+        if (path === "courses") router = await import("../server/routes/public-courses");
+        else if (path === "chatbot") router = await import("../server/routes/chatbot");
+        else if (path === "payments") router = await import("../server/routes/payments");
+
+        if (router && router.default) {
+            return router.default(req, res, next);
+        }
+        res.status(404).json({ message: `API Path /api/${path} not found or not yet mapped.` });
+    } catch (e: any) {
+        res.status(500).json({ message: "Router Load Error", path, details: e.message });
     }
 });
 
