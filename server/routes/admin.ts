@@ -10,15 +10,20 @@ const adminEmail = (process.env.ADMIN_EMAIL || "hamzali200410@gmail.com").toLowe
 
 // --- Middleware: Verify Admin ---
 async function requireAdmin(req: Request, res: Response, next: NextFunction) {
+    if (req.session && req.session.isAdmin) {
+        return next();
+    }
+
     if (!req.session || !req.session.userId) {
         return res.status(401).json({ message: "Admin access required" });
     }
+
     try {
         const [user] = await db.select().from(schema.users).where(eq(schema.users.id, req.session.userId)).limit(1);
         if (!user) {
             return res.status(401).json({ message: "Admin only" });
         }
-        const isAdmin = user.email.toLowerCase() === adminEmail;
+        const isAdmin = user.email.toLowerCase() === adminEmail || user.role === "admin";
         if (!isAdmin) {
             return res.status(403).json({ message: "Admin only" });
         }
@@ -109,14 +114,14 @@ router.post("/categories", async (req: Request, res: Response) => {
 
 router.put("/categories/:id", async (req: Request, res: Response) => {
     const { name, slug, description } = req.body;
-    const [updated] = await db.update(schema.categories).set({ name, slug, description }).where(eq(schema.categories.id, req.params.id)).returning();
+    const [updated] = await db.update(schema.categories).set({ name, slug, description }).where(eq(schema.categories.id, String(req.params.id))).returning();
     await logAudit(adminEmail, "UPDATE", "Category", updated.id, updated);
     res.json(updated);
 });
 
 router.delete("/categories/:id", async (req: Request, res: Response) => {
-    await db.delete(schema.categories).where(eq(schema.categories.id, req.params.id));
-    await logAudit(adminEmail, "DELETE", "Category", req.params.id);
+    await db.delete(schema.categories).where(eq(schema.categories.id, String(req.params.id)));
+    await logAudit(adminEmail, "DELETE", "Category", req.params.id as string);
     res.json({ ok: true });
 });
 
@@ -152,14 +157,14 @@ router.post("/courses", async (req: Request, res: Response) => {
 });
 
 router.put("/courses/:id", async (req: Request, res: Response) => {
-    const [updated] = await db.update(schema.courses).set({ ...req.body, updatedAt: new Date() }).where(eq(schema.courses.id, req.params.id)).returning();
+    const [updated] = await db.update(schema.courses).set({ ...req.body, updatedAt: new Date() }).where(eq(schema.courses.id, String(req.params.id))).returning();
     await logAudit(adminEmail, "UPDATE", "Course", updated.id, updated);
     res.json(updated);
 });
 
 router.delete("/courses/:id", async (req: Request, res: Response) => {
-    await db.delete(schema.courses).where(eq(schema.courses.id, req.params.id));
-    await logAudit(adminEmail, "DELETE", "Course", req.params.id);
+    await db.delete(schema.courses).where(eq(schema.courses.id, req.params.id as string));
+    await logAudit(adminEmail, "DELETE", "Course", req.params.id as string);
     res.json({ ok: true });
 });
 
@@ -174,7 +179,7 @@ router.get("/users", async (req: Request, res: Response) => {
 
 // --- 5. Curriculum (Sections & Lessons) ---
 router.get("/courses/:courseId/curriculum", async (req: Request, res: Response) => {
-    const sections = await db.select().from(schema.sections).where(eq(schema.sections.courseId, req.params.courseId)).orderBy(schema.sections.order);
+    const sections = await db.select().from(schema.sections).where(eq(schema.sections.courseId, req.params.courseId as string)).orderBy(schema.sections.order);
     const curriculum = await Promise.all(sections.map(async (section) => {
         const lessons = await db.select().from(schema.lessons).where(eq(schema.lessons.sectionId, section.id)).orderBy(schema.lessons.order);
         return { ...section, lessons };
@@ -189,14 +194,14 @@ router.post("/sections", async (req: Request, res: Response) => {
 });
 
 router.put("/sections/:id", async (req: Request, res: Response) => {
-    const [updated] = await db.update(schema.sections).set(req.body).where(eq(schema.sections.id, req.params.id)).returning();
+    const [updated] = await db.update(schema.sections).set(req.body).where(eq(schema.sections.id, String(req.params.id))).returning();
     await logAudit(adminEmail, "UPDATE", "Section", updated.id, updated);
     res.json(updated);
 });
 
 router.delete("/sections/:id", async (req: Request, res: Response) => {
-    await db.delete(schema.sections).where(eq(schema.sections.id, req.params.id));
-    await logAudit(adminEmail, "DELETE", "Section", req.params.id);
+    await db.delete(schema.sections).where(eq(schema.sections.id, String(req.params.id)));
+    await logAudit(adminEmail, "DELETE", "Section", req.params.id as string);
     res.json({ ok: true });
 });
 
@@ -207,14 +212,14 @@ router.post("/lessons", async (req: Request, res: Response) => {
 });
 
 router.put("/lessons/:id", async (req: Request, res: Response) => {
-    const [updated] = await db.update(schema.lessons).set(req.body).where(eq(schema.lessons.id, req.params.id)).returning();
+    const [updated] = await db.update(schema.lessons).set(req.body).where(eq(schema.lessons.id, String(req.params.id))).returning();
     await logAudit(adminEmail, "UPDATE", "Lesson", updated.id, updated);
     res.json(updated);
 });
 
 router.delete("/lessons/:id", async (req: Request, res: Response) => {
-    await db.delete(schema.lessons).where(eq(schema.lessons.id, req.params.id));
-    await logAudit(adminEmail, "DELETE", "Lesson", req.params.id);
+    await db.delete(schema.lessons).where(eq(schema.lessons.id, String(req.params.id)));
+    await logAudit(adminEmail, "DELETE", "Lesson", req.params.id as string);
     res.json({ ok: true });
 });
 

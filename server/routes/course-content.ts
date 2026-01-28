@@ -13,7 +13,7 @@ router.get("/:courseId/curriculum", async (req: Request, res: Response) => {
         // Fetch sections for the course
         const sections = await db.select()
             .from(schema.sections)
-            .where(eq(schema.sections.courseId, courseId))
+            .where(eq(schema.sections.courseId, String(courseId)))
             .orderBy(asc(schema.sections.order));
 
         // Fetch lessons for all these sections

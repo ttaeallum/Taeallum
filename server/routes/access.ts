@@ -22,7 +22,7 @@ router.get("/course/:courseId", async (req: Request, res: Response) => {
             .where(
                 and(
                     eq(schema.enrollments.userId, userId),
-                    eq(schema.enrollments.courseId, courseId)
+                    eq(schema.enrollments.courseId, String(courseId))
                 )
             )
             .limit(1);
@@ -37,7 +37,7 @@ router.get("/course/:courseId", async (req: Request, res: Response) => {
             .where(
                 and(
                     eq(schema.orders.userId, userId),
-                    eq(schema.orders.courseId, courseId),
+                    eq(schema.orders.courseId, String(courseId)),
                     eq(schema.orders.status, "completed")
                 )
             )
@@ -48,7 +48,7 @@ router.get("/course/:courseId", async (req: Request, res: Response) => {
             // Better to handle this at order completion time, but good fallback.
             await db.insert(schema.enrollments).values({
                 userId,
-                courseId,
+                courseId: String(courseId),
             }).onConflictDoNothing();
 
             return res.json({ allowed: true });

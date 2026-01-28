@@ -60,7 +60,7 @@ router.get("/featured", async (req: Request, res: Response) => {
 router.get("/:slug", async (req: Request, res: Response) => {
     try {
         const [course] = await db.query.courses.findMany({
-            where: eq(schema.courses.slug, req.params.slug),
+            where: eq(schema.courses.slug, String(req.params.slug)),
             with: { category: true },
             limit: 1,
         });
@@ -79,7 +79,7 @@ router.get("/:slug", async (req: Request, res: Response) => {
 // Get curriculum for a course
 router.get("/:courseId/curriculum", async (req: Request, res: Response) => {
     try {
-        const sections = await db.select().from(schema.sections).where(eq(schema.sections.courseId, req.params.courseId)).orderBy(schema.sections.order);
+        const sections = await db.select().from(schema.sections).where(eq(schema.sections.courseId, String(req.params.courseId))).orderBy(schema.sections.order);
         const curriculum = await Promise.all(sections.map(async (section) => {
             const lessons = await db.select().from(schema.lessons).where(eq(schema.lessons.sectionId, section.id)).orderBy(schema.lessons.order);
             return { ...section, lessons };
@@ -94,7 +94,7 @@ router.get("/:courseId/curriculum", async (req: Request, res: Response) => {
 // Get single lesson detail
 router.get("/lesson/:lessonId", async (req: Request, res: Response) => {
     try {
-        const [lesson] = await db.select().from(schema.lessons).where(eq(schema.lessons.id, req.params.lessonId)).limit(1);
+        const [lesson] = await db.select().from(schema.lessons).where(eq(schema.lessons.id, String(req.params.lessonId))).limit(1);
         if (!lesson) {
             return res.status(404).json({ message: "Lesson not found" });
         }

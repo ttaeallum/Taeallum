@@ -46,7 +46,7 @@ router.post("/stripe", async (req: Request & { rawBody?: Buffer }, res: Response
                 await db.insert(schema.orders).values({
                     userId,
                     courseId,
-                    amount: (session.amount_total || 0 / 100).toString(),
+                    amount: ((session.amount_total || 0) / 100).toString(),
                     status: "completed",
                     paymentId: session.id,
                 });

@@ -29,7 +29,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 }
 
 // Routes
-router.post("/register", async (req, res) => {
+router.post("/register", async (req: Request, res: Response) => {
     try {
         const parsed = registerSchema.safeParse(req.body);
         if (!parsed.success) {
@@ -87,7 +87,7 @@ router.post("/register", async (req, res) => {
     }
 });
 
-router.post("/login", async (req, res) => {
+router.post("/login", async (req: Request, res: Response) => {
     try {
         const parsed = loginSchema.safeParse(req.body);
         if (!parsed.success) {
@@ -152,7 +152,7 @@ router.post("/login", async (req, res) => {
     }
 });
 
-router.post("/logout", (req, res) => {
+router.post("/logout", (req: Request, res: Response) => {
     req.session.destroy((err) => {
         if (err) {
             return res.status(500).json({ message: "لم نتمكن من تسجيل الخروج، يرجى المحاولة لاحقاً" });
@@ -162,7 +162,7 @@ router.post("/logout", (req, res) => {
     });
 });
 
-router.get("/me", async (req, res) => {
+router.get("/me", async (req: Request, res: Response) => {
     if (!req.session || !req.session.userId) {
         return res.status(401).json({ message: "لم يتم العثور على جلسة نشطة" });
     }
