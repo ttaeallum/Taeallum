@@ -171,21 +171,28 @@ export default function AIAgent() {
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-center mb-12"
+              className="text-center mb-16 relative"
             >
-              <div className="inline-flex items-center justify-center p-2 mb-4 rounded-2xl bg-primary/10 border border-primary/20 backdrop-blur-md">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-primary/10 rounded-full blur-[120px] -z-10" />
+              
+              <div className="inline-flex items-center justify-center p-2 mb-6 rounded-2xl bg-primary/10 border border-primary/20 backdrop-blur-md shadow-inner">
                 <Badge variant="ghost" className="px-4 py-1 text-primary gap-2 hover:bg-transparent">
-                  <Sparkles className="w-4 h-4 animate-pulse" />
-                  <span className="font-semibold uppercase tracking-wider text-[10px]">AI-Powered Personalized Learning</span>
+                  <Sparkles className="w-4 h-4 animate-pulse text-amber-500" />
+                  <span className="font-bold uppercase tracking-widest text-[10px]">{isRtl ? "مساعد ذكاء اصطناعي فائق" : "Advanced AI Assistant"}</span>
                 </Badge>
               </div>
-              <h1 className="text-4xl md:text-6xl font-black mb-6 bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary/80 to-primary/60">
-                {isRtl ? "مساعدك الأكاديمي الذكي" : "Your Smart Academic Assistant"}
+              
+              <h1 className="text-5xl md:text-7xl font-black mb-8 tracking-tighter leading-tight">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary/80 to-emerald-500">
+                  {isRtl ? "أنيس:" : "Anis:"}
+                </span><br />
+                {isRtl ? "مستشارك الأكاديمي الذكي" : "Your Smart Academic Mentor"}
               </h1>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto font-medium">
+              
+              <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto font-medium leading-relaxed">
                 {isRtl 
-                  ? "دعنا نصمم لك مساراً تعليمياً احترافياً يختصر عليك المسافات" 
-                  : "Let's design a professional learning path that bridges the gap to your goals"}
+                  ? "حلل أهدافك، اكتشف مهاراتك، وابدأ رحلة تعليمية مصممة خصيصاً لك بأحدث تقنيات الذكاء الاصطناعي." 
+                  : "Analyze your goals, discover your skills, and start a learning journey custom-designed for you with the latest AI technology."}
               </p>
             </motion.div>
 
@@ -256,69 +263,82 @@ export default function AIAgent() {
 
               {/* Chat Section */}
               <div className="lg:col-span-3">
-                <Card className="h-[600px] md:h-[700px] flex flex-col border-primary/20 shadow-2xl bg-background/40 backdrop-blur-2xl relative overflow-hidden">
-                  <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
+                <Card className="h-[650px] md:h-[750px] flex flex-col border-primary/20 shadow-[0_20px_50px_rgba(0,0,0,0.15)] bg-background/60 backdrop-blur-3xl relative overflow-hidden rounded-[2.5rem]">
+                  <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
                   
                   {/* Chat Header */}
-                  <div className="px-6 py-4 border-b border-primary/10 flex items-center justify-between bg-background/20">
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <Avatar className="h-10 w-10 border-2 border-primary/20">
+                  <div className="px-8 py-6 border-b border-primary/10 flex items-center justify-between bg-background/40 backdrop-blur-md">
+                    <div className="flex items-center gap-4">
+                      <div className="relative group">
+                        <div className="absolute inset-0 bg-primary/20 rounded-full blur-md group-hover:bg-primary/30 transition-colors" />
+                        <Avatar className="h-14 w-14 border-2 border-primary/30 relative z-10 shadow-lg">
                           <AvatarImage src="/anis-avatar.png" />
-                          <AvatarFallback className="bg-primary/10 text-primary"><Bot className="w-6 h-6" /></AvatarFallback>
+                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-primary">
+                            <Bot className="w-8 h-8" />
+                          </AvatarFallback>
                         </Avatar>
-                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full" />
+                        <span className="absolute bottom-0.5 right-0.5 w-4 h-4 bg-green-500 border-2 border-background rounded-full z-20 shadow-sm" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-sm leading-none">{isRtl ? "أنيس" : "Anis"}</h3>
-                        <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
-                          <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
-                          {isRtl ? "متصل الآن - جاهز للمساعدة" : "Online - Ready to help"}
-                        </p>
+                        <h3 className="font-black text-xl tracking-tight leading-none mb-1.5">{isRtl ? "أنيس الذكي" : "Anis AI"}</h3>
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-70">
+                            {isRtl ? "نشط الآن" : "Active Now"}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                    <Badge variant="outline" className="bg-primary/5 text-[10px] text-primary border-primary/20">
-                      {isRtl ? "مساعد شخصي فائق" : "Ultra Personal Assistant"}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge variant="outline" className="bg-primary/10 text-[10px] font-black text-primary border-primary/30 px-3 py-1 rounded-lg">
+                        CORE MODEL V4.0
+                      </Badge>
+                      <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-tighter">Latency: 24ms</p>
+                    </div>
                   </div>
 
                   {/* Messages Container */}
-                  <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 scrollbar-thin scrollbar-thumb-primary/10 scroll-smooth">
+                  <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 scrollbar-thin scrollbar-thumb-primary/10 scroll-smooth bg-[radial-gradient(circle_at_top_right,rgba(var(--primary),0.02),transparent)]">
                     <AnimatePresence mode="popLayout">
                       {messages.map((message, index) => (
                         <motion.div
                           key={message.id}
-                          initial={{ opacity: 0, x: message.type === "user" ? 20 : -20, y: 10 }}
+                          initial={{ opacity: 0, x: message.type === "user" ? 30 : -30, y: 20 }}
                           animate={{ opacity: 1, x: 0, y: 0 }}
-                          transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                          className={`flex gap-3 ${
+                          transition={{ type: "spring", damping: 20, stiffness: 150 }}
+                          className={`flex gap-4 ${
                             message.type === "user" ? "flex-row-reverse" : "flex-row"
                           }`}
                         >
-                          <Avatar className={`h-8 w-8 mt-1 border shadow-sm ${message.type === 'user' ? 'border-primary/20' : 'border-primary/10'}`}>
-                            {message.type === "agent" ? (
-                              <AvatarFallback className="bg-primary/5 text-primary"><Bot className="w-4 h-4" /></AvatarFallback>
-                            ) : (
-                              <AvatarFallback className="bg-secondary text-secondary-foreground"><User className="w-4 h-4" /></AvatarFallback>
-                            )}
-                          </Avatar>
+                          <div className="flex flex-col items-center gap-2">
+                            <Avatar className={`h-10 w-10 border-2 shadow-md ${message.type === 'user' ? 'border-primary/40 bg-primary/10' : 'border-primary/20 bg-background'}`}>
+                              {message.type === "agent" ? (
+                                <AvatarFallback className="bg-primary/5 text-primary"><Bot className="w-5 h-5" /></AvatarFallback>
+                              ) : (
+                                <AvatarFallback className="bg-secondary text-secondary-foreground"><User className="w-5 h-5" /></AvatarFallback>
+                              )}
+                            </Avatar>
+                          </div>
+                          
                           <div
-                            className={`flex flex-col max-w-[85%] lg:max-w-[70%] ${
+                            className={`flex flex-col max-w-[85%] lg:max-w-[75%] ${
                               message.type === "user" ? "items-end" : "items-start"
                             }`}
                           >
                             <div
-                              className={`px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                              className={`px-6 py-4 rounded-[1.5rem] text-base leading-relaxed shadow-md border transition-all ${
                                 message.type === "user"
-                                  ? "bg-primary text-primary-foreground rounded-tr-none"
-                                  : "bg-background/80 border border-primary/10 text-foreground rounded-tl-none backdrop-blur-sm"
+                                  ? "bg-primary text-primary-foreground rounded-tr-none border-primary/20 shadow-primary/10"
+                                  : "bg-background/90 border-primary/10 text-foreground rounded-tl-none backdrop-blur-md shadow-black/5"
                               }`}
                             >
                               {message.content}
                             </div>
-                            <span className="text-[9px] text-muted-foreground mt-1 px-1">
-                              {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
+                            <div className="flex items-center gap-2 mt-2 px-2 text-[10px] font-bold text-muted-foreground/50 uppercase tracking-tighter">
+                              <span>{message.type === 'agent' ? (isRtl ? 'أنيس' : 'ANIS') : (isRtl ? 'أنت' : 'YOU')}</span>
+                              <span>•</span>
+                              <span>{message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
                           </div>
                         </motion.div>
                       ))}
@@ -378,11 +398,12 @@ export default function AIAgent() {
 
                   {/* Input Section */}
                   {!showPlan && (
-                    <div className="p-4 bg-background/40 border-t border-primary/10 backdrop-blur-md">
-                      <div className="flex gap-2 items-end max-w-4xl mx-auto w-full">
+                    <div className="p-6 bg-background/60 border-t border-primary/10 backdrop-blur-xl">
+                      <div className="flex gap-3 items-end max-w-4xl mx-auto w-full">
                         <div className="relative flex-1 group">
+                          <div className="absolute inset-0 bg-primary/5 rounded-[1.5rem] group-focus-within:bg-primary/10 transition-colors" />
                           <Textarea
-                            placeholder={isRtl ? "اكتب إجابتك هنا بذكاء..." : "Type your answer smartly..."}
+                            placeholder={isRtl ? "تحدث مع أنيس، اطرح أسئلتك أو أجب..." : "Talk to Anis, ask or answer..."}
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
                             onKeyDown={(e) => {
@@ -391,26 +412,26 @@ export default function AIAgent() {
                                 handleSendMessage();
                               }
                             }}
-                            className="min-h-[50px] max-h-32 resize-none bg-background/60 border-primary/20 focus:border-primary/50 focus:ring-primary/20 rounded-2xl px-4 py-3 text-sm transition-all pr-12"
+                            className="min-h-[60px] max-h-32 resize-none bg-transparent border-2 border-primary/20 focus:border-primary/50 focus:ring-4 focus:ring-primary/10 rounded-[1.5rem] px-6 py-4 text-base transition-all pr-14 shadow-inner"
                             disabled={isLoading}
                           />
-                          <div className={`absolute bottom-3 ${isRtl ? 'left-3' : 'right-3'} flex items-center gap-2`}>
+                          <div className={`absolute bottom-3.5 ${isRtl ? 'left-3.5' : 'right-3.5'} flex items-center gap-3`}>
                             <Button
                               onClick={handleSendMessage}
                               disabled={!inputValue.trim() || isLoading}
                               size="icon"
-                              className="h-8 w-8 rounded-xl shadow-lg shadow-primary/20 transition-all active:scale-95"
+                              className="h-10 w-10 rounded-2xl shadow-xl shadow-primary/30 transition-all active:scale-90 hover:scale-105 bg-primary hover:bg-primary/90"
                             >
-                              <Send className="w-3.5 h-3.5" />
+                              <Send className="w-4 h-4" />
                             </Button>
                           </div>
                         </div>
                       </div>
-                      <p className="text-center text-[9px] text-muted-foreground mt-3">
-                        {isRtl 
-                          ? "مدعوم بنظام تفكير متقدم لضمان أدق النتائج" 
-                          : "Powered by advanced reasoning for accurate results"}
-                      </p>
+                      <div className="flex justify-center items-center gap-4 mt-4 opacity-60">
+                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
+                          Neural Network processing enabled
+                        </p>
+                      </div>
                     </div>
                   )}
 
