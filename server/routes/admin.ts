@@ -141,7 +141,12 @@ router.get("/courses", async (req, res) => {
 });
 
 router.post("/courses", async (req, res) => {
-    const [newCourse] = await db.insert(schema.courses).values({ ...req.body }).returning();
+    // Force isPublished to true if not specified, so it appears immediately on the home page
+    const courseData = { 
+        ...req.body, 
+        isPublished: req.body.isPublished !== undefined ? req.body.isPublished : true 
+    };
+    const [newCourse] = await db.insert(schema.courses).values(courseData).returning();
     await logAudit(adminEmail, "CREATE", "Course", newCourse.id, newCourse);
     res.json(newCourse);
 });
