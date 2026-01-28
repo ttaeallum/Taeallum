@@ -1,16 +1,33 @@
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Link, useRoute } from "wouter";
-import { PlayCircle, CheckCircle, ChevronLeft, ChevronRight, Download, MessageSquare } from "lucide-react";
-import { courses } from "@/lib/mock-data";
+import { PlayCircle, CheckCircle, ChevronLeft, ChevronRight, Download, MessageSquare, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 export default function LessonPlayer() {
   const [, params] = useRoute("/lesson/:id");
-  const [activeLesson, setActiveLesson] = useState(1);
+  const { data: curriculum, isLoading } = useQuery({
+    queryKey: ["course-curriculum", params?.id],
+    queryFn: async () => {
+      // First find the lesson to get its courseId
+      const lessonRes = await fetch(`/api/courses/lesson/${params?.id}`);
+      if (!lessonRes.ok) throw new Error("Failed to fetch lesson");
+      const lessonData = await lessonRes.json();
+      
+      const res = await fetch(`/api/courses/${lessonData.courseId}/curriculum`);
+      if (!res.ok) throw new Error("Failed to fetch curriculum");
+      return res.json();
+    },
+    enabled: !!params?.id
+  });
+
+  const activeLessonData = curriculum?.flatMap((s: any) => s.lessons).find((l: any) => l.id === params?.id);
   
+  if (isLoading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin w-8 h-8 text-primary" /></div>;
+
   return (
     <div className="flex flex-col h-screen bg-background">
       {/* Header */}
@@ -21,7 +38,7 @@ export default function LessonPlayer() {
               <ChevronRight className="w-5 h-5" />
             </Button>
           </Link>
-          <h1 className="font-bold text-lg hidden md:block">مقدمة في تصميم واجهة المستخدم UI/UX</h1>
+          <h1 className="font-bold text-lg hidden md:block">{activeLessonData?.title}</h1>
         </div>
         <div className="flex items-center gap-2">
            <Button variant="outline" size="sm" className="hidden sm:flex gap-2">
@@ -35,64 +52,65 @@ export default function LessonPlayer() {
         {/* Main Content (Player) */}
         <main className="flex-1 overflow-y-auto bg-black flex flex-col items-center justify-center relative">
           <div className="w-full h-full max-h-[80vh] aspect-video bg-zinc-900 flex items-center justify-center relative group">
-             {/* Mock Video Player */}
-             <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center cursor-pointer hover:scale-110 transition-transform">
-                  <PlayCircle className="w-12 h-12 text-white fill-current" />
-                </div>
-             </div>
-             <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800">
-               <div className="w-1/3 h-full bg-primary relative">
-                 <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-primary rounded-full shadow cursor-pointer hover:scale-150 transition-transform"></div>
+             {activeLessonData?.videoUrl ? (
+               <div 
+                 className="w-full h-full"
+                 dangerouslySetInnerHTML={{ __html: activeLessonData.videoUrl.includes('<iframe') ? activeLessonData.videoUrl : `<iframe src="${activeLessonData.videoUrl}" className="w-full h-full" frameBorder="0" allowFullScreen></iframe>` }}
+               />
+             ) : (
+               <div className="text-white text-center">
+                 <PlayCircle className="w-20 h-20 mx-auto mb-4 opacity-20" />
+                 <p>لا يوجد فيديو متاح لهذا الدرس</p>
                </div>
-             </div>
-             <p className="absolute top-4 left-4 text-white/50 text-sm">Mock Video Player</p>
+             )}
           </div>
+          {activeLessonData?.content && (
+            <div className="w-full max-w-4xl mx-auto p-8 text-white prose prose-invert">
+              <h2 className="text-2xl font-bold mb-4">وصف الدرس</h2>
+              <p>{activeLessonData.content}</p>
+            </div>
+          )}
         </main>
         
         {/* Sidebar (Curriculum) */}
         <aside className="w-80 border-r border-border/40 bg-card hidden lg:flex flex-col shrink-0">
           <div className="p-4 border-b border-border/40">
             <h2 className="font-bold">محتوى الكورس</h2>
-            <div className="w-full bg-muted h-2 rounded-full mt-2 overflow-hidden">
-              <div className="bg-primary h-full w-[35%]"></div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">35% مكتمل</p>
           </div>
           
           <ScrollArea className="flex-1">
             <div className="divide-y divide-border/20">
-              {[1, 2, 3, 4, 5].map((section) => (
-                <div key={section}>
+              {curriculum?.map((section: any) => (
+                <div key={section.id}>
                   <div className="px-4 py-3 bg-muted/20 text-sm font-bold text-muted-foreground">
-                    القسم {section}: الأساسيات
+                    {section.title}
                   </div>
                   <div>
-                    {[1, 2, 3].map((lesson) => {
-                      const id = section * 10 + lesson;
-                      const isActive = id === 11; // Mock active state
+                    {section.lessons?.map((lesson: any) => {
+                      const isActive = lesson.id === params?.id;
                       return (
-                        <div 
-                          key={id} 
-                          className={cn(
-                            "px-4 py-3 flex gap-3 hover:bg-muted/30 cursor-pointer transition-colors border-l-2",
-                            isActive ? "bg-primary/5 border-primary" : "border-transparent"
-                          )}
-                        >
-                          <div className="mt-0.5">
-                            {isActive ? (
-                              <PlayCircle className="w-4 h-4 text-primary fill-current/20" />
-                            ) : (
-                               <div className="w-4 h-4 rounded-full border border-muted-foreground/40"></div>
+                        <Link key={lesson.id} href={`/lesson/${lesson.id}`}>
+                          <div 
+                            className={cn(
+                              "px-4 py-3 flex gap-3 hover:bg-muted/30 cursor-pointer transition-colors border-l-2",
+                              isActive ? "bg-primary/5 border-primary" : "border-transparent"
                             )}
+                          >
+                            <div className="mt-0.5">
+                              {isActive ? (
+                                <PlayCircle className="w-4 h-4 text-primary fill-current/20" />
+                              ) : (
+                                 <div className="w-4 h-4 rounded-full border border-muted-foreground/40"></div>
+                              )}
+                            </div>
+                            <div>
+                              <p className={cn("text-sm font-medium", isActive && "text-primary")}>
+                                {lesson.title}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{lesson.duration} دقيقة</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className={cn("text-sm font-medium", isActive && "text-primary")}>
-                              {lesson}. مقدمة الدرس وما سيتم شرحه
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-0.5">12:30 دقيقة</p>
-                          </div>
-                        </div>
+                        </Link>
                       )
                     })}
                   </div>
