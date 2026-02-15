@@ -102,65 +102,6 @@ export const adminAuditLogs = pgTable("admin_audit_logs", {
     createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// --- Relations ---
-
-export const categoriesRelations = relations(categories, ({ many }) => ({
-    courses: many(courses),
-}));
-
-export const coursesRelations = relations(courses, ({ one, many }) => ({
-    category: one(categories, {
-        fields: [courses.categoryId],
-        references: [categories.id],
-    }),
-    sections: many(sections),
-    enrollments: many(enrollments),
-}));
-
-export const sectionsRelations = relations(sections, ({ one, many }) => ({
-    course: one(courses, {
-        fields: [sections.courseId],
-        references: [courses.id],
-    }),
-    lessons: many(lessons),
-}));
-
-export const lessonsRelations = relations(lessons, ({ one }) => ({
-    section: one(sections, {
-        fields: [lessons.sectionId],
-        references: [sections.id],
-    }),
-}));
-
-export const enrollmentsRelations = relations(enrollments, ({ one }) => ({
-    user: one(users, {
-        fields: [enrollments.userId],
-        references: [users.id],
-    }),
-    course: one(courses, {
-        fields: [enrollments.courseId],
-        references: [courses.id],
-    }),
-}));
-
-export const ordersRelations = relations(orders, ({ one }) => ({
-    user: one(users, {
-        fields: [orders.userId],
-        references: [users.id],
-    }),
-    course: one(courses, {
-        fields: [orders.courseId],
-        references: [courses.id],
-    }),
-}));
-
-export const usersRelations = relations(users, ({ many }) => ({
-    enrollments: many(enrollments),
-    orders: many(orders),
-    subscriptions: many(subscriptions),
-    aiSessions: many(aiSessions),
-}));
-
 // 9. Subscriptions Table (AI Assistant Plans)
 export const subscriptions = pgTable("subscriptions", {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -247,7 +188,65 @@ export const ads = pgTable("ads", {
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Relations for new tables
+// --- Relations ---
+
+export const categoriesRelations = relations(categories, ({ many }) => ({
+    courses: many(courses),
+}));
+
+export const coursesRelations = relations(courses, ({ one, many }) => ({
+    category: one(categories, {
+        fields: [courses.categoryId],
+        references: [categories.id],
+    }),
+    sections: many(sections),
+    enrollments: many(enrollments),
+}));
+
+export const sectionsRelations = relations(sections, ({ one, many }) => ({
+    course: one(courses, {
+        fields: [sections.courseId],
+        references: [courses.id],
+    }),
+    lessons: many(lessons),
+}));
+
+export const lessonsRelations = relations(lessons, ({ one }) => ({
+    section: one(sections, {
+        fields: [lessons.sectionId],
+        references: [sections.id],
+    }),
+}));
+
+export const enrollmentsRelations = relations(enrollments, ({ one }) => ({
+    user: one(users, {
+        fields: [enrollments.userId],
+        references: [users.id],
+    }),
+    course: one(courses, {
+        fields: [enrollments.courseId],
+        references: [courses.id],
+    }),
+}));
+
+export const ordersRelations = relations(orders, ({ one }) => ({
+    user: one(users, {
+        fields: [orders.userId],
+        references: [users.id],
+    }),
+    course: one(courses, {
+        fields: [orders.courseId],
+        references: [courses.id],
+    }),
+}));
+
+export const usersRelations = relations(users, ({ many }) => ({
+    enrollments: many(enrollments),
+    orders: many(orders),
+    subscriptions: many(subscriptions),
+    aiSessions: many(aiSessions),
+}));
+
 export const subscriptionsRelations = relations(subscriptions, ({ one, many }) => ({
     user: one(users, {
         fields: [subscriptions.userId],
