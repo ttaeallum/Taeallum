@@ -22,19 +22,38 @@ export function AIChatbot() {
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = (instant = false) => {
+        // 1. Instant surgical scroll for the container
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+        }
+
+        // 2. Smooth scroll to the end element
         if (messagesEndRef.current) {
-            messagesEndRef.current.scrollTo({
-                top: messagesEndRef.current.scrollHeight,
-                behavior: instant ? "auto" : "smooth"
+            messagesEndRef.current.scrollIntoView({
+                behavior: instant ? "auto" : "smooth",
+                block: "end"
             });
         }
+
+        // 3. Robust fallback for dynamic content
+        setTimeout(() => {
+            if (scrollContainerRef.current) {
+                scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+            }
+            if (messagesEndRef.current) {
+                messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+            }
+        }, 100);
     };
 
     useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
+        if (isOpen) {
+            scrollToBottom();
+        }
+    }, [messages, isOpen]);
 
     const handleSend = async (overrideMessage?: string) => {
         const messageToSend = overrideMessage || input;
@@ -142,7 +161,7 @@ export function AIChatbot() {
 
                             {/* Messages */}
                             <div
-                                ref={messagesEndRef}
+                                ref={scrollContainerRef}
                                 className="flex-1 overflow-y-auto p-4 space-y-4 bg-dot-pattern"
                             >
                                 {messages.map((msg, i) => {
@@ -197,6 +216,7 @@ export function AIChatbot() {
                                         </div>
                                     </div>
                                 )}
+                                <div ref={messagesEndRef} className="h-1 w-full" />
                             </div>
 
                             {/* Input */}

@@ -62,14 +62,31 @@ export default function AIAgent() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeLogs, setActiveLogs] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = (instant = false) => {
+    // 1. Instant surgical scroll for the container
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+    }
+
+    // 2. Smooth scroll to the end element
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollTo({
-        top: messagesEndRef.current.scrollHeight,
-        behavior: instant ? "auto" : "smooth"
+      messagesEndRef.current.scrollIntoView({
+        behavior: instant ? "auto" : "smooth",
+        block: "end"
       });
     }
+
+    // 3. Robust fallback for dynamic content (suggestions/logs)
+    setTimeout(() => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      }
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+      }
+    }, 100);
   };
 
   useEffect(() => {
@@ -323,7 +340,7 @@ export default function AIAgent() {
 
                 {/* Tactical Chat Flow Container */}
                 <div
-                  ref={messagesEndRef}
+                  ref={scrollContainerRef}
                   className="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-hide"
                 >
                   <AnimatePresence>
@@ -395,6 +412,7 @@ export default function AIAgent() {
                       );
                     })}
                   </AnimatePresence>
+                  <div ref={messagesEndRef} className="h-2 w-full" />
                 </div>
 
                 {/* Command Input Area */}
