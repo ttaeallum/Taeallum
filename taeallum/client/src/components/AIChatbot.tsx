@@ -75,7 +75,11 @@ export function AIChatbot() {
             setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
         } catch (error: any) {
             console.error("Chatbot Error:", error);
-            setMessages(prev => [...prev, { role: "assistant", content: "عذراً، حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى لاحقاً." }]);
+            const errorMessage = error?.message || "حدث خطأ في الاتصال";
+            setMessages(prev => [...prev, {
+                role: "assistant",
+                content: `عذراً، حدث خطأ في الاتصال (${errorMessage}). يرجى المحاولة مرة أخرى لاحقاً.`
+            }]);
         } finally {
             setIsLoading(false);
         }
