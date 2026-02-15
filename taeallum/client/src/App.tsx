@@ -34,8 +34,6 @@ import Terms from "@/pages/terms";
 import Privacy from "@/pages/privacy";
 import Support from "@/pages/support";
 
-import { AIChatbot } from "@/components/AIChatbot";
-
 function Router() {
   return (
     <Switch>
@@ -96,7 +94,6 @@ function App() {
       <TooltipProvider>
         <HelmetProvider>
           <Toaster />
-          <AIChatbot />
           <Router />
         </HelmetProvider>
       </TooltipProvider>

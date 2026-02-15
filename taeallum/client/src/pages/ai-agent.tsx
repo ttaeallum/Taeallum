@@ -101,8 +101,8 @@ export default function AIAgent() {
         id: "init",
         role: "assistant",
         content: isRtl
-          ? "أهلاً بك في منصة تعلم. 🦾 أنا العميل التنفيذي الخاص بك. قبل أن أرسم لك المسار، أريد التعرف عليك أكثر. ما هو مستواك الحالي في المجال الذي ترغب في تعلمه؟ وكم ساعة يمكنك تخصيصها يومياً؟"
-          : "Welcome to Taeallum platform. 🦾 I am your Executive Agent. Before I design your path, I want to get to know you better. What is your current level in the field you want to learn? And how many hours can you dedicate daily?",
+          ? "أهلاً بك في منصة تعلّم! 🚀 أنا مساعدك الذكي. لنبدأ معاً، أي من هذه المجالات يثير اهتمامك؟ [SUGGESTIONS: 💻 البرمجة والأنظمة|🤖 البيانات والذكاء الاصطناعي|🎨 الإبداع والتصميم|📈 الأعمال والتجارة الرقمية|🌐 اللغات والمهارات العامة]"
+          : "Welcome to Taeallum! 🚀 I'm your Smart Assistant. Let's start together, which of these fields interests you? [SUGGESTIONS: 💻 Programming & Systems|🤖 Data & AI|🎨 Design & Creativity|📈 Business & Digital Commerce|🌐 Languages & General Skills]",
         timestamp: new Date()
       }]);
     }
@@ -171,14 +171,14 @@ export default function AIAgent() {
         <div className="min-h-screen flex items-center justify-center p-4">
           <Card className="max-w-xl w-full p-10 text-center border-2 border-primary/20 shadow-2xl backdrop-blur-xl bg-background/80">
             <Cpu className="w-16 h-16 mx-auto mb-6 text-primary animate-pulse" />
-            <h2 className="text-4xl font-black mb-6">{isRtl ? "العميل التنفيذي" : "Executive Agent"}</h2>
+            <h2 className="text-4xl font-black mb-6">{isRtl ? "المساعد الذكي" : "Smart Assistant"}</h2>
             <p className="text-muted-foreground text-lg mb-10">
-              {isRtl ? "هذه التكنولوجيا التنفيذية متاحة فقط للمشتركين في خطة الـ Pro." : "This executive technology is only available for Pro subscribers."}
+              {isRtl ? "هذه الميزة متاحة فقط للمشتركين في خطة المساعد الذكي." : "This feature is only available for Smart Assistant subscribers."}
             </p>
             <div className="flex flex-col gap-4">
               <Link href="/ai-pricing">
                 <Button size="lg" className="w-full text-xl font-black h-16 rounded-2xl">
-                  {isRtl ? "ترقية الصلاحيات الآن" : "Upgrade Status Now"}
+                  {isRtl ? "اشترك الآن" : "Subscribe Now"}
                 </Button>
               </Link>
             </div>
@@ -197,13 +197,13 @@ export default function AIAgent() {
           <header className="flex items-center justify-between p-4 bg-card border border-border rounded-3xl shadow-2xl">
             <div className="flex items-center gap-4">
               <div className="bg-primary/20 p-2 rounded-xl border border-primary/30">
-                <ShieldCheck className="w-6 h-6 text-primary" />
+                <Brain className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-xl font-black tracking-tighter uppercase whitespace-nowrap">{isRtl ? "مركز العمليات التنفيذي" : "Executive Mission Control"}</h1>
+                <h1 className="text-xl font-black tracking-tighter whitespace-nowrap">{isRtl ? "المساعد الذكي" : "Smart Assistant"}</h1>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] uppercase font-mono text-muted-foreground">Agent Status: Active Pursuit</span>
+                  <span className="text-[10px] font-mono text-muted-foreground">{isRtl ? "جاهز لمساعدتك" : "Ready to help"}</span>
                 </div>
               </div>
             </div>
@@ -293,21 +293,8 @@ export default function AIAgent() {
             {/* Column 2: Tactical Tactical Map (Agent Core) */}
             <div className="lg:col-span-6 h-full flex flex-col gap-4 relative">
               <Card className="flex-1 bg-card border-border rounded-[2.5rem] flex flex-col overflow-hidden relative shadow-2xl">
-                {/* Background Tech HUD Details */}
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 pointer-events-none" />
+                {/* Subtle Background */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent animate-pulse" />
-
-                {/* Tactical HUD Overlay Elements */}
-                <div className="absolute inset-x-0 top-0 p-6 pointer-events-none z-10 flex justify-between uppercase font-mono text-[9px] text-muted-foreground tracking-tighter">
-                  <div className="flex flex-col gap-1">
-                    <span>LAT: 40.7128 N</span>
-                    <span>LNG: 74.0060 W</span>
-                  </div>
-                  <div className="flex flex-col gap-1 text-right">
-                    <span>VER: EXEC_OS_1.0</span>
-                    <span>CYC: 2.45 GHz</span>
-                  </div>
-                </div>
 
                 {/* Central Executive Animation (When Idle/Loading) */}
                 <AnimatePresence>
@@ -330,8 +317,8 @@ export default function AIAgent() {
                           <div className="flex flex-col items-center gap-4 text-center">
                             <Cpu className="w-16 h-16 text-primary animate-pulse" />
                             <div>
-                              <p className="text-xs font-black text-primary uppercase tracking-[0.2em]">{isRtl ? "جاري المعالجة التنفيذية" : "Executive Processing"}</p>
-                              <p className="text-[10px] text-slate-500 font-mono mt-1 italic">accessing platform_core_v4...</p>
+                              <p className="text-xs font-black text-primary uppercase tracking-[0.2em]">{isRtl ? "جاري إعداد مسارك" : "Preparing your path"}</p>
+                              <p className="text-[10px] text-slate-500 font-mono mt-1 italic">{isRtl ? "يرجى الانتظار..." : "Please wait..."}</p>
                             </div>
                           </div>
                         </div>
@@ -367,21 +354,20 @@ export default function AIAgent() {
                               {cleanContent}
                             </div>
 
-                            {/* Suggestions UI */}
+                            {/* Suggestions UI — Option Buttons */}
                             {msg.role === "assistant" && suggestions.length > 0 && i === messages.length - 1 && (
                               <div className="mt-6 flex flex-col gap-4 pt-4 border-t border-border/30">
-                                <p className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-2">
-                                  <Sparkles className="w-3 h-3" />
-                                  {isRtl ? "اختر من الخيارات التالية لدقة أفضل:" : "Select an option for better accuracy:"}
+                                <p className="text-[11px] font-bold text-primary flex items-center gap-2">
+                                  <Sparkles className="w-3.5 h-3.5" />
+                                  {isRtl ? "اختر أحد الخيارات التالية:" : "Choose one of the following:"}
                                 </p>
-                                <div className="flex flex-wrap gap-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                   {suggestions.map((option, idx) => (
                                     <Button
                                       key={idx}
                                       variant="outline"
-                                      size="sm"
                                       onClick={() => handleSendMessage(option)}
-                                      className="rounded-xl bg-background/50 border-primary/20 hover:bg-primary hover:text-primary-foreground text-[11px] font-bold h-10 px-5 transition-all shadow-lg hover:shadow-primary/20"
+                                      className="rounded-2xl bg-background/60 border-primary/20 hover:bg-primary hover:text-primary-foreground text-sm font-bold h-14 px-6 transition-all shadow-lg hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] text-right justify-start"
                                     >
                                       {option}
                                     </Button>
@@ -403,10 +389,6 @@ export default function AIAgent() {
                             )}
                           </div>
                           <div className="flex items-center gap-3 mt-3 px-4">
-                            <span className="text-[8px] text-muted-foreground font-mono uppercase tracking-widest">
-                              SRC: {msg.role === "user" ? "COMMANDER" : "EXECUTIVE_AGENT"}
-                            </span>
-                            <span className="w-1 h-1 rounded-full bg-primary/20" />
                             <span className="text-[8px] text-muted-foreground font-mono">
                               {msg.timestamp.toLocaleTimeString([], { hour12: false })}
                             </span>
@@ -435,8 +417,8 @@ export default function AIAgent() {
                               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !isInputLocked) { e.preventDefault(); handleSendMessage(); } }}
                               placeholder={
                                 hasSuggestions
-                                  ? (isRtl ? "يرجى اختيار أحد الخيارات أعلاه للبدء..." : "Please select an option above to proceed...")
-                                  : (isRtl ? "أصدر أوامر تنفيذية للعميل..." : "Issue executive command to Agent...")
+                                  ? (isRtl ? "اختر أحد الخيارات أعلاه للمتابعة..." : "Select an option above to continue...")
+                                  : (isRtl ? "اكتب رسالتك هنا..." : "Type your message here...")
                               }
                               className={cn(
                                 "min-h-[60px] max-h-[160px] bg-background border-border rounded-2xl resize-none pr-14 pl-6 py-4 text-sm font-medium placeholder:text-muted-foreground focus:border-primary/50 transition-all",
@@ -460,10 +442,10 @@ export default function AIAgent() {
                             <Send className={`w-6 h-6 ${isRtl ? 'rotate-180' : ''}`} />
                           </Button>
                         </div>
-                        <p className="text-center mt-3 text-[9px] text-muted-foreground font-mono uppercase tracking-[0.2em]">
+                        <p className="text-center mt-3 text-[9px] text-muted-foreground">
                           {hasSuggestions
-                            ? (isRtl ? "تنبيه: اختيار خيار من الأعلى مطلوب للمتابعة" : "Alert: Selection required to proceed")
-                            : (isRtl ? "وضع السيادة التنفيذية: نشط" : "Executive Sovereign Mode: Active")}
+                            ? (isRtl ? "👆 اختر أحد الخيارات للمتابعة" : "👆 Select an option to continue")
+                            : (isRtl ? "المساعد الذكي جاهز لمساعدتك" : "Smart Assistant ready to help")}
                         </p>
                       </>
                     );
@@ -528,12 +510,12 @@ export default function AIAgent() {
                 </div>
                 <div className="flex items-center gap-2 mb-3">
                   <Settings className="w-3 h-3 text-primary animate-spin" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-primary">{isRtl ? "نظام السيادة" : "Sovereign System"}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-primary">{isRtl ? "نظام ذكي" : "Smart System"}</span>
                 </div>
                 <p className="text-[11px] text-foreground leading-relaxed font-bold">
                   {isRtl
-                    ? "المساعد مفوض الآن لاتخاذ قرارات تسجيل استباقية بناءً على خوارزمية النجاح الخاصة بك."
-                    : "The Agent is now authorized to make proactive enrollment decisions based on your path success curve."}
+                    ? "المساعد الذكي يصمم لك مساراً تعليمياً مخصصاً بناءً على اختياراتك."
+                    : "The Smart Assistant designs a personalized learning path based on your choices."}
                 </p>
               </Card>
             </div>
