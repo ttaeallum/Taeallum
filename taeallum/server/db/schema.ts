@@ -132,6 +132,28 @@ export const lessonsRelations = relations(lessons, ({ one }) => ({
     }),
 }));
 
+export const enrollmentsRelations = relations(enrollments, ({ one }) => ({
+    user: one(users, {
+        fields: [enrollments.userId],
+        references: [users.id],
+    }),
+    course: one(courses, {
+        fields: [enrollments.courseId],
+        references: [courses.id],
+    }),
+}));
+
+export const ordersRelations = relations(orders, ({ one }) => ({
+    user: one(users, {
+        fields: [orders.userId],
+        references: [users.id],
+    }),
+    course: one(courses, {
+        fields: [orders.courseId],
+        references: [courses.id],
+    }),
+}));
+
 export const usersRelations = relations(users, ({ many }) => ({
     enrollments: many(enrollments),
     orders: many(orders),
