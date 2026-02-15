@@ -240,14 +240,14 @@ app.get("/api/debug/env-check", (req, res) => {
   }
 
   res.json({
-    serverVersion: "1.1.4",
+    serverVersion: "1.1.5",
     timestamp: new Date().toISOString(),
     nodeEnv: process.env.NODE_ENV,
     detectedKeys: openAIKeys,
     configFallbackActive,
     openaiAvailable: openAIKeys.length > 0 || configFallbackActive,
     allKeysCount: allKeys.length,
-    message: configFallbackActive ? "Config fallback is ACTIVE - OpenAI should work!" : "No OpenAI key found anywhere."
+    message: configFallbackActive ? "Config fallback is ACTIVE." : "No OpenAI key found."
   });
 });
 
@@ -298,11 +298,6 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
     console.error("[CRITICAL STARTUP ERROR]", error);
   }
 
-  // Global Error Handler
-  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
-    console.error(`[RUNTIME ERROR] ${req.method} ${req.url}:`, err);
-    res.status(err.status || 500).json({ message: "Server Error" });
-  });
 })();
 
 export default app;
