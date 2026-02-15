@@ -6,6 +6,7 @@ import { Bot, Send, X, MessageCircle, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useLocation } from "wouter";
 
 interface Message {
     role: "user" | "assistant";
@@ -13,6 +14,7 @@ interface Message {
 }
 
 export function AIChatbot() {
+    const [location] = useLocation();
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
         { role: "assistant", content: "أهلاً بك في منصة تعلم. 🦾 أنا العميل التنفيذي الخاص بك. قبل أن أرسم لك المسار التعليمي، أخبرني: ما هو مستواك الحالي؟ وكم ساعة تستطيع تخصيصها يومياً للتعلم؟" }
@@ -21,8 +23,13 @@ export function AIChatbot() {
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const scrollToBottom = (instant = false) => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollTo({
+                top: messagesEndRef.current.scrollHeight,
+                behavior: instant ? "auto" : "smooth"
+            });
+        }
     };
 
     useEffect(() => {
@@ -102,6 +109,8 @@ export function AIChatbot() {
         }
     };
 
+    if (location === "/ai-agent") return null;
+
     return (
         <div className="fixed bottom-6 right-6 z-50">
             <AnimatePresence>
@@ -132,7 +141,10 @@ export function AIChatbot() {
                             </div>
 
                             {/* Messages */}
-                            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-dot-pattern">
+                            <div
+                                ref={messagesEndRef}
+                                className="flex-1 overflow-y-auto p-4 space-y-4 bg-dot-pattern"
+                            >
                                 {messages.map((msg, i) => {
                                     const suggestionMatch = msg.content.match(/\[SUGGESTIONS:\s*(.*?)\]/);
                                     const cleanContent = msg.content.replace(/\[SUGGESTIONS:.*?\]/, "").trim();
@@ -185,7 +197,6 @@ export function AIChatbot() {
                                         </div>
                                     </div>
                                 )}
-                                <div ref={messagesEndRef} />
                             </div>
 
                             {/* Input */}

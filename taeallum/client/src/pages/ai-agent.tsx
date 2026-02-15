@@ -63,8 +63,13 @@ export default function AIAgent() {
   const [activeLogs, setActiveLogs] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = (instant = false) => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollTo({
+        top: messagesEndRef.current.scrollHeight,
+        behavior: instant ? "auto" : "smooth"
+      });
+    }
   };
 
   useEffect(() => {
@@ -317,7 +322,10 @@ export default function AIAgent() {
                 </AnimatePresence>
 
                 {/* Tactical Chat Flow Container */}
-                <div className="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-hide">
+                <div
+                  ref={messagesEndRef}
+                  className="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-hide"
+                >
                   <AnimatePresence>
                     {messages.map((msg, i) => {
                       const suggestionMatch = msg.content.match(/\[SUGGESTIONS:\s*(.*?)\]/);
@@ -387,7 +395,6 @@ export default function AIAgent() {
                       );
                     })}
                   </AnimatePresence>
-                  <div ref={messagesEndRef} />
                 </div>
 
                 {/* Command Input Area */}
