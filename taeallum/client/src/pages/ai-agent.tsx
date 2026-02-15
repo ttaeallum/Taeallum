@@ -30,12 +30,13 @@ import {
   AlertTriangle,
   Cpu,
   Globe,
-  Lock
+  Lock,
+  RotateCcw
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 
 interface Message {
@@ -59,28 +60,36 @@ export default function AIAgent() {
     },
   });
 
+  const queryClient = useQueryClient();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [activeLogs, setActiveLogs] = useState<string[]>([]);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  // Load existing session from database
+  const { data: sessionData, isLoading: sessionLoading } = useQuery({
+    queryKey: ["chatbot-session"],
+    queryFn: async () => {
+      const res = await fetch("/api/chatbot/session", { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!user?.id,
+  });
+
   const scrollToBottom = (instant = false) => {
-    // 1. Instant surgical scroll for the container
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
-
-    // 2. Smooth scroll to the end element
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({
         behavior: instant ? "auto" : "smooth",
         block: "end"
       });
     }
-
-    // 3. Robust fallback for dynamic content (suggestions/logs)
     setTimeout(() => {
       if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
@@ -95,8 +104,21 @@ export default function AIAgent() {
     scrollToBottom();
   }, [messages, activeLogs]);
 
+  // Load messages from DB session or show welcome
   useEffect(() => {
-    if (!authLoading && user && messages.length === 0) {
+    if (authLoading || sessionLoading || !user || sessionLoaded) return;
+
+    if (sessionData?.messages && sessionData.messages.length > 0) {
+      // Restore messages from database
+      setMessages(sessionData.messages.map((m: any) => ({
+        id: m.id,
+        role: m.role as "user" | "assistant",
+        content: m.content,
+        timestamp: new Date(m.timestamp),
+        logs: m.logs
+      })));
+    } else {
+      // No existing session — show welcome message
       setMessages([{
         id: "init",
         role: "assistant",
@@ -106,7 +128,30 @@ export default function AIAgent() {
         timestamp: new Date()
       }]);
     }
-  }, [authLoading, user, messages.length, isRtl]);
+    setSessionLoaded(true);
+  }, [authLoading, sessionLoading, user, sessionData, sessionLoaded, isRtl]);
+
+  // Handle starting a new chat
+  const handleNewChat = async () => {
+    try {
+      await fetch("/api/chatbot/reset-session", {
+        method: "POST",
+        credentials: "include"
+      });
+      setMessages([{
+        id: "init",
+        role: "assistant",
+        content: isRtl
+          ? "أهلاً بك في منصة تعلّم! 🚀 أنا مساعدك الذكي. لنبدأ معاً، أي من هذه المجالات يثير اهتمامك؟ [SUGGESTIONS: 💻 البرمجة والأنظمة|🤖 البيانات والذكاء الاصطناعي|🎨 الإبداع والتصميم|📈 الأعمال والتجارة الرقمية|🌐 اللغات والمهارات العامة]"
+          : "Welcome to Taeallum! 🚀 I'm your Smart Assistant. Let's start together, which of these fields interests you? [SUGGESTIONS: 💻 Programming & Systems|🤖 Data & AI|🎨 Design & Creativity|📈 Business & Digital Commerce|🌐 Languages & General Skills]",
+        timestamp: new Date()
+      }]);
+      setActiveLogs([]);
+      queryClient.invalidateQueries({ queryKey: ["chatbot-session"] });
+    } catch (err) {
+      console.error("Failed to reset session", err);
+    }
+  };
 
   const handleSendMessage = async (overrideMessage?: string) => {
     const messageToSend = overrideMessage || inputValue;
@@ -124,6 +169,7 @@ export default function AIAgent() {
     setActiveLogs([isRtl ? "جاري تحليل المعطيات..." : "Analyzing data points..."]);
 
     try {
+      // Backend loads history from DB — just send the new message
       const response = await fetch("/api/chatbot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -209,6 +255,15 @@ export default function AIAgent() {
             </div>
 
             <div className="flex items-center gap-4 md:gap-8 overflow-hidden">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNewChat}
+                className="rounded-xl gap-2 border-primary/30 hover:bg-primary hover:text-primary-foreground font-bold text-xs"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                {isRtl ? "محادثة جديدة" : "New Chat"}
+              </Button>
               <div className="hidden xl:flex items-center gap-4 border-l border-border pl-4">
                 <div className="text-right">
                   <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">{isRtl ? "معدل الذكاء الحالي" : "IQ Load"}</p>
@@ -296,37 +351,6 @@ export default function AIAgent() {
                 {/* Subtle Background */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent animate-pulse" />
 
-                {/* Central Executive Animation (When Idle/Loading) */}
-                <AnimatePresence>
-                  {isLoading && (
-                    <motion.div
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-md z-50 p-20"
-                    >
-                      <div className="relative w-full max-w-sm">
-                        <div className="absolute inset-0 bg-primary/20 blur-[100px] animate-pulse rounded-full" />
-                        <div className="relative aspect-square border border-primary/20 rounded-full p-8 flex items-center justify-center bg-background/50 overflow-hidden">
-                          <motion.div
-                            animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                            className="absolute inset-0 border border-primary/10 border-dashed rounded-full"
-                          />
-                          <motion.div
-                            animate={{ rotate: -360 }} transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-                            className="absolute inset-4 border border-sky-500/10 border-dashed rounded-full"
-                          />
-                          <div className="flex flex-col items-center gap-4 text-center">
-                            <Cpu className="w-16 h-16 text-primary animate-pulse" />
-                            <div>
-                              <p className="text-xs font-black text-primary uppercase tracking-[0.2em]">{isRtl ? "جاري إعداد مسارك" : "Preparing your path"}</p>
-                              <p className="text-[10px] text-slate-500 font-mono mt-1 italic">{isRtl ? "يرجى الانتظار..." : "Please wait..."}</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
                 {/* Tactical Chat Flow Container */}
                 <div
                   ref={scrollContainerRef}
@@ -397,6 +421,30 @@ export default function AIAgent() {
                       );
                     })}
                   </AnimatePresence>
+
+                  {/* Typing Indicator */}
+                  <AnimatePresence>
+                    {isLoading && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="flex items-start"
+                      >
+                        <div className="p-4 rounded-[2rem] rounded-tl-none bg-muted border border-border/50 backdrop-blur-md shadow-lg">
+                          <div className="flex items-center gap-1.5">
+                            <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0 }} className="w-2.5 h-2.5 rounded-full bg-primary/60" />
+                            <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }} className="w-2.5 h-2.5 rounded-full bg-primary/60" />
+                            <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }} className="w-2.5 h-2.5 rounded-full bg-primary/60" />
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mt-2 font-mono">
+                            {isRtl ? "المساعد الذكي يفكر..." : "Smart Assistant is thinking..."}
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   <div ref={messagesEndRef} className="h-2 w-full" />
                 </div>
 

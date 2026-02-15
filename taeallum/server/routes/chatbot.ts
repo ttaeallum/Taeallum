@@ -2,7 +2,7 @@ import { Router, type Request, type Response } from "express";
 import OpenAI from "openai";
 import { requireAuth } from "./auth";
 import { db } from "../db";
-import { aiSessions, subscriptions, users, courses, enrollments, studyPlans } from "../db/schema";
+import { aiSessions, aiMessages, subscriptions, users, courses, enrollments, studyPlans } from "../db/schema";
 import { eq, desc, and } from "drizzle-orm";
 
 import { getConfig } from "../config";
@@ -31,19 +31,79 @@ const getOpenAI = () => {
     }
 };
 
-// Helper to get limit based on plan
-const getLimit = (plan: string) => {
-    switch (plan) {
-        case "ultra": return Infinity;
-        case "pro": return Infinity; // Unlimited for Pro ($10 plan)
-        case "personal": return 20;
-        default: return 0; // No free messages allowed (Paid only)
-    }
-};
+// GET: Load active session + messages for the current user
+router.get("/session", requireAuth, async (req: Request, res: Response) => {
+    try {
+        const userId = req.session.userId;
 
+        // Find the latest active chatbot session
+        const [session] = await db.select()
+            .from(aiSessions)
+            .where(and(
+                eq(aiSessions.userId, userId!),
+                eq(aiSessions.sessionType, "chatbot"),
+                eq(aiSessions.status, "active")
+            ))
+            .orderBy(desc(aiSessions.createdAt))
+            .limit(1);
+
+        if (!session) {
+            return res.json({ session: null, messages: [] });
+        }
+
+        // Load all messages for this session
+        const msgs = await db.select()
+            .from(aiMessages)
+            .where(eq(aiMessages.sessionId, session.id))
+            .orderBy(aiMessages.createdAt);
+
+        res.json({
+            session: { id: session.id, status: session.status },
+            messages: msgs.map(m => ({
+                id: m.id,
+                role: m.role,
+                content: m.content,
+                timestamp: m.createdAt,
+                logs: (m.metadata as any)?.logs || []
+            }))
+        });
+    } catch (error: any) {
+        console.error("[SESSION LOAD ERROR]:", error);
+        res.status(500).json({ message: "فشل تحميل الجلسة" });
+    }
+});
+
+// POST: Reset session (start new conversation)
+router.post("/reset-session", requireAuth, async (req: Request, res: Response) => {
+    try {
+        const userId = req.session.userId;
+
+        // Mark all active chatbot sessions as completed
+        const activeSessions = await db.select()
+            .from(aiSessions)
+            .where(and(
+                eq(aiSessions.userId, userId!),
+                eq(aiSessions.sessionType, "chatbot"),
+                eq(aiSessions.status, "active")
+            ));
+
+        for (const session of activeSessions) {
+            await db.update(aiSessions)
+                .set({ status: "completed", updatedAt: new Date() })
+                .where(eq(aiSessions.id, session.id));
+        }
+
+        res.json({ success: true });
+    } catch (error: any) {
+        console.error("[SESSION RESET ERROR]:", error);
+        res.status(500).json({ message: "فشل إعادة تعيين الجلسة" });
+    }
+});
+
+// POST: Send a message (main chatbot endpoint)
 router.post("/", requireAuth, async (req: Request, res: Response) => {
     try {
-        const { message: userMessage, sessionId } = req.body;
+        const { message: userMessage } = req.body;
         const userId = req.session.userId;
 
         const openai = getOpenAI();
@@ -55,12 +115,44 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
             return res.status(400).json({ message: "Message is required" });
         }
 
-        // 1. Initial Context Retrieval (Memory)
+        // 1. Get or create a chatbot session
+        let [session] = await db.select()
+            .from(aiSessions)
+            .where(and(
+                eq(aiSessions.userId, userId!),
+                eq(aiSessions.sessionType, "chatbot"),
+                eq(aiSessions.status, "active")
+            ))
+            .orderBy(desc(aiSessions.createdAt))
+            .limit(1);
+
+        if (!session) {
+            [session] = await db.insert(aiSessions).values({
+                userId: userId!,
+                sessionType: "chatbot",
+                status: "active",
+                messagesCount: 0
+            }).returning();
+        }
+
+        // 2. Load previous messages from this session
+        const previousMessages = await db.select()
+            .from(aiMessages)
+            .where(eq(aiMessages.sessionId, session.id))
+            .orderBy(aiMessages.createdAt);
+
+        // 3. Save the new user message
+        await db.insert(aiMessages).values({
+            sessionId: session.id,
+            role: "user",
+            content: userMessage
+        });
+
+        // 4. Context Retrieval
         const [userRecord] = await db.select().from(users).where(eq(users.id, userId!)).limit(1);
         const adminEmail = (process.env.ADMIN_EMAIL || "hamzaali200410@gmail.com").toLowerCase();
         const isAdmin = userRecord?.email.toLowerCase() === adminEmail || userRecord?.role === "admin";
 
-        // Fetch user's enrollments and study plans for context
         const userEnrollments = await db.query.enrollments.findMany({
             where: eq(enrollments.userId, userId!),
             with: { course: true }
@@ -78,7 +170,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
         Preferences: ${JSON.stringify(userRecord?.preferences || {})}
         `;
 
-        // 2. Define Tools (Actions)
+        // 5. Define Tools
         const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
             {
                 type: "function",
@@ -155,8 +247,8 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
             }
         ];
 
-        // 3. Agent Reasoning Loop
-        let messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+        // 6. Build OpenAI messages array with FULL conversation history
+        const openaiMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
             {
                 role: "system",
                 content: `أنت "المساعد الذكي" لمنصة "تعلّم" (Taeallum). مستشار تعليمي ذكي يوجّه الطالب عبر مسار اكتشاف مُحكَم من 4 خطوات فقط ليصل إلى خطته الدراسية المثالية.
@@ -193,12 +285,24 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 5. لا تكرر الترحيب أبداً.
 6. لا تسأل عن المستوى (مبتدئ/متوسط/محترف) — المسار يُصمَّم ليكون شاملاً من الصفر حتى الاحتراف.
 7. إذا أرسل الطالب رسالة لا تتطابق مع أي خيار، أعد عرض الخيارات الحالية بلطف.
+8. تتبَّع الخطوات بدقة بناءً على سجل المحادثة. لا تكرر سؤالاً سبق الإجابة عليه أبداً. إذا اختار الطالب قطاعاً، انتقل مباشرة للتخصص. إذا اختار تخصصاً، انتقل مباشرة للوقت.
 
 سياق الطالب: ${contextSummary}`
-            },
-            { role: "user", content: userMessage }
+            }
         ];
 
+        // Add previous messages from DB as conversation history
+        for (const msg of previousMessages) {
+            openaiMessages.push({
+                role: msg.role as "user" | "assistant",
+                content: msg.content
+            });
+        }
+
+        // Add the current user message
+        openaiMessages.push({ role: "user", content: userMessage });
+
+        // 7. Agent Reasoning Loop
         let finalResponse = "";
         let toolLogs: string[] = [];
         let maxSteps = 5;
@@ -206,13 +310,13 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
         for (let i = 0; i < maxSteps; i++) {
             const response = await openai.chat.completions.create({
                 model: "gpt-4o-mini",
-                messages,
+                messages: openaiMessages,
                 tools,
                 tool_choice: "auto",
             });
 
             const reply = response.choices[0].message;
-            messages.push(reply);
+            openaiMessages.push(reply);
 
             if (reply.tool_calls) {
                 for (const toolCall of reply.tool_calls) {
@@ -267,6 +371,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                         toolLogs.push(`هندسة مسار تعليمي: ${args.title}`);
                         const [savedPlan] = await db.insert(studyPlans).values({
                             userId: userId!,
+                            sessionId: session.id,
                             title: args.title,
                             description: args.description,
                             duration: args.duration,
@@ -274,10 +379,16 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                             planData: args,
                             status: "active"
                         }).returning();
+
+                        // Mark session as completed
+                        await db.update(aiSessions)
+                            .set({ status: "completed", generatedPlan: args, updatedAt: new Date() })
+                            .where(eq(aiSessions.id, session.id));
+
                         result = { success: true, planId: savedPlan.id };
                     }
 
-                    messages.push({
+                    openaiMessages.push({
                         role: "tool",
                         tool_call_id: toolCall.id,
                         content: JSON.stringify(result)
@@ -290,9 +401,26 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
             break;
         }
 
+        // 8. Save the assistant's response in the database
+        await db.insert(aiMessages).values({
+            sessionId: session.id,
+            role: "assistant",
+            content: finalResponse,
+            metadata: toolLogs.length > 0 ? { logs: toolLogs } : null
+        });
+
+        // Update message count
+        await db.update(aiSessions)
+            .set({
+                messagesCount: (session.messagesCount || 0) + 2, // user + assistant
+                updatedAt: new Date()
+            })
+            .where(eq(aiSessions.id, session.id));
+
         res.json({
             reply: finalResponse,
             logs: toolLogs,
+            sessionId: session.id,
             status: "success"
         });
 
