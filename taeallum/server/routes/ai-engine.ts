@@ -74,38 +74,77 @@ router.post("/generate-plan", requireAuth, async (req: Request, res: Response) =
 
         // 3. Prepare Prompt
         const prompt = `
-            You are an expert academic advisor for Taeallum (تعلم), an Arabic e-learning platform.
-            Your task is to build a "Zero to Hero" roadmap for the student based on their profile.
+            You are the "Smart Assistant" (المساعد الذكي) for Taeallum (تعلم), an elite Arabic e-learning platform.
+            Your mission is to construct a highly personalized "Zero to Hero" learning roadmap for a student.
             
-            Student Profile:
+            Student Profile (JSON):
             ${JSON.stringify(profile, null, 2)}
             
-            Tier: ${planTier}
+            User Tier: ${planTier}
             
-            AVAILABLE COURSES (Use ONLY these courses to build the plan):
+            CATALOG OF AVAILABLE COURSES (You MUST use these for the core roadmap):
             ${courseListString}
             
-            Requirements:
-            - The plan MUST be in Arabic.
-            - Based on the student's goal (Web Dev, AI, Design, or any other field), build a logical "Zero to Hero" path from basics to advanced using the AVAILABLE COURSES.
-            - If a necessary course for a "Hero" level is missing from the catalog, you can suggest "External Practice" but prioritize the catalog items.
-            - Include a list of selected courses from our catalog with their actual IDs.
-            - Include a weekly schedule and milestones.
-            - Plan should be highly professional and encouraging.
-            - Return ONLY valid JSON matching the StudyPlan interface.
+            GUIDELINES FOR ROADMAP GENERATION:
+            1. LANGUAGE: The entire response (titles, descriptions, tips) MUST be in professional Arabic.
+            2. INTELLIGENCE: Use the 'AI_Reference' and 'Desc' fields from the catalog to understand the technical depth of each course.
+            3. LOGIC: Order courses from fundamental (Basics) to professional (Production-ready). 
+            4. ACCURACY: Do not hallucinate course IDs. Use only the provided IDs from the catalog.
+            5. SUPPLEMENT: If the catalog lacks a crucial step for the student's specific goal, you may add "External Practice" milestones, but always anchor them around our catalog courses.
+            6. FORMAT: Return ONLY a valid JSON object matching the StudyPlan structure.
             
-            StudyPlan Interface Structure:
+            StudyPlan Structure:
             {
-                "title": "...",
-                "description": "...",
-                "duration": "...",
+                "title": "Smart Title in Arabic",
+                "description": "Deeply personalized summary of how this plan helps the student reach their goal",
+                "duration": "e.g., 6 أشهر",
                 "totalHours": number,
                 "difficulty": "beginner" | "intermediate" | "advanced" | "mixed",
-                "courses": [{"id": "...", "title": "...", "description": "...", "duration": "...", "hours": number, "level": "...", "topics": [...], "projects": [...], "order": number, "startWeek": number, "endWeek": number}],
-                "weeklySchedule": [{"week": number, "focus": "...", "courses": [...], "hours": number, "topics": [...], "deliverables": [...], "checkpoints": [...]}],
-                "milestones": [{"week": number, "title": "...", "description": "...", "deliverables": [...], "skills": [...]}],
-                "resources": {"courses": [...], "tools": [...], "communities": [...]},
-                "recommendations": {"nextSteps": [...], "tips": [...], "warnings": [...]}
+                "courses": [
+                    {
+                        "id": "match actual catalog ID",
+                        "title": "Arabic Title",
+                        "description": "Why this specific course is in the plan",
+                        "duration": "...",
+                        "hours": number,
+                        "level": "...",
+                        "topics": ["Detail 1", "Detail 2"],
+                        "projects": ["Mini project using this course"],
+                        "order": 1,
+                        "startWeek": 1,
+                        "endWeek": 4
+                    }
+                ],
+                "weeklySchedule": [
+                    {
+                        "week": number,
+                        "focus": "Topic of the week",
+                        "courses": ["id1", "id2"],
+                        "hours": number,
+                        "topics": ["Arabic details"],
+                        "deliverables": ["What to build this week"],
+                        "checkpoints": ["Validation steps"]
+                    }
+                ],
+                "milestones": [
+                    {
+                        "week": number,
+                        "title": "Achievement name",
+                        "description": "Description of the milestone reached",
+                        "deliverables": ["Project/Skill"],
+                        "skills": ["Arabic keywords"]
+                    }
+                ],
+                "resources": {
+                    "courses": ["Resource links/names"],
+                    "tools": ["Needed software"],
+                    "communities": ["Where to ask help"]
+                },
+                "recommendations": {
+                    "nextSteps": ["What to do after this plan"],
+                    "tips": ["Learning hacks"],
+                    "warnings": ["Common pitfalls"]
+                }
             }
         `;
 
