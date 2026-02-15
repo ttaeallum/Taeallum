@@ -229,27 +229,25 @@ app.get("/api/debug/env-check", (req, res) => {
   const allKeys = Object.keys(process.env);
   const openAIKeys = allKeys.filter(k => k.toLowerCase().includes("openai"));
 
-  const status = openAIKeys.map(key => {
-    const val = process.env[key] || "";
-    return {
-      keyName: key,
-      length: val.length,
-      startsWithSK: val.startsWith("sk-"),
-      hasLeadingWhitespace: val.startsWith(" "),
-      hasTrailingWhitespace: val.endsWith(" "),
-      firstFive: val.substring(0, 5) + "...",
-      lastFive: "..." + val.substring(val.length - 5)
-    };
-  });
+  // Check config fallback
+  let configFallbackActive = false;
+  try {
+    const { getConfig } = require("./config");
+    const fallbackKey = getConfig("OPENAI_API_KEY");
+    configFallbackActive = !!fallbackKey;
+  } catch (e) {
+    configFallbackActive = false;
+  }
 
   res.json({
+    serverVersion: "1.1.4",
     timestamp: new Date().toISOString(),
     nodeEnv: process.env.NODE_ENV,
     detectedKeys: openAIKeys,
-    allKeyNames: allKeys.sort(),
-    syncStatus: allKeys.includes("TEST_SYNC") ? "SYNCED" : "NOT_SYNCED",
+    configFallbackActive,
+    openaiAvailable: openAIKeys.length > 0 || configFallbackActive,
     allKeysCount: allKeys.length,
-    message: "If syncStatus is NOT_SYNCED, the changes in your dashboard are not reaching this service."
+    message: configFallbackActive ? "Config fallback is ACTIVE - OpenAI should work!" : "No OpenAI key found anywhere."
   });
 });
 
