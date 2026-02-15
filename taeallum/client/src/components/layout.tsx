@@ -59,7 +59,10 @@ export function Navbar() {
 
   const navLinks = [
     { href: "/", label: "الرئيسية" },
-    ...(isSubscribed ? [{ href: "/tracks", label: "المسارات" }] : []),
+    ...(isSubscribed ? [
+      { href: "/tracks", label: "المسارات" },
+      { href: "/ai-agent", label: "المساعد الذكي" }
+    ] : []),
     { href: "/courses", label: "جميع الكورسات" },
     { href: "/blog", label: "المدونة" },
   ];
@@ -303,7 +306,12 @@ export function Footer() {
           <div className="flex flex-col gap-4 text-right">
             <h4 className="font-bold text-foreground">روابط سريعة</h4>
             <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-              {isSubscribed && <Link href="/tracks" className="hover:text-primary transition-colors">المسارات التعليمية</Link>}
+              {isSubscribed && (
+                <>
+                  <Link href="/tracks" className="hover:text-primary transition-colors">المسارات التعليمية</Link>
+                  <Link href="/ai-agent" className="hover:text-primary transition-colors">المساعد الذكي</Link>
+                </>
+              )}
               <Link href="/courses" className="hover:text-primary transition-colors">تصفح الكورسات</Link>
               <Link href="/blog" className="hover:text-primary transition-colors">المدونة</Link>
             </div>

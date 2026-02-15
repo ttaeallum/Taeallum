@@ -76,7 +76,8 @@ export default function AIAgent() {
 
   // Initialize with first message
   useEffect(() => {
-    if (!authLoading && user?.isSubscribed) {
+    const isActuallySubscribed = user?.isSubscribed || user?.role === "admin";
+    if (!authLoading && isActuallySubscribed && messages.length === 0) {
       const initialMessage: Message = {
         id: "0",
         type: "agent",
@@ -89,7 +90,7 @@ export default function AIAgent() {
         addQuestion(0);
       }, 1500);
     }
-  }, [authLoading, user]);
+  }, [authLoading, user, messages.length]);
 
   const addQuestion = (index: number) => {
     if (index < aiQuestions.length) {

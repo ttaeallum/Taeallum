@@ -96,7 +96,7 @@ function App() {
       <TooltipProvider>
         <HelmetProvider>
           <Toaster />
-          {/* <AIChatbot /> */}
+          <AIChatbot />
           <Router />
         </HelmetProvider>
       </TooltipProvider>
