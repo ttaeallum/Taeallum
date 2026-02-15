@@ -151,21 +151,27 @@ export function AIChatbot() {
                                                 </div>
                                             </div>
                                             {msg.role === "assistant" && suggestions.length > 0 && i === messages.length - 1 && (
-                                                <div className="flex flex-wrap gap-2 justify-start pl-2">
-                                                    {suggestions.map((option, idx) => (
-                                                        <Button
-                                                            key={idx}
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => {
-                                                                setInput(option);
-                                                                setTimeout(() => handleSend(option), 0);
-                                                            }}
-                                                            className="rounded-full text-[11px] h-7 bg-background/50 hover:bg-primary hover:text-primary-foreground transition-all"
-                                                        >
-                                                            {option}
-                                                        </Button>
-                                                    ))}
+                                                <div className="flex flex-col gap-3 justify-start pl-2 pt-2 border-t border-border/20 mt-2">
+                                                    <p className="text-[9px] font-black text-primary uppercase tracking-widest flex items-center gap-2">
+                                                        <Sparkles className="w-2.5 h-2.5" />
+                                                        {isRtl ? "اختر من الخيارات التالية:" : "Select an option:"}
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {suggestions.map((option, idx) => (
+                                                            <Button
+                                                                key={idx}
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => {
+                                                                    setInput(option);
+                                                                    setTimeout(() => handleSend(option), 0);
+                                                                }}
+                                                                className="rounded-xl text-[10px] h-8 bg-background/50 border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all px-4 shadow-sm"
+                                                            >
+                                                                {option}
+                                                            </Button>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>

@@ -341,19 +341,24 @@ export default function AIAgent() {
 
                             {/* Suggestions UI */}
                             {msg.role === "assistant" && suggestions.length > 0 && i === messages.length - 1 && (
-                              <div className="mt-6 flex flex-wrap gap-2 pt-4 border-t border-border/30">
-                                {suggestions.map((option, idx) => (
-                                  <Button
-                                    key={idx}
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleSendMessage(option)}
-                                    className="rounded-xl bg-background/50 border-primary/20 hover:bg-primary hover:text-primary-foreground text-[11px] font-bold h-9 transition-all"
-                                  >
-                                    <Sparkles className="w-3 h-3 mr-2" />
-                                    {option}
-                                  </Button>
-                                ))}
+                              <div className="mt-6 flex flex-col gap-4 pt-4 border-t border-border/30">
+                                <p className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-2">
+                                  <Sparkles className="w-3 h-3" />
+                                  {isRtl ? "اختر من الخيارات التالية لدقة أفضل:" : "Select an option for better accuracy:"}
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                  {suggestions.map((option, idx) => (
+                                    <Button
+                                      key={idx}
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleSendMessage(option)}
+                                      className="rounded-xl bg-background/50 border-primary/20 hover:bg-primary hover:text-primary-foreground text-[11px] font-bold h-10 px-5 transition-all shadow-lg hover:shadow-primary/20"
+                                    >
+                                      {option}
+                                    </Button>
+                                  ))}
+                                </div>
                               </div>
                             )}
 
