@@ -77,8 +77,8 @@ export default function AIAgent() {
         id: "init",
         role: "assistant",
         content: isRtl
-          ? "مرحباً بك في مركز العمليات التنفيذي. 🦾 أنا العميل التنفيذي (Executive Agent)، مفوض لإدارة مسارك التعليمي واتخاذ إجراءات استباقية لضمان نجاحك. كيف نبدأ المهمة اليوم؟"
-          : "Welcome to Executive Mission Control. 🦾 I am your Executive Agent, authorized to manage your learning lifecycle and take proactive measures for your success. How shall we initiate the mission today?",
+          ? "أهلاً بك في منصة تعلم. 🦾 أنا العميل التنفيذي الخاص بك. قبل أن أرسم لك المسار، أريد التعرف عليك أكثر. ما هو مستواك الحالي في المجال الذي ترغب في تعلمه؟ وكم ساعة يمكنك تخصيصها يومياً؟"
+          : "Welcome to Taeallum platform. 🦾 I am your Executive Agent. Before I design your path, I want to get to know you better. What is your current level in the field you want to learn? And how many hours can you dedicate daily?",
         timestamp: new Date()
       }]);
     }
