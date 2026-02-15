@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Layout } from "@/components/layout";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +29,8 @@ import {
   Settings,
   AlertTriangle,
   Cpu,
-  Globe
+  Globe,
+  Lock
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
@@ -417,29 +419,54 @@ export default function AIAgent() {
 
                 {/* Command Input Area */}
                 <div className="p-6 bg-card border-t border-border m-6 rounded-3xl shadow-2xl relative">
-                  <div className="relative flex items-end gap-3">
-                    <div className="flex-1 relative">
-                      <Textarea
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
-                        placeholder={isRtl ? "أصدر أوامر تنفيذية للعميل..." : "Issue executive command to Agent..."}
-                        className="min-h-[60px] max-h-[160px] bg-background border-border rounded-2xl resize-none pr-14 pl-6 py-4 text-sm font-medium placeholder:text-muted-foreground focus:border-primary/50"
-                        disabled={isLoading}
-                      />
-                      <div className="absolute left-3 bottom-4 text-primary opacity-30 animate-pulse">
-                        <Activity className="w-4 h-4" />
-                      </div>
-                    </div>
-                    <Button
-                      onClick={() => handleSendMessage()} disabled={!inputValue.trim() || isLoading}
-                      size="icon"
-                      className="h-14 w-14 rounded-2xl shadow-2xl shadow-primary/30 transition-all hover:scale-105"
-                    >
-                      <Send className={`w-6 h-6 ${isRtl ? 'rotate-180' : ''}`} />
-                    </Button>
-                  </div>
-                  <p className="text-center mt-3 text-[9px] text-muted-foreground font-mono uppercase tracking-[0.2em]">{isRtl ? "وضع السيادة التنفيذية: نشط" : "Executive Sovereign Mode: Active"}</p>
+                  {(() => {
+                    const lastMessage = messages[messages.length - 1];
+                    const hasSuggestions = lastMessage?.role === "assistant" && lastMessage?.content.includes("[SUGGESTIONS:");
+                    const isInputLocked = hasSuggestions || isLoading;
+
+                    return (
+                      <>
+                        <div className="relative flex items-end gap-3">
+                          <div className="flex-1 relative">
+                            <Textarea
+                              value={inputValue}
+                              onChange={(e) => setInputValue(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !isInputLocked) { e.preventDefault(); handleSendMessage(); } }}
+                              placeholder={
+                                hasSuggestions
+                                  ? (isRtl ? "يرجى اختيار أحد الخيارات أعلاه للبدء..." : "Please select an option above to proceed...")
+                                  : (isRtl ? "أصدر أوامر تنفيذية للعميل..." : "Issue executive command to Agent...")
+                              }
+                              className={cn(
+                                "min-h-[60px] max-h-[160px] bg-background border-border rounded-2xl resize-none pr-14 pl-6 py-4 text-sm font-medium placeholder:text-muted-foreground focus:border-primary/50 transition-all",
+                                hasSuggestions && "opacity-50 cursor-not-allowed bg-muted"
+                              )}
+                              disabled={isInputLocked}
+                            />
+                            <div className="absolute left-3 bottom-4 text-primary opacity-30 animate-pulse">
+                              {hasSuggestions ? <Lock className="w-4 h-4 text-amber-500" /> : <Activity className="w-4 h-4" />}
+                            </div>
+                          </div>
+                          <Button
+                            onClick={() => handleSendMessage()}
+                            disabled={!inputValue.trim() || isInputLocked}
+                            size="icon"
+                            className={cn(
+                              "h-14 w-14 rounded-2xl shadow-2xl shadow-primary/30 transition-all",
+                              !isInputLocked && "hover:scale-105"
+                            )}
+                          >
+                            <Send className={`w-6 h-6 ${isRtl ? 'rotate-180' : ''}`} />
+                          </Button>
+                        </div>
+                        <p className="text-center mt-3 text-[9px] text-muted-foreground font-mono uppercase tracking-[0.2em]">
+                          {hasSuggestions
+                            ? (isRtl ? "تنبيه: اختيار خيار من الأعلى مطلوب للمتابعة" : "Alert: Selection required to proceed")
+                            : (isRtl ? "وضع السيادة التنفيذية: نشط" : "Executive Sovereign Mode: Active")}
+                        </p>
+                      </>
+                    );
+                  })()}
                 </div>
               </Card>
             </div>

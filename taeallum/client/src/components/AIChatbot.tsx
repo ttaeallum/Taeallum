@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Bot, Send, X, MessageCircle, Loader2 } from "lucide-react";
+import { Bot, Send, X, MessageCircle, Loader2, Lock } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -15,6 +16,8 @@ interface Message {
 
 export function AIChatbot() {
     const [location] = useLocation();
+    const { i18n } = useTranslation();
+    const isRtl = i18n.language === 'ar';
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
         { role: "assistant", content: "أهلاً بك في منصة تعلم. 🦾 أنا العميل التنفيذي الخاص بك. قبل أن أرسم لك المسار التعليمي، أخبرني: ما هو مستواك الحالي؟ وكم ساعة تستطيع تخصيصها يومياً للتعلم؟" }
@@ -221,18 +224,49 @@ export function AIChatbot() {
 
                             {/* Input */}
                             <div className="p-4 border-t border-border bg-background/50">
-                                <div className="flex gap-2">
-                                    <Input
-                                        placeholder="اكتب رسالتك هنا..."
-                                        value={input}
-                                        onChange={(e) => setInput(e.target.value)}
-                                        onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                                        className="rounded-full bg-muted/50 border-primary/10 focus:ring-primary/20"
-                                    />
-                                    <Button size="icon" onClick={() => handleSend()} disabled={!input.trim() || isLoading} className="rounded-full shrink-0">
-                                        <Send className="w-4 h-4" />
-                                    </Button>
-                                </div>
+                                {(() => {
+                                    const lastMessage = messages[messages.length - 1];
+                                    const hasSuggestions = lastMessage?.role === "assistant" && lastMessage?.content.includes("[SUGGESTIONS:");
+                                    const isInputLocked = hasSuggestions || isLoading;
+
+                                    return (
+                                        <div className="flex gap-2">
+                                            <div className="relative flex-1">
+                                                <Input
+                                                    placeholder={
+                                                        hasSuggestions
+                                                            ? (isRtl ? "اختيار خيار من الأعلى مطلوب..." : "Select an option above...")
+                                                            : (isRtl ? "اكتب رسالتك هنا..." : "Type your message...")
+                                                    }
+                                                    value={input}
+                                                    onChange={(e) => setInput(e.target.value)}
+                                                    onKeyDown={(e) => e.key === "Enter" && !isInputLocked && handleSend()}
+                                                    className={cn(
+                                                        "rounded-full bg-muted/50 border-primary/10 transition-all pr-10",
+                                                        hasSuggestions && "opacity-50 cursor-not-allowed bg-muted"
+                                                    )}
+                                                    disabled={isInputLocked}
+                                                />
+                                                {hasSuggestions && (
+                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                        <Lock className="w-3.5 h-3.5 text-amber-500/50" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <Button
+                                                size="icon"
+                                                onClick={() => handleSend()}
+                                                disabled={!input.trim() || isInputLocked}
+                                                className={cn(
+                                                    "rounded-full shrink-0 transition-transform",
+                                                    !isInputLocked && "hover:scale-105"
+                                                )}
+                                            >
+                                                <Send className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         </Card>
                     </motion.div>
