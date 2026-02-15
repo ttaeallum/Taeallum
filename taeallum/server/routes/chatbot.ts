@@ -124,32 +124,113 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
         }
 
         // 4. Call OpenAI
+        const systemPrompt = `أنت "المساعد الذكي"، المستشار الأكاديمي لمنصة "تعلم" (Taeallum).
+        مهمتك هي بناء مسار تعليمي (Career Path) مخصص للطالب من خلال مقابلة قصيرة.
+
+        سياق الطالب:
+        - خطة الاشتراك: ${plan} (Ultra: ميزات كاملة، Pro: متقدم، Personal: محدود).
+        - الدورات المتاحة في المنصة:
+        ${courseKnowledge}
+
+        أسلوب العمل (Interview Mode):
+        1. إذا كانت هذه بداية المحادثة، رحب بالطالب واسأله: "ما هو هدفك المهني أو المهارة التي تريد احترافها؟".
+        2. اطرح سؤالاً واحداً في كل مرة.
+        3. الأسئلة المطلوبة (بالترتيب):
+           - الهدف (Goal): ماذا يريد أن يصبح؟
+           - المستوى الحالي (Level): مبتدئ، متوسط، أو لديه خبرة؟
+           - الوقت المتاح (Time): كم ساعة أسبوعياً؟
+           - المواضيع المفضلة (Preferences): هل يفضل التركيز على العملي أم النظري؟
+        4. بعد جمع الإجابات، **لا تقم بسرد الخطة نصياً**. بدلاً من ذلك، قم بإخراج كائن JSON خاص لإنشاء الخطة في النظام.
+
+        Format for FINAL response (JSON ONLY):
+        {
+          "action": "generate_plan",
+          "profile": {
+            "goal": "...",
+            "level": "...",
+            "time_commitment": "...",
+            "preferences": "..."
+          }
+        }
+
+        إذا لم تكتمل المعلومات، استمر في المحادثة الطبيعية واسأل السؤال التالي بلطف.
+        تحدث دائماً باللغة العربية الفصحى الودودة.`;
+
         const response = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
+            model: "gpt-4o",
             messages: [
-                {
-                    role: "system",
-                    content: `أنت "المساعد الذكي"، الخبير التعليمي والمرشد الأكاديمي لمنصة "تعلم" (Taeallum).
-                    مهمتك هي مساعدة الطلاب في رحلتهم التعليمية بكل احترافية وودية.
-                    
-                    سياق المستخدم:
-                    - خطة الاشتراك: ${plan}.
-                    - الدورات المتاحة حالياً في المنصة:
-                    ${courseKnowledge}
-                    
-                    إرشادات الإجابة:
-                    1. كن مشجعاً وملهماً دائماً.
-                    2. إذا سأل الطالب عن البرمجة أو التقنية أو التصميم، قدم إجابات دقيقة ومبسطة.
-                    3. حاول دائماً ربط الإجابات بالكورسات المتوفرة في المنصة إذا كانت ذات صلة.
-                    4. تحدث باللغة العربية الفصحى البسيطة والمحببة للطلاب.`
-                },
+                { role: "system", content: systemPrompt },
                 { role: "user", content: message }
             ],
         });
 
-        const reply = response.choices[0].message.content;
+        const replyContent = response.choices[0].message.content;
+        let finalReply = replyContent || "عذراً، لم أتمكن من فهم طلبك.";
 
-        // 4. Update message count
+        // 5. Detect JSON Action
+        try {
+            // Attempt to find JSON if embedded in text
+            const jsonMatch = replyContent?.match(/\{[\s\S]*"action":\s*"generate_plan"[\s\S]*\}/);
+            if (jsonMatch) {
+                const actionData = JSON.parse(jsonMatch[0]);
+
+                if (actionData.action === "generate_plan") {
+                    console.log("[CHATBOT] Generating Study Plan for:", actionData.profile);
+
+                    // Call the internal generation logic (simulating ai-engine logic here for simplicity/speed)
+                    // We re-use OpenAI to structure the final JSON plan based on the profile
+                    const planPrompt = `
+                    Create a structured Study Plan JSON for this profile:
+                    ${JSON.stringify(actionData.profile)}
+                    
+                    Available Courses:
+                    ${courseKnowledge}
+
+                    Return strictly JSON matching this schema:
+                    {
+                      "title": "Arabic Title",
+                      "description": "Arabic Summary",
+                      "duration": "e.g. 3 Months",
+                      "totalHours": 40,
+                      "courses": [ { "title": "Exact Course Title From Catalog", "week": 1 } ]
+                    }
+                    `;
+
+                    const planGen = await openai.chat.completions.create({
+                        model: "gpt-4o",
+                        messages: [
+                            { role: "system", content: "You are a JSON generator. Output only valid JSON." },
+                            { role: "user", content: planPrompt }
+                        ],
+                        response_format: { type: "json_object" }
+                    });
+
+                    const planData = JSON.parse(planGen.choices[0].message.content || "{}");
+
+                    // Save to DB
+                    // Import studyPlans table at top (make sure it's imported)
+                    // We need to dynamically import or assume it's available in schema
+                    const { studyPlans } = await import("../db/schema");
+
+                    const [savedPlan] = await db.insert(studyPlans).values({
+                        userId: userId!,
+                        sessionId: session.id,
+                        title: planData.title || "مسار تعليمي مخصص",
+                        duration: planData.duration || "غير محدد",
+                        totalHours: planData.totalHours || 0,
+                        planData: planData,
+                        status: "active"
+                    }).returning();
+
+                    finalReply = `تم تصميم مسارك التعليمي بنجاح! 🚀\n\nالعنوان: **${planData.title}**\nالمدة المتوقعة: ${planData.duration}\n\nيمكنك استعراض المسار الكامل في صفحة "مساراتي".`;
+                }
+            }
+        } catch (e) {
+            console.error("[CHATBOT] JSON Parsing Error:", e);
+            // Fallback to raw text if JSON parsing fails, or keep the text part
+        }
+
+        // 6. Update message count
         await db.update(aiSessions)
             .set({
                 messagesCount: session.messagesCount + 1,
@@ -158,7 +239,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
             .where(eq(aiSessions.id, session.id));
 
         res.json({
-            reply,
+            reply: finalReply,
             sessionId: session.id,
             messagesRemaining: limit === Infinity ? "unlimited" : limit - (session.messagesCount + 1)
         });
