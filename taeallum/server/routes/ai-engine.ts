@@ -6,10 +6,12 @@ import * as schema from "../db/schema";
 import { aiSessions, studyPlans, subscriptions, users } from "../db/schema";
 import { eq, desc } from "drizzle-orm";
 
+import { getConfig } from "../config";
+
 const router = Router();
 
 const getOpenAI = () => {
-    const key = process.env.OPENAI || process.env.OPENAI_API_KEY;
+    const key = getConfig("OPENAI_API_KEY");
     if (!key) return null;
     return new OpenAI({ apiKey: key });
 };

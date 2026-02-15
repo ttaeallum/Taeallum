@@ -5,11 +5,13 @@ import { db } from "../db";
 import { aiSessions, subscriptions, users, courses } from "../db/schema";
 import { eq, desc } from "drizzle-orm";
 
+import { getConfig } from "../config";
+
 const router = Router();
 
-// Helper to get OpenAI instance (Resilient to env loading order)
+// Helper to get OpenAI instance (with config fallback)
 const getOpenAI = () => {
-    const key = process.env.OPENAI || process.env.OPENAI_API_KEY;
+    const key = getConfig("OPENAI_API_KEY");
     if (!key) return null;
     return new OpenAI({ apiKey: key });
 };
