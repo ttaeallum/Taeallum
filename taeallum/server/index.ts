@@ -239,11 +239,14 @@ app.get("/api/debug/env-check", (req, res) => {
     configFallbackActive = false;
   }
 
+  const openDetected = allKeys.filter(k => k.startsWith("OPEN"));
+
   res.json({
-    serverVersion: "1.1.5",
+    serverVersion: "1.1.6",
     timestamp: new Date().toISOString(),
     nodeEnv: process.env.NODE_ENV,
     detectedKeys: openAIKeys,
+    openDetected,
     configFallbackActive,
     openaiAvailable: openAIKeys.length > 0 || configFallbackActive,
     allKeysCount: allKeys.length,
