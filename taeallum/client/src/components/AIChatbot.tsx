@@ -15,7 +15,7 @@ interface Message {
 export function AIChatbot() {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
-        { role: "assistant", content: "مرحباً! أنا المساعد الذكي في منصة تعلم. كيف يمكنني مساعدتك اليوم؟" }
+        { role: "assistant", content: "أهلاً بك في منصة تعلم. 🦾 أنا العميل التنفيذي الخاص بك. قبل أن أرسم لك المسار التعليمي، أخبرني: ما هو مستواك الحالي؟ وكم ساعة تستطيع تخصيصها يومياً للتعلم؟" }
     ]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
