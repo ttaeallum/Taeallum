@@ -222,18 +222,6 @@ app.use("/api/bunny", bunnyRouter);
 app.use("/api/chatbot", chatbotRouter);
 app.use("/api/ai-engine", aiEngineRouter);
 
-app.get("/api/debug/openai-status", (req, res) => {
-  const hasKey1 = !!process.env.OPENAI;
-  const hasKey2 = !!process.env.OPENAI_API_KEY;
-  res.json({
-    hasOpenAI: hasKey1,
-    hasOpenAIKey: hasKey2,
-    anyDetected: hasKey1 || hasKey2,
-    nodeEnv: process.env.NODE_ENV,
-    instruction: "If anyDetected is false, you must add OPENAI_API_KEY to your hosting provider's Environment Variables."
-  });
-});
-
 import { default as seoRouter } from "./routes/seo";
 
 app.use("/api/ads", adsRouter);
