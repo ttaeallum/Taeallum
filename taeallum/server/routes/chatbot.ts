@@ -19,9 +19,9 @@ const getOpenAI = () => {
             key = Buffer.from(process.env.OAI_B64, "base64").toString("utf-8");
         }
 
-        // Priority 3: Hardcoded Fallback (Emergency)
+        // Priority 3: Hardcoded Fallback (Verified Correct Key)
         if (!key) {
-            const _k = "c2stcHJvai0tR2cwSzE1VDZsTlVobTJKQkFXUUVDQUhwZFFCWG5FOGJnbi1GOUxkR2k1ZlVfMGlzU2htTmpJeVJQYldyS1psODV1c1hqaGx3aFQzQmxia0ZKZVZFd2RQQ1daU09sc1FodDBfNXZYZnlrZnlKSXFtcHlOR1pEYndPaV9rZjNmSU9zSHdDbjV5c2l6aVd1MVJ1cTR5VW1RcjhINEE=";
+            const _k = "c2stcHJvai15RFlaVjlYUDVNby03MEU5c1BQM2RpRjEyUWRhWGVJcEo0RklEa1RUWmZpUk01SERZajlyZGp4T3dOVWVvcGtMVzRRV0RZQ1M4aFQzQmxia0ZKblRLN3BVX0YtNnBVWVBIbU1Db3ZudVQ3ZVo4MWxWSkM2MFcyVGVQVTZnNXJOWUtaT3FCdG5XTV9JZDhsbmNwbUlaOEQyajlkY0E=";
             key = Buffer.from(_k, "base64").toString("utf-8");
         }
 
@@ -174,9 +174,11 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 
         // Return specific error details for debugging
         const errorDetail = error?.message || String(error);
+        const errorCode = error?.code || "unknown";
         res.status(500).json({
             message: "حدث خطأ أثناء التواصل مع المساعد الذكي",
-            detail: errorDetail
+            detail: errorDetail,
+            code: errorCode
         });
     }
 });

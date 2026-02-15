@@ -69,17 +69,24 @@ export function AIChatbot() {
             }
 
             if (!response.ok) {
-                throw new Error(data.message || "Failed to get response");
+                const err = new Error(data.message || "Failed to get response") as any;
+                err.detail = data.detail;
+                err.code = data.code;
+                err.debug = data.debug;
+                throw err;
             }
 
             setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
         } catch (error: any) {
             console.error("Chatbot Error:", error);
             const errorMessage = error?.message || "حدث خطأ في الاتصال";
-            const debugInfo = error?.debug ? ` [Debug: ${JSON.stringify(error.debug)}]` : "";
+            const detail = error?.detail ? ` \n- Detail: ${error.detail}` : "";
+            const code = error?.code ? ` \n- Code: ${error.code}` : "";
+            const debugInfo = error?.debug ? ` \n- Debug: ${JSON.stringify(error.debug)}` : "";
+
             setMessages(prev => [...prev, {
                 role: "assistant",
-                content: `عذراً، حدث خطأ في الاتصال (${errorMessage}${debugInfo}). يرجى المحاولة مرة أخرى لاحقاً.`
+                content: `عذراً، حدث خطأ في الاتصال (${errorMessage})${detail}${code}${debugInfo}. يرجى المحاولة مرة أخرى لاحقاً.`
             }]);
         } finally {
             setIsLoading(false);
