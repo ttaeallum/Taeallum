@@ -14,17 +14,31 @@ services:
           property: connectionString
       - key: SESSION_SECRET
         generateValue: true
-      - key: BUNNY_LIBRARY_ID
-        value: "597149"
-      - key: BUNNY_API_KEY
-        value: "367a5c92-24fb-4fdb-82d0b1e4107a-959f-4b99"
-      - key: OPENAI_API_KEY
+      - key: TEST_SYNC
         sync: false
-      - key: SECURE_OPENAI_API_KEY
+      - key: OPENAI_API_KEY
         sync: false
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: VITE_STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: BUNNY_LIBRARY_ID
+        sync: false
+      - key: BUNNY_API_KEY
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_SECURE
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: ADMIN_USERNAME
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
