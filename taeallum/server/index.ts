@@ -243,9 +243,9 @@ app.get("/api/debug/env-check", (req, res) => {
     timestamp: new Date().toISOString(),
     nodeEnv: process.env.NODE_ENV,
     detectedKeys: openAIKeys,
-    detailedStatus: status,
+    allKeyNames: allKeys.sort(), // Just the names
     allKeysCount: allKeys.length,
-    message: "This endpoint is for debugging only. It does not expose full keys."
+    message: "Check allKeyNames for typos like OPEN_AI_KEY or OPEN_AI_API_KEY."
   });
 });
 
