@@ -347,8 +347,9 @@ export default function AIAgent() {
                 >
                   <AnimatePresence>
                     {messages.map((msg, i) => {
-                      const suggestionMatch = msg.content.match(/\[SUGGESTIONS:\s*(.*?)\]/);
-                      const cleanContent = msg.content.replace(/\[SUGGESTIONS:.*?\]/, "").trim();
+                      const content = msg.content || "";
+                      const suggestionMatch = content.match(/\[SUGGESTIONS:\s*(.*?)\]/);
+                      const cleanContent = content.replace(/\[SUGGESTIONS:.*?\]/, "").trim();
                       const suggestions = suggestionMatch ? suggestionMatch[1].split("|").map(s => s.trim()) : [];
 
                       return (
@@ -421,7 +422,7 @@ export default function AIAgent() {
                 <div className="p-6 bg-card border-t border-border m-6 rounded-3xl shadow-2xl relative">
                   {(() => {
                     const lastMessage = messages[messages.length - 1];
-                    const hasSuggestions = lastMessage?.role === "assistant" && lastMessage?.content.includes("[SUGGESTIONS:");
+                    const hasSuggestions = lastMessage?.role === "assistant" && lastMessage?.content?.includes("[SUGGESTIONS:");
                     const isInputLocked = hasSuggestions || isLoading;
 
                     return (

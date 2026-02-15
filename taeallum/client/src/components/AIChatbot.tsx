@@ -168,8 +168,9 @@ export function AIChatbot() {
                                 className="flex-1 overflow-y-auto p-4 space-y-4 bg-dot-pattern"
                             >
                                 {messages.map((msg, i) => {
-                                    const suggestionMatch = msg.content.match(/\[SUGGESTIONS:\s*(.*?)\]/);
-                                    const cleanContent = msg.content.replace(/\[SUGGESTIONS:.*?\]/, "").trim();
+                                    const content = msg.content || "";
+                                    const suggestionMatch = content.match(/\[SUGGESTIONS:\s*(.*?)\]/);
+                                    const cleanContent = content.replace(/\[SUGGESTIONS:.*?\]/, "").trim();
                                     const suggestions = suggestionMatch ? suggestionMatch[1].split("|").map(s => s.trim()) : [];
 
                                     return (
@@ -226,7 +227,7 @@ export function AIChatbot() {
                             <div className="p-4 border-t border-border bg-background/50">
                                 {(() => {
                                     const lastMessage = messages[messages.length - 1];
-                                    const hasSuggestions = lastMessage?.role === "assistant" && lastMessage?.content.includes("[SUGGESTIONS:");
+                                    const hasSuggestions = lastMessage?.role === "assistant" && lastMessage?.content?.includes("[SUGGESTIONS:");
                                     const isInputLocked = hasSuggestions || isLoading;
 
                                     return (
@@ -270,7 +271,7 @@ export function AIChatbot() {
                                 <p className="text-center mt-3 text-[8px] text-muted-foreground font-mono uppercase tracking-widest opacity-60">
                                     {(() => {
                                         const lastMessage = messages[messages.length - 1];
-                                        const hasSuggestions = lastMessage?.role === "assistant" && lastMessage?.content.includes("[SUGGESTIONS:");
+                                        const hasSuggestions = lastMessage?.role === "assistant" && lastMessage?.content?.includes("[SUGGESTIONS:");
                                         return hasSuggestions
                                             ? (isRtl ? "تنبيه: اختيار خيار مطلوب للمتابعة" : "Alert: Selection required to proceed")
                                             : (isRtl ? "نظام تعلم التنفيذي: نشط" : "Taeallum Executive System: Active");
