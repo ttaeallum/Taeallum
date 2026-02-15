@@ -246,9 +246,10 @@ app.get("/api/debug/env-check", (req, res) => {
     timestamp: new Date().toISOString(),
     nodeEnv: process.env.NODE_ENV,
     detectedKeys: openAIKeys,
-    allKeyNames: allKeys.sort(), // Just the names
+    allKeyNames: allKeys.sort(),
+    syncStatus: allKeys.includes("TEST_SYNC") ? "SYNCED" : "NOT_SYNCED",
     allKeysCount: allKeys.length,
-    message: "Check allKeyNames for typos like OPEN_AI_KEY or OPEN_AI_API_KEY."
+    message: "If syncStatus is NOT_SYNCED, the changes in your dashboard are not reaching this service."
   });
 });
 
