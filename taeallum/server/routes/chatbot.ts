@@ -34,8 +34,15 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 
         const openai = getOpenAI();
         if (!openai) {
-            console.error("[CHATBOT ERROR] OpenAI Key not found in process.env");
-            return res.status(400).json({ message: "OpenAI is not configured" });
+            const keyAttempt = getConfig("OPENAI_API_KEY");
+            console.error("[CHATBOT ERROR] OpenAI instance could not be created.");
+            return res.status(400).json({
+                message: "OpenAI is not configured",
+                debug: {
+                    hasKey: !!keyAttempt,
+                    keyPrefix: keyAttempt ? keyAttempt.substring(0, 7) : "none"
+                }
+            });
         }
 
         if (!message) {
