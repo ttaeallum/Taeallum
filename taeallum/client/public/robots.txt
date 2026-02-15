@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+# AI-Specific Crawlers (Encourage Indexing for AI discovery)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+Sitemap: https://taallm.com/sitemap.xml

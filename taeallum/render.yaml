@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: taeallum-platform
+    env: node
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: taeallum-db
+          property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: BUNNY_LIBRARY_ID
+        value: "597149"
+      - key: BUNNY_API_KEY
+        value: "367a5c92-24fb-4fdb-82d0b1e4107a-959f-4b99"
+
+databases:
+  - name: taeallum-db
+    plan: starter

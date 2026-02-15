@@ -1,0 +1,22 @@
+{
+    "name": "تعلّم - Taallam",
+    "short_name": "تعلّم",
+    "description": "منصة تعلّم هي بوابتك لاكتساب مهارات مجانية. كورسات احترافية في البرمجة والذكاء الاصطناعي باللغة العربية.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#000000",
+    "theme_color": "#4CAF50",
+    "icons": [
+        {
+            "src": "/favicon.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/favicon.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}
