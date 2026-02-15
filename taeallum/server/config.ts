@@ -1,21 +1,24 @@
 /**
- * Server Configuration - Fallback mechanism for environment variables
- * Priority: process.env > fallback values
+ * Server Configuration - Secure key resolution
+ * Priority: process.env.OPENAI_API_KEY > decoded OAI_B64 env var
  */
 
-const _f: Record<string, string> = {
-    _oai: "c2stcHJvai15RFlaVjlYUDVNby03MEU5c1BQM2RpRjEyUWRhWGVJcEo0RklEa1RUWmZpUk01SERZajlyZGp4T3dOVWVvcGtMVzRRV0RZQ1M4aFQzQmxia0ZKblRLN3BVX0YtNnBVWVBIbU1Db3ZudVQ3ZVo4MWxWSkM2MFcyVGVQVTZnNXJOWUtaT3FCdG5XTV9JZDhsbmNwbUlaOEQyajlkY0E=",
-};
-
 export function getConfig(key: string): string | undefined {
-    // Always prefer environment variable
+    // 1. Direct env var (highest priority)
     if (process.env[key]) return process.env[key];
-    // Also check alternate name
-    if (key === "OPENAI_API_KEY" && process.env.OPENAI) return process.env.OPENAI;
 
-    // Fallback for critical keys
+    // 2. For OpenAI: check alternate names and encoded fallback
     if (key === "OPENAI_API_KEY") {
-        return Buffer.from(_f._oai, "base64").toString("utf-8");
+        if (process.env.OPENAI) return process.env.OPENAI;
+
+        // Decode from base64 env var (secure injection)
+        if (process.env.OAI_B64) {
+            try {
+                return Buffer.from(process.env.OAI_B64, "base64").toString("utf-8");
+            } catch {
+                return undefined;
+            }
+        }
     }
 
     return undefined;
