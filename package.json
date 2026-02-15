@@ -1,0 +1,11 @@
+{
+    "name": "taeallum-root-proxy",
+    "private": true,
+    "scripts": {
+        "build": "cd taeallum && npm install && npm run build",
+        "start": "cd taeallum && npm start"
+    },
+    "engines": {
+        "node": "20.x"
+    }
+}
