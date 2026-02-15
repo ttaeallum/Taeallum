@@ -222,6 +222,33 @@ app.use("/api/bunny", bunnyRouter);
 app.use("/api/chatbot", chatbotRouter);
 app.use("/api/ai-engine", aiEngineRouter);
 
+app.get("/api/debug/env-check", (req, res) => {
+  const allKeys = Object.keys(process.env);
+  const openAIKeys = allKeys.filter(k => k.toLowerCase().includes("openai"));
+
+  const status = openAIKeys.map(key => {
+    const val = process.env[key] || "";
+    return {
+      keyName: key,
+      length: val.length,
+      startsWithSK: val.startsWith("sk-"),
+      hasLeadingWhitespace: val.startsWith(" "),
+      hasTrailingWhitespace: val.endsWith(" "),
+      firstFive: val.substring(0, 5) + "...",
+      lastFive: "..." + val.substring(val.length - 5)
+    };
+  });
+
+  res.json({
+    timestamp: new Date().toISOString(),
+    nodeEnv: process.env.NODE_ENV,
+    detectedKeys: openAIKeys,
+    detailedStatus: status,
+    allKeysCount: allKeys.length,
+    message: "This endpoint is for debugging only. It does not expose full keys."
+  });
+});
+
 import { default as seoRouter } from "./routes/seo";
 
 app.use("/api/ads", adsRouter);
