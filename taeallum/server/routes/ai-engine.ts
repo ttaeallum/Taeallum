@@ -175,7 +175,7 @@ router.post("/generate-plan", requireAuth, async (req: Request, res: Response) =
 
         // 4. Call OpenAI with GPT-4o
         const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: "gpt-4o-mini",
             messages: [
                 { role: "system", content: "You are a professional study plan generator for Taeallum platform. Output only JSON." },
                 { role: "user", content: prompt }
@@ -208,14 +208,18 @@ router.post("/generate-plan", requireAuth, async (req: Request, res: Response) =
     } catch (error: any) {
         console.error("Plan Generation Error:", error);
 
-        // Handle specific OpenAI errors
-        if (error?.status === 429 || error?.code === "insufficient_quota") {
-            return res.status(429).json({
-                message: "عذراً، رصيد الـ API الخاص بـ OpenAI قد نفد. يرجى شحن الرصيد ليعود المساعد الذكي للعمل."
-            });
+        let userMessage = "حدث خطأ أثناء إنشاء الخطة الدراسية";
+        if (error?.code === "insufficient_quota") {
+            userMessage = "رصيد الـ API الخاص بـ OpenAI قد نفد فعلياً. يرجى التأكد من شحن الرصيد.";
+        } else if (error?.status === 429) {
+            userMessage = "وصلت إلى حد الاستخدام المسموح (Rate Limit). يرجى المحاولة بعد قليل.";
         }
 
-        res.status(500).json({ message: "حدث خطأ أثناء إنشاء الخطة الدراسية" });
+        res.status(error?.status || 500).json({
+            message: userMessage,
+            detail: error.message,
+            code: error.code || "unknown"
+        });
     }
 });
 

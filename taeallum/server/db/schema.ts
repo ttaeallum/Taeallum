@@ -13,6 +13,7 @@ export const users = pgTable("users", {
     verificationCodeExpiresAt: timestamp("verification_code_expires_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     lastLoginAt: timestamp("last_login_at"),
+    preferences: jsonb("preferences"), // Long-term memory (interests, goals, state)
 });
 
 // 2. Categories Table

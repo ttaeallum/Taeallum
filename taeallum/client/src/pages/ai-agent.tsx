@@ -3,8 +3,7 @@ import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea"; // Keep Textarea for larger input
-import { Input } from "@/components/ui/input"; // Add Input if we want single line, but Textarea is fine for full page
+import { Textarea } from "@/components/ui/textarea";
 import {
   Send,
   Sparkles,
@@ -15,24 +14,38 @@ import {
   Trophy,
   BookOpen,
   Target,
-  Zap
+  Zap,
+  Fingerprint,
+  Activity,
+  Box,
+  Brain,
+  Search,
+  CheckCircle2,
+  Clock,
+  History,
+  ShieldCheck,
+  Rocket,
+  Settings,
+  AlertTriangle,
+  Cpu,
+  Globe
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  logs?: string[];
 }
 
 export default function AIAgent() {
-  const { t, i18n } = useTranslation();
-  const [, setLocation] = useLocation();
+  const { i18n } = useTranslation();
   const isRtl = i18n.language === 'ar';
 
   const { data: user, isLoading: authLoading } = useQuery({
@@ -47,6 +60,7 @@ export default function AIAgent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [activeLogs, setActiveLogs] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -55,36 +69,34 @@ export default function AIAgent() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, activeLogs]);
 
-  // Initial Greeting
   useEffect(() => {
     if (!authLoading && user && messages.length === 0) {
-      // Check if user has active plan, if not basic greeting
-      const initialMsg: Message = {
+      setMessages([{
         id: "init",
         role: "assistant",
-        content: "مرحباً بك! 👋 أنا مستشارك الأكاديمي الذكي. أنا هنا لمساعدتك في بناء مسار تعليمي مخصص أو الإجابة على استفساراتك. \n\nكيف يمكنني مساعدتك اليوم؟ (مثال: أريد أن أصبح مطور ويب Full Stack)",
+        content: isRtl
+          ? "مرحباً بك في مركز العمليات التنفيذي. 🦾 أنا العميل التنفيذي (Executive Agent)، مفوض لإدارة مسارك التعليمي واتخاذ إجراءات استباقية لضمان نجاحك. كيف نبدأ المهمة اليوم؟"
+          : "Welcome to Executive Mission Control. 🦾 I am your Executive Agent, authorized to manage your learning lifecycle and take proactive measures for your success. How shall we initiate the mission today?",
         timestamp: new Date()
-      };
-      setMessages([initialMsg]);
+      }]);
     }
-  }, [authLoading, user, messages.length]);
+  }, [authLoading, user, messages.length, isRtl]);
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
 
     const userMsgText = inputValue.trim();
-    const newMessage: Message = {
+    setMessages(prev => [...prev, {
       id: Date.now().toString(),
       role: "user",
       content: userMsgText,
       timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, newMessage]);
+    }]);
     setInputValue("");
     setIsLoading(true);
+    setActiveLogs([isRtl ? "جاري تحليل المعطيات..." : "Analyzing data points..."]);
 
     try {
       const response = await fetch("/api/chatbot", {
@@ -93,30 +105,25 @@ export default function AIAgent() {
         body: JSON.stringify({ message: userMsgText }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch response");
-      }
-
       const data = await response.json();
 
-      // Check if plan was generated (The backend returns specific text if so, or we can check logic)
-      // The backend returns the reply in `data.reply`
+      if (data.logs) {
+        setActiveLogs(prev => [...prev, ...data.logs]);
+      }
 
-      const botMsg: Message = {
+      setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: "assistant",
         content: data.reply,
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, botMsg]);
+        timestamp: new Date(),
+        logs: data.logs
+      }]);
 
     } catch (error) {
-      console.error("Chatbot Error:", error);
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: "assistant",
-        content: "عذراً، حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى.",
+        content: isRtl ? "عذراً، فشل العميل في تنفيذ المهمة." : "Agent failed to execute mission.",
         timestamp: new Date()
       }]);
     } finally {
@@ -124,27 +131,22 @@ export default function AIAgent() {
     }
   };
 
-
-  // --- Render Paywall if not subscribed ---
   const isSubscribed = user?.isSubscribed || user?.role === "admin";
   if (!authLoading && !isSubscribed) {
-    // Reuse the Paywall UI from previous version
     return (
       <Layout>
-        <div className="min-h-screen flex items-center justify-center p-4 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
-          <Card className="max-w-xl w-full p-10 text-center border-2 border-primary/20 shadow-2xl backdrop-blur-xl bg-background/80 relative overflow-hidden">
-            <h2 className="text-4xl font-heading font-black mb-6">المساعد الذكي</h2>
-            <p className="text-muted-foreground text-lg mb-10 leading-relaxed">
-              هذه الميزة حصرية للمشتركين. اشترك الآن واحصل على مساعد شخصي ذكي يبني لك مسارك التعليمي.
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <Card className="max-w-xl w-full p-10 text-center border-2 border-primary/20 shadow-2xl backdrop-blur-xl bg-background/80">
+            <Cpu className="w-16 h-16 mx-auto mb-6 text-primary animate-pulse" />
+            <h2 className="text-4xl font-black mb-6">{isRtl ? "العميل التنفيذي" : "Executive Agent"}</h2>
+            <p className="text-muted-foreground text-lg mb-10">
+              {isRtl ? "هذه التكنولوجيا التنفيذية متاحة فقط للمشتركين في خطة الـ Pro." : "This executive technology is only available for Pro subscribers."}
             </p>
             <div className="flex flex-col gap-4">
               <Link href="/ai-pricing">
-                <Button size="lg" className="w-full text-xl font-black h-16 rounded-2xl shadow-xl shadow-primary/20">
-                  اشترك الآن بـ 10$ فقط
+                <Button size="lg" className="w-full text-xl font-black h-16 rounded-2xl">
+                  {isRtl ? "ترقية الصلاحيات الآن" : "Upgrade Status Now"}
                 </Button>
-              </Link>
-              <Link href="/">
-                <Button variant="ghost" className="w-full font-bold">العودة للرئيسية</Button>
               </Link>
             </div>
           </Card>
@@ -155,144 +157,298 @@ export default function AIAgent() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-fixed">
-        <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-background/50 py-8 backdrop-blur-[2px]">
-          <div className="container max-w-7xl px-4 md:px-8 h-[calc(100vh-100px)] flex flex-col">
+      <div className="min-h-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
+        <div className="container max-w-full px-4 md:px-6 py-6 h-screen flex flex-col gap-4">
 
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h1 className="text-3xl font-black tracking-tight text-primary">المساعد الذكي</h1>
-                <p className="text-sm text-muted-foreground">مستشارك الأكاديمي الشخصي</p>
+          {/* Top Integrated Bar */}
+          <header className="flex items-center justify-between p-4 bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl">
+            <div className="flex items-center gap-4">
+              <div className="bg-primary/20 p-2 rounded-xl border border-primary/30">
+                <ShieldCheck className="w-6 h-6 text-primary" />
               </div>
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 px-3 py-1 gap-2">
-                <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
-                <span>GPT-4o Connected</span>
-              </Badge>
+              <div>
+                <h1 className="text-xl font-black tracking-tighter uppercase whitespace-nowrap">{isRtl ? "مركز العمليات التنفيذي" : "Executive Mission Control"}</h1>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] uppercase font-mono text-slate-400">Agent Status: Active Pursuit</span>
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 flex-1 overflow-hidden">
+            <div className="flex items-center gap-4 md:gap-8 overflow-hidden">
+              <div className="hidden xl:flex items-center gap-4 border-l border-slate-800 pl-4">
+                <div className="text-right">
+                  <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest">{isRtl ? "معدل الذكاء الحالي" : "IQ Load"}</p>
+                  <p className="text-xs font-mono text-primary">GPT-4o MINI: ACTIVE</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest">{isRtl ? "نطاق العمل" : "Operational Range"}</p>
+                  <p className="text-xs font-mono text-sky-400">Full Access</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right hidden sm:block">
+                  <p className="text-xs font-bold">{user?.fullName}</p>
+                  <p className="text-[10px] text-primary uppercase font-black tracking-tighter">Pro Status</p>
+                </div>
+                <Avatar className="h-10 w-10 border-2 border-primary/30 shadow-lg shadow-primary/10">
+                  <AvatarFallback className="bg-slate-800 text-slate-400 font-bold">UA</AvatarFallback>
+                </Avatar>
+              </div>
+            </div>
+          </header>
 
-              {/* Sidebar (Optional Info) */}
-              <div className="hidden lg:flex flex-col gap-4 lg:col-span-1 h-full overflow-y-auto pr-2">
-                <Card className="p-5 border-primary/20 bg-background/60 backdrop-blur-xl">
-                  <h3 className="font-bold mb-4 flex items-center gap-2 text-primary">
-                    <Trophy className="w-5 h-5" />
-                    مميزات المساعد
-                  </h3>
-                  <div className="space-y-4 text-sm">
-                    <div className="flex gap-3">
-                      <div className="p-2 bg-primary/10 rounded-lg"><Target className="w-4 h-4 text-primary" /></div>
-                      <div>
-                        <p className="font-bold">تحديد المسار</p>
-                        <p className="text-xs text-muted-foreground">يبني لك خطة من الصفر</p>
-                      </div>
+          <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-hidden relative">
+
+            {/* Column 1: Tactical Stats & Missions */}
+            <div className="lg:col-span-3 h-full flex flex-col gap-4 overflow-y-auto hidden lg:flex">
+              <Card className="p-6 bg-slate-900/80 border-slate-800 rounded-3xl shadow-xl backdrop-blur-md">
+                <h3 className="text-xs font-black mb-6 flex items-center gap-2 text-slate-400 uppercase tracking-widest">
+                  <Target className="w-4 h-4 text-primary" />
+                  {isRtl ? "المهمة النشطة" : "Active Missions"}
+                </h3>
+                <div className="space-y-4">
+                  <div className="p-4 bg-primary/10 rounded-2xl border border-primary/20 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:rotate-12 transition-transform">
+                      <Rocket className="w-12 h-12" />
                     </div>
-                    <div className="flex gap-3">
-                      <div className="p-2 bg-primary/10 rounded-lg"><BookOpen className="w-4 h-4 text-primary" /></div>
-                      <div>
-                        <p className="font-bold">اقتراح كورسات</p>
-                        <p className="text-xs text-muted-foreground">من مكتبتنا الضخمة</p>
-                      </div>
+                    <p className="text-[10px] uppercase font-mono text-primary mb-1">Current Goal</p>
+                    <p className="text-xs font-bold mb-2">{user?.preferences?.main_goal || (isRtl ? "لم يحدد بعد" : "Not Set")}</p>
+                    <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-2">
+                      <motion.div initial={{ width: 0 }} animate={{ width: '45%' }} className="h-full bg-primary" />
                     </div>
-                    <div className="flex gap-3">
-                      <div className="p-2 bg-primary/10 rounded-lg"><Zap className="w-4 h-4 text-primary" /></div>
-                      <div>
-                        <p className="font-bold">إجابات فورية</p>
-                        <p className="text-xs text-muted-foreground">على أي سؤال تقني</p>
-                      </div>
+                    <div className="flex justify-between text-[9px] font-mono text-slate-500 lowercase">
+                      <span>progress: 45%</span>
+                      <span>mod: exec_active</span>
                     </div>
                   </div>
-                </Card>
-              </div>
 
-              {/* Chat Area */}
-              <div className="lg:col-span-3 h-full flex flex-col">
-                <Card className="flex-1 flex flex-col border-primary/20 shadow-xl bg-background/60 backdrop-blur-3xl overflow-hidden rounded-[2rem]">
+                  <div className="space-y-2">
+                    <p className="text-[10px] uppercase text-slate-500 font-bold tracking-tighter">{isRtl ? "التخصص المبرمج" : "Programmed Sector"}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {user?.preferences?.interests?.map((interest: string) => (
+                        <Badge key={interest} variant="outline" className="bg-slate-950 border-slate-700 text-slate-300 text-[10px]">{interest}</Badge>
+                      )) || <span className="text-[10px] text-slate-600 italic">None</span>}
+                    </div>
+                  </div>
+                </div>
+              </Card>
 
-                  {/* Chat Messages */}
-                  <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-primary/10">
-                    <AnimatePresence>
-                      {messages.map((msg) => (
-                        <motion.div
-                          key={msg.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className={`flex gap-4 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
-                        >
-                          <Avatar className={`h-10 w-10 border-2 ${msg.role === 'assistant' ? 'border-primary/20 bg-primary/5' : 'border-background bg-secondary'}`}>
-                            <AvatarFallback>
-                              {msg.role === 'assistant' ? <Bot className="w-5 h-5 text-primary" /> : <User className="w-5 h-5" />}
-                            </AvatarFallback>
-                          </Avatar>
+              <Card className="p-6 bg-slate-900/80 border-slate-800 rounded-3xl flex-1 shadow-xl">
+                <h3 className="text-xs font-black mb-4 flex items-center gap-2 text-slate-400 uppercase tracking-widest">
+                  <History className="w-4 h-4 text-amber-500" />
+                  {isRtl ? "سجل العمليات" : "Executive History"}
+                </h3>
+                <div className="space-y-4 h-[300px] overflow-y-auto pr-2 no-scrollbar">
+                  {[
+                    { act: isRtl ? "مسح الكورسات" : "Course Scan", time: "2m ago", status: "complete" },
+                    { act: isRtl ? "تعديل المسار" : "Path Optimiz.", time: "1h ago", status: "complete" },
+                    { act: isRtl ? "تحديث الأهداف" : "Goal Sync", time: "3h ago", status: "complete" }
+                  ].map((act, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 bg-slate-950/50 rounded-xl border border-slate-800/30">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span className="text-[11px] text-slate-300">{act.act}</span>
+                      </div>
+                      <span className="text-[9px] font-mono text-slate-600">{act.time}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
 
-                          <div className={`max-w-[80%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
-                            <div className={`px-5 py-3 rounded-2xl text-base leading-relaxed whitespace-pre-wrap ${msg.role === "user"
-                              ? "bg-primary text-primary-foreground rounded-tr-none shadow-lg shadow-primary/20"
-                              : "bg-background border border-primary/10 rounded-tl-none shadow-sm"
-                              }`}>
-                              {msg.content}
+            {/* Column 2: Tactical Tactical Map (Agent Core) */}
+            <div className="lg:col-span-6 h-full flex flex-col gap-4 relative">
+              <Card className="flex-1 bg-slate-900 border-slate-800 rounded-[2.5rem] flex flex-col overflow-hidden relative shadow-2xl">
+                {/* Background Tech HUD Details */}
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 pointer-events-none" />
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent animate-pulse" />
+
+                {/* Tactical HUD Overlay Elements */}
+                <div className="absolute inset-x-0 top-0 p-6 pointer-events-none z-10 flex justify-between uppercase font-mono text-[9px] text-slate-600 tracking-tighter">
+                  <div className="flex flex-col gap-1">
+                    <span>LAT: 40.7128 N</span>
+                    <span>LNG: 74.0060 W</span>
+                  </div>
+                  <div className="flex flex-col gap-1 text-right">
+                    <span>VER: EXEC_OS_1.0</span>
+                    <span>CYC: 2.45 GHz</span>
+                  </div>
+                </div>
+
+                {/* Central Executive Animation (When Idle/Loading) */}
+                <AnimatePresence>
+                  {isLoading && (
+                    <motion.div
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      className="absolute inset-0 flex items-center justify-center bg-slate-950/70 backdrop-blur-md z-50 p-20"
+                    >
+                      <div className="relative w-full max-w-sm">
+                        <div className="absolute inset-0 bg-primary/20 blur-[100px] animate-pulse rounded-full" />
+                        <div className="relative aspect-square border border-primary/20 rounded-full p-8 flex items-center justify-center bg-slate-950/50 overflow-hidden">
+                          <motion.div
+                            animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                            className="absolute inset-0 border border-primary/10 border-dashed rounded-full"
+                          />
+                          <motion.div
+                            animate={{ rotate: -360 }} transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                            className="absolute inset-4 border border-sky-500/10 border-dashed rounded-full"
+                          />
+                          <div className="flex flex-col items-center gap-4 text-center">
+                            <Cpu className="w-16 h-16 text-primary animate-pulse" />
+                            <div>
+                              <p className="text-xs font-black text-primary uppercase tracking-[0.2em]">{isRtl ? "جاري المعالجة التنفيذية" : "Executive Processing"}</p>
+                              <p className="text-[10px] text-slate-500 font-mono mt-1 italic">accessing platform_core_v4...</p>
                             </div>
-                            <span className="text-[10px] text-muted-foreground px-2 mt-1 block opacity-60">
-                              {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
                           </div>
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-
-                    {isLoading && (
-                      <div className="flex gap-4">
-                        <Avatar className="h-10 w-10 border-primary/20 bg-primary/5">
-                          <AvatarFallback><Bot className="w-5 h-5 text-primary" /></AvatarFallback>
-                        </Avatar>
-                        <div className="bg-background border border-primary/10 px-5 py-3 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-2">
-                          <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                          <span className="text-xs text-muted-foreground">جارٍ الكتابة...</span>
                         </div>
                       </div>
-                    )}
-                    <div ref={messagesEndRef} />
-                  </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-                  {/* Input Area */}
-                  <div className="p-4 bg-background/80 border-t border-primary/10 backdrop-blur-md">
-                    <div className="relative flex items-end gap-2 max-w-4xl mx-auto">
+                {/* Tactical Chat Flow Container */}
+                <div className="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-hide">
+                  <AnimatePresence>
+                    {messages.map((msg) => (
+                      <motion.div
+                        key={msg.id}
+                        initial={{ opacity: 0, x: msg.role === "user" ? 20 : -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
+                      >
+                        <div className={`group relative p-6 rounded-[2rem] max-w-[90%] md:max-w-[75%] text-sm leading-relaxed shadow-2xl ${msg.role === "user"
+                          ? "bg-slate-100 text-slate-900 font-bold rounded-tr-none"
+                          : "bg-slate-800/80 border border-slate-700/50 rounded-tl-none backdrop-blur-md"
+                          }`}>
+                          {/* Message Content */}
+                          {msg.content}
+
+                          {/* Act Indicators (Tools) */}
+                          {msg.logs && msg.logs.length > 0 && (
+                            <div className="mt-6 pt-4 border-t border-slate-700/50 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {msg.logs.map((log, idx) => (
+                                <div key={idx} className="flex items-center gap-2 p-2 bg-slate-900/50 rounded-xl border border-primary/20">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                  <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-tighter truncate">{log}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-3 px-4">
+                          <span className="text-[8px] text-slate-600 font-mono uppercase tracking-widest">
+                            SRC: {msg.role === "user" ? "COMMANDER" : "EXECUTIVE_AGENT"}
+                          </span>
+                          <span className="w-1 h-1 rounded-full bg-slate-800" />
+                          <span className="text-[8px] text-slate-600 font-mono">
+                            {msg.timestamp.toLocaleTimeString([], { hour12: false })}
+                          </span>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* Command Input Area */}
+                <div className="p-6 bg-slate-900 border-t border-slate-800 m-6 rounded-3xl shadow-2xl relative">
+                  <div className="relative flex items-end gap-3">
+                    <div className="flex-1 relative">
                       <Textarea
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSendMessage();
-                          }
-                        }}
-                        placeholder="اكتب رسالتك هنا..."
-                        className="min-h-[60px] max-h-[150px] resize-none rounded-2xl border-primary/20 focus:border-primary/50 focus:ring-primary/10 pr-4 pl-14 py-4 scrollbar-hide shadow-inner bg-background/50"
+                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
+                        placeholder={isRtl ? "أصدر أوامر تنفيذية للعميل..." : "Issue executive command to Agent..."}
+                        className="min-h-[60px] max-h-[160px] bg-slate-950/80 border-slate-700 rounded-2xl resize-none pr-14 pl-6 py-4 text-sm font-medium placeholder:text-slate-600 focus:border-primary/50"
                         disabled={isLoading}
                       />
-                      <Button
-                        onClick={handleSendMessage}
-                        disabled={!inputValue.trim() || isLoading}
-                        size="icon"
-                        className="absolute left-2 bottom-2 h-10 w-10 rounded-xl shadow-lg shadow-primary/20"
-                      >
-                        <Send className="w-4 h-4 rotate-180" />
-                      </Button>
+                      <div className="absolute left-3 bottom-4 text-primary opacity-30 animate-pulse">
+                        <Activity className="w-4 h-4" />
+                      </div>
                     </div>
-                    <div className="text-center mt-2">
-                      <p className="text-[10px] text-muted-foreground opacity-50 uppercase tracking-widest">
-                        AI Career Advisor v1.1.11
-                      </p>
+                    <Button
+                      onClick={handleSendMessage} disabled={!inputValue.trim() || isLoading}
+                      size="icon"
+                      className="h-14 w-14 rounded-2xl shadow-2xl shadow-primary/30 transition-all hover:scale-105"
+                    >
+                      <Send className={`w-6 h-6 ${isRtl ? 'rotate-180' : ''}`} />
+                    </Button>
+                  </div>
+                  <p className="text-center mt-3 text-[9px] text-slate-700 font-mono uppercase tracking-[0.2em]">{isRtl ? "وضع السيادة التنفيذية: نشط" : "Executive Sovereign Mode: Active"}</p>
+                </div>
+              </Card>
+            </div>
+
+            {/* Column 3: Live Brain Cycles (Logs) */}
+            <div className="lg:col-span-3 h-full flex flex-col gap-4 overflow-hidden hidden lg:flex">
+              <Card className="flex-1 bg-slate-950/80 border border-slate-800 rounded-3xl p-6 flex flex-col shadow-2xl backdrop-blur-xl">
+                <div className="flex items-center justify-between mb-8 border-b border-slate-900 pb-4">
+                  <h3 className="text-xs font-black uppercase text-slate-500 tracking-[0.3em] flex items-center gap-2">
+                    <Brain className="w-3 h-3 text-primary" />
+                    {isRtl ? "دوارات المعالجة" : "Brain Cycles"}
+                  </h3>
+                  <div className="text-[10px] font-mono text-emerald-500 animate-pulse">ON_TASK</div>
+                </div>
+                <div className="flex-1 overflow-y-auto space-y-6 scrollbar-hide">
+                  <AnimatePresence>
+                    {activeLogs.map((log, i) => (
+                      <motion.div
+                        key={i} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+                        className="group flex gap-3 text-[10px] font-mono"
+                      >
+                        <span className="text-primary font-black">[{i + 1}]</span>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-slate-300 group-hover:text-white transition-colors uppercase tracking-tight">{log}</span>
+                          <span className="text-[8px] text-slate-600 font-mono">sys_cor: secure_node_${i * 123}</span>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+
+                  {isLoading && (
+                    <motion.div
+                      animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5 }}
+                      className="text-primary italic font-mono text-[10px] pl-6 border-l border-primary/20"
+                    >
+                      {">"} {isRtl ? "جارٍ حل العقد المنطقية..." : "Resolving logic nodes..."}
+                    </motion.div>
+                  )}
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-slate-800/50">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 bg-slate-900/50 rounded-xl border border-slate-800">
+                      <p className="text-[8px] text-slate-500 uppercase font-black tracking-widest mb-1">Stability</p>
+                      <p className="text-[10px] font-mono text-emerald-400">99.98%</p>
+                    </div>
+                    <div className="p-3 bg-slate-900/50 rounded-xl border border-slate-800">
+                      <p className="text-[8px] text-slate-500 uppercase font-black tracking-widest mb-1">Latency</p>
+                      <p className="text-[10px] font-mono text-sky-400">~240ms</p>
                     </div>
                   </div>
+                </div>
+              </Card>
 
-                </Card>
-              </div>
+              <Card className="p-5 bg-gradient-to-br from-primary/20 to-transparent border border-primary/30 rounded-3xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-150 transition-transform">
+                  <Globe className="w-16 h-16" />
+                </div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Settings className="w-3 h-3 text-primary animate-spin" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-primary">{isRtl ? "نظام السيادة" : "Sovereign System"}</span>
+                </div>
+                <p className="text-[11px] text-slate-200 leading-relaxed font-bold">
+                  {isRtl
+                    ? "المساعد مفوض الآن لاتخاذ قرارات تسجيل استباقية بناءً على خوارزمية النجاح الخاصة بك."
+                    : "The Agent is now authorized to make proactive enrollment decisions based on your path success curve."}
+                </p>
+              </Card>
             </div>
-          </div>
+          </main>
         </div>
       </div>
     </Layout>
   );
 }
+

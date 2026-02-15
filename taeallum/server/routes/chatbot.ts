@@ -2,8 +2,8 @@ import { Router, type Request, type Response } from "express";
 import OpenAI from "openai";
 import { requireAuth } from "./auth";
 import { db } from "../db";
-import { aiSessions, subscriptions, users, courses } from "../db/schema";
-import { eq, desc } from "drizzle-orm";
+import { aiSessions, subscriptions, users, courses, enrollments, studyPlans } from "../db/schema";
+import { eq, desc, and } from "drizzle-orm";
 
 import { getConfig } from "../config";
 
@@ -49,215 +49,249 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 
         const openai = getOpenAI();
         if (!openai) {
-            const keyAttempt = getConfig("OPENAI_API_KEY");
-            console.error("[CHATBOT ERROR] OpenAI instance could not be created.");
-            return res.status(400).json({
-                message: "OpenAI is not configured",
-                debug: {
-                    hasKey: !!keyAttempt,
-                    keyPrefix: keyAttempt ? keyAttempt.substring(0, 7) : "none"
-                }
-            });
+            return res.status(500).json({ message: "OpenAI is not configured" });
         }
 
         if (!message) {
             return res.status(400).json({ message: "Message is required" });
         }
 
-        // 1. Get User's Subscription
+        // 1. Initial Context Retrieval (Memory)
         const [userRecord] = await db.select().from(users).where(eq(users.id, userId!)).limit(1);
         const adminEmail = (process.env.ADMIN_EMAIL || "hamzaali200410@gmail.com").toLowerCase();
-        // Check both email match OR role === 'admin'
         const isAdmin = userRecord?.email.toLowerCase() === adminEmail || userRecord?.role === "admin";
 
-        const [subscription] = await db.select()
-            .from(subscriptions)
-            .where(eq(subscriptions.userId, userId!))
-            .orderBy(desc(subscriptions.createdAt))
-            .limit(1);
-
-        const planRaw = subscription?.status === "active" ? subscription.plan : "free";
-        const plan = isAdmin ? "ultra" : planRaw;
-        const limit = isAdmin ? Infinity : getLimit(plan);
-
-        // Block if limit is 0 (Non-subscriber)
-        if (limit === 0) {
-            return res.status(403).json({
-                message: "عذراً، هذه الخدمة متاحة للمشتركين فقط.",
-                upgradeRequired: true,
-                suggestion: "يرجى الاشتراك في خطة المساعد الذكي (10$ شهرياً) لتتمكن من استخدام المساعد الذكي."
-            });
-        }
-
-        // 2. Fetch Courses Knowledge
-        const catalog = await db.query.courses.findMany({
-            where: eq(courses.isPublished, true),
-            with: { category: true }
+        // Fetch user's enrollments and study plans for context
+        const userEnrollments = await db.query.enrollments.findMany({
+            where: eq(enrollments.userId, userId!),
+            with: { course: true }
+        });
+        const userPlans = await db.query.studyPlans.findMany({
+            where: eq(studyPlans.userId, userId!),
+            limit: 3
         });
 
-        const courseKnowledge = catalog.map(c =>
-            `- ${c.title} (${c.level}): ${c.aiDescription || c.description}`
-        ).join("\n");
+        const contextSummary = `
+        Student Name: ${userRecord?.fullName}
+        Registered: ${userRecord?.createdAt}
+        Current Courses: ${(userEnrollments as any[]).map(e => e.course?.title).join(", ") || "None"}
+        Existing Study Plans: ${userPlans.map(p => p.title).join(", ") || "None"}
+        Preferences: ${JSON.stringify(userRecord?.preferences || {})}
+        `;
 
-        // 3. Check/Create AI Session and count messages
-        let session;
-        if (sessionId) {
-            [session] = await db.select().from(aiSessions).where(eq(aiSessions.id, sessionId)).limit(1);
-        }
-
-        if (!session) {
-            [session] = await db.insert(aiSessions).values({
-                userId: userId!,
-                subscriptionId: subscription?.id || null,
-                sessionType: "chat",
-            }).returning();
-        }
-
-        if (session.messagesCount >= limit) {
-            return res.status(403).json({
-                message: `لقد وصلت إلى الحد المسموح به لخطة ${plan}.`,
-                upgradeRequired: true,
-                suggestion: "قم بالترقية إلى AI Ultra for Business للحصول على أعلى معدلات استخدام (Highest Rate Limits) وبدون قيود."
-            });
-        }
-
-        // 4. Call OpenAI
-        const systemPrompt = `أنت "المساعد الذكي"، المستشار الأكاديمي لمنصة "تعلم" (Taeallum).
-        مهمتك هي بناء مسار تعليمي (Career Path) مخصص للطالب من خلال مقابلة قصيرة.
-
-        سياق الطالب:
-        - خطة الاشتراك: ${plan} (Ultra: ميزات كاملة، Pro: متقدم، Personal: محدود).
-        - الدورات المتاحة في المنصة:
-        ${courseKnowledge}
-
-        أسلوب العمل (Interview Mode):
-        1. إذا كانت هذه بداية المحادثة، رحب بالطالب واسأله: "ما هو هدفك المهني أو المهارة التي تريد احترافها؟".
-        2. اطرح سؤالاً واحداً في كل مرة.
-        3. الأسئلة المطلوبة (بالترتيب):
-           - الهدف (Goal): ماذا يريد أن يصبح؟
-           - المستوى الحالي (Level): مبتدئ، متوسط، أو لديه خبرة؟
-           - الوقت المتاح (Time): كم ساعة أسبوعياً؟
-           - المواضيع المفضلة (Preferences): هل يفضل التركيز على العملي أم النظري؟
-        4. بعد جمع الإجابات، **لا تقم بسرد الخطة نصياً**. بدلاً من ذلك، قم بإخراج كائن JSON خاص لإنشاء الخطة في النظام.
-
-        Format for FINAL response (JSON ONLY):
-        {
-          "action": "generate_plan",
-          "profile": {
-            "goal": "...",
-            "level": "...",
-            "time_commitment": "...",
-            "preferences": "..."
-          }
-        }
-
-        إذا لم تكتمل المعلومات، استمر في المحادثة الطبيعية واسأل السؤال التالي بلطف.
-        تحدث دائماً باللغة العربية الفصحى الودودة.`;
-
-        const response = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: message }
-            ],
-        });
-
-        const replyContent = response.choices[0].message.content;
-        let finalReply = replyContent || "عذراً، لم أتمكن من فهم طلبك.";
-
-        // 5. Detect JSON Action
-        try {
-            // Attempt to find JSON if embedded in text
-            const jsonMatch = replyContent?.match(/\{[\s\S]*"action":\s*"generate_plan"[\s\S]*\}/);
-            if (jsonMatch) {
-                const actionData = JSON.parse(jsonMatch[0]);
-
-                if (actionData.action === "generate_plan") {
-                    console.log("[CHATBOT] Generating Study Plan for:", actionData.profile);
-
-                    // Call the internal generation logic (simulating ai-engine logic here for simplicity/speed)
-                    // We re-use OpenAI to structure the final JSON plan based on the profile
-                    const planPrompt = `
-                    Create a structured Study Plan JSON for this profile:
-                    ${JSON.stringify(actionData.profile)}
-                    
-                    Available Courses:
-                    ${courseKnowledge}
-
-                    Return strictly JSON matching this schema:
-                    {
-                      "title": "Arabic Title",
-                      "description": "Arabic Summary",
-                      "duration": "e.g. 3 Months",
-                      "totalHours": 40,
-                      "courses": [ { "title": "Exact Course Title From Catalog", "week": 1 } ]
+        // 2. Define Tools (Actions)
+        const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
+            {
+                type: "function",
+                function: {
+                    name: "search_platform_courses",
+                    description: "Search for specific educational courses available on the Taeallum platform.",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            query: { type: "string", description: "Keywords to search in title or description" },
+                            category: { type: "string", description: "Category slug (e.g. coding, business)" },
+                            level: { type: "string", enum: ["beginner", "intermediate", "advanced"] }
+                        }
                     }
-                    `;
-
-                    const planGen = await openai.chat.completions.create({
-                        model: "gpt-4o",
-                        messages: [
-                            { role: "system", content: "You are a JSON generator. Output only valid JSON." },
-                            { role: "user", content: planPrompt }
-                        ],
-                        response_format: { type: "json_object" }
-                    });
-
-                    const planData = JSON.parse(planGen.choices[0].message.content || "{}");
-
-                    // Save to DB
-                    // Import studyPlans table at top (make sure it's imported)
-                    // We need to dynamically import or assume it's available in schema
-                    const { studyPlans } = await import("../db/schema");
-
-                    const [savedPlan] = await db.insert(studyPlans).values({
-                        userId: userId!,
-                        sessionId: session.id,
-                        title: planData.title || "مسار تعليمي مخصص",
-                        duration: planData.duration || "غير محدد",
-                        totalHours: planData.totalHours || 0,
-                        planData: planData,
-                        status: "active"
-                    }).returning();
-
-                    finalReply = `تم تصميم مسارك التعليمي بنجاح! 🚀\n\nالعنوان: **${planData.title}**\nالمدة المتوقعة: ${planData.duration}\n\nيمكنك استعراض المسار الكامل في صفحة "مساراتي".`;
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "enroll_student",
+                    description: "Actively enroll the student in a specific course. Only use this if the student explicitly agrees or it is a critical part of their path.",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            courseId: { type: "string", description: "UUID of the course" },
+                            courseTitle: { type: "string", description: "Title of the course for logging" }
+                        },
+                        required: ["courseId", "courseTitle"]
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "set_learning_goals",
+                    description: "Save long-term learning goals and milestones in the student's preferences (Memory).",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            goal: { type: "string", description: "Main goal in Arabic (e.g. مطور ويب محترف)" },
+                            deadline: { type: "string", description: "Expected completion date" },
+                            interests: { type: "array", items: { type: "string" } }
+                        },
+                        required: ["goal", "interests"]
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "create_study_plan",
+                    description: "Generate and save a structured study plan for the student in the database.",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            title: { type: "string", description: "Arabic title of the path" },
+                            description: { type: "string", description: "Arabic summary" },
+                            duration: { type: "string", description: "e.g. 3 Months" },
+                            totalHours: { type: "number" },
+                            courses: {
+                                type: "array",
+                                items: {
+                                    type: "object",
+                                    properties: {
+                                        title: { type: "string" },
+                                        week: { type: "number" }
+                                    }
+                                }
+                            }
+                        },
+                        required: ["title", "duration", "totalHours", "courses"]
+                    }
                 }
             }
-        } catch (e) {
-            console.error("[CHATBOT] JSON Parsing Error:", e);
-            // Fallback to raw text if JSON parsing fails, or keep the text part
-        }
+        ];
 
-        // 6. Update message count
-        await db.update(aiSessions)
-            .set({
-                messagesCount: session.messagesCount + 1,
-                updatedAt: new Date()
-            })
-            .where(eq(aiSessions.id, session.id));
+        // 3. Agent Reasoning Loop
+        let messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+            {
+                role: "system",
+                content: `أنت "العميل التنفيذي" (Executive AI Agent) لمنصة "تعلم" (Taeallum).
+                أنت لست مجرد شات بوت للرد على الأسئلة؛ أنت "مدير مشروع" تعليمي للطالب. مسؤوليتم هي قيادة الطالب للنجاح العملي.
+                
+                مبادئك القيادية:
+                1. السيادة التنفيذية: تمتلك الصلاحية للبحث، التسجيل، وتحديد الأهداف. لا تقترح فقط؛ بل نفذ (Execute) بعد التأكد من رغبة الطالب.
+                2. التركيز على العائد (ROI): كل دقيقة يقضيها الطالب يجب أن تقربه من "سوق العمل". ابني مسارات واقعية وصعبة.
+                3. المبادرة الاستباقية: إذا لاحظت تشتتاً في اهتمامات الطالب، تدخل بمقترحات حازمة لتعديل المسار.
+                
+                سياق الطالب الحالي (الذاكرة النشطة):
+                ${contextSummary}
+                
+                قواعد العمل الصارمة:
+                - تحدث دائماً بالعربية الفصحى (احترافية، مُلهمة، مباشرة).
+                - استخدم أداة enroll_student عندما يوافق الطالب على البدء في كورس معين.
+                - استخدم أداة set_learning_goals لحفظ طموحات الطالب في ذاكرته الدائمة.
+                - لا تذكر أسماء الأدوات التقنية؛ بل اذكر الأفعال (مثلاً: "قمت الآن بتسجيلك في كورس X...").
+                - أظهر "التفكير المنطقي التنفيذي" (مثلاً: "بناءً على هدفك في الوصول لـ X، قررت تفعيل المسار Y لك").`
+            },
+            { role: "user", content: message }
+        ];
+
+        let finalResponse = "";
+        let toolLogs: string[] = [];
+        let maxSteps = 5;
+
+        for (let i = 0; i < maxSteps; i++) {
+            const response = await openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages,
+                tools,
+                tool_choice: "auto",
+            });
+
+            const reply = response.choices[0].message;
+            messages.push(reply);
+
+            if (reply.tool_calls) {
+                for (const toolCall of reply.tool_calls) {
+                    const functionName = toolCall.function.name;
+                    const args = JSON.parse(toolCall.function.arguments);
+
+                    let result;
+                    if (functionName === "search_platform_courses") {
+                        toolLogs.push(`استكشاف الموارد: ${args.query || args.category || ""}`);
+                        const searchResult = await db.query.courses.findMany({
+                            where: eq(courses.isPublished, true),
+                            limit: 10
+                        });
+                        result = searchResult.map(c => `- ${c.title} (ID: ${c.id}) (${c.level}): ${c.aiDescription || c.description}`);
+                    }
+                    else if (functionName === "enroll_student") {
+                        toolLogs.push(`تنفيذ عملية تسجيل: ${args.courseTitle}`);
+                        const [existing] = await db.select().from(enrollments)
+                            .where(
+                                and(
+                                    eq(enrollments.userId, userId!),
+                                    eq(enrollments.courseId, args.courseId)
+                                )
+                            );
+
+                        if (existing) {
+                            result = { success: false, message: "الطالب مسجل بالفعل في هذا الكورس" };
+                        } else {
+                            await db.insert(enrollments).values({
+                                userId: userId!,
+                                courseId: args.courseId,
+                                progress: 0
+                            });
+                            result = { success: true, message: `تم تسجيل الطالب بنجاح في ${args.courseTitle}` };
+                        }
+                    }
+                    else if (functionName === "set_learning_goals") {
+                        toolLogs.push(`تحديث الذاكرة الدائمة: ${args.goal}`);
+                        const updatedPrefs = {
+                            ...(userRecord?.preferences as object || {}),
+                            main_goal: args.goal,
+                            deadline: args.deadline,
+                            interests: args.interests,
+                            lastUpdated: new Date().toISOString()
+                        };
+                        await db.update(users)
+                            .set({ preferences: updatedPrefs })
+                            .where(eq(users.id, userId!));
+                        result = { success: true, message: "تم تحديث الأهداف في الذاكرة" };
+                    }
+                    else if (functionName === "create_study_plan") {
+                        toolLogs.push(`هندسة مسار تعليمي: ${args.title}`);
+                        const [savedPlan] = await db.insert(studyPlans).values({
+                            userId: userId!,
+                            title: args.title,
+                            description: args.description,
+                            duration: args.duration,
+                            totalHours: args.totalHours,
+                            planData: args,
+                            status: "active"
+                        }).returning();
+                        result = { success: true, planId: savedPlan.id };
+                    }
+
+                    messages.push({
+                        role: "tool",
+                        tool_call_id: toolCall.id,
+                        content: JSON.stringify(result)
+                    });
+                }
+                continue; // Continue loop to react to tool output
+            }
+
+            finalResponse = reply.content || "";
+            break; // No more tool calls, exit loop
+        }
 
         res.json({
-            reply: finalReply,
-            sessionId: session.id,
-            messagesRemaining: limit === Infinity ? "unlimited" : limit - (session.messagesCount + 1)
+            reply: finalResponse,
+            logs: toolLogs,
+            status: "success"
         });
-    } catch (error: any) {
-        console.error("OpenAI Error:", error);
 
-        // Handle specific OpenAI errors
-        if (error?.status === 429 || error?.code === "insufficient_quota") {
-            return res.status(429).json({
-                message: "عذراً، يبدو أن رصيد الـ API الخاص بـ OpenAI قد نفد. يرجى شحن الرصيد من لوحة تحكم OpenAI ليعود المساعد الذكي للعمل."
-            });
+    } catch (error: any) {
+        console.error("[AGENT ERROR]:", error);
+
+        let userMessage = "حدث خطأ غير متوقع في العميل الذكي";
+        if (error?.code === "insufficient_quota") {
+            userMessage = "رصيد الـ API الخاص بـ OpenAI قد نفد فعلياً. يرجى التأكد من شحن الرصيد في حسابك.";
+        } else if (error?.status === 429) {
+            userMessage = "لقد وصلت إلى حد الاستخدام المسموح به (Rate Limit). يرجى الانتظر قليلاً أو ترقية حساب OpenAI الخاص بك.";
         }
 
-        // Return specific error details for debugging
-        const errorDetail = error?.message || String(error);
-        const errorCode = error?.code || "unknown";
-        res.status(500).json({
-            message: "حدث خطأ أثناء التواصل مع المساعد الذكي",
-            detail: errorDetail,
-            code: errorCode
+        res.status(error?.status || 500).json({
+            message: userMessage,
+            detail: error.message,
+            code: error.code || "unknown"
         });
     }
 });
