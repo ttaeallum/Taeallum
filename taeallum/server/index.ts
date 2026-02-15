@@ -102,22 +102,28 @@ console.log("[SESSION] استخدام مخزن جلسات PostgreSQL");
       ADD COLUMN IF NOT EXISTS "original_youtube_url" TEXT,
       ADD COLUMN IF NOT EXISTS "video_owner_url" TEXT;
     `);
-    // 4. Create Ads table if missing
+
+    // 4. Users table: Add preferences column for AI memory
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS "ads" (
-        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        "location" text NOT NULL UNIQUE,
-        "is_active" boolean DEFAULT true NOT NULL,
-        "type" text NOT NULL,
-        "headline" text,
-        "description" text,
-        "primary_text" text,
-        "primary_link" text,
-        "media_url" text,
-        "script_code" text,
-        "created_at" timestamp DEFAULT now() NOT NULL,
-        "updated_at" timestamp DEFAULT now() NOT NULL
-      );
+      ALTER TABLE "users"
+      ADD COLUMN IF NOT EXISTS "preferences" JSONB;
+    `);
+    // 5. Create Ads table if missing
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS "ads"(
+      "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      "location" text NOT NULL UNIQUE,
+      "is_active" boolean DEFAULT true NOT NULL,
+      "type" text NOT NULL,
+      "headline" text,
+      "description" text,
+      "primary_text" text,
+      "primary_link" text,
+      "media_url" text,
+      "script_code" text,
+      "created_at" timestamp DEFAULT now() NOT NULL,
+      "updated_at" timestamp DEFAULT now() NOT NULL
+    );
     `);
 
     console.log("[DB] Schema synchronization completed successfully.");
@@ -156,7 +162,7 @@ app.get("/api/health-check-v2", async (req, res) => {
       SELECT column_name, data_type 
       FROM information_schema.columns 
       WHERE table_name = 'session'
-    `);
+      `);
 
     // 3. Check Session Count
     const sessionCount = await pool.query("SELECT COUNT(*) FROM session");
@@ -189,7 +195,7 @@ app.get("/api/health-check-v2", async (req, res) => {
 
 app.use("/api", (req, res, next) => {
   if (process.env.NODE_ENV === "production") {
-    console.log(`[API SESSION DEBUG] ${req.method} ${req.url} - SID: ${req.sessionID} - HasUser: ${!!req.session.userId}`);
+    console.log(`[API SESSION DEBUG] ${req.method} ${req.url} - SID: ${req.sessionID} - HasUser: ${!!req.session.userId} `);
   }
   next();
 });
@@ -263,13 +269,13 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
   const PORT = Number(process.env.PORT) || 5000;
 
   httpServer.listen(PORT, "0.0.0.0", () => {
-    console.log(`[SERVER] Running on port ${PORT}`);
+    console.log(`[SERVER] Running on port ${PORT} `);
   });
 
   try {
     // Ensure ads table exists in database
     await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS ads (
+      CREATE TABLE IF NOT EXISTS ads(
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         location TEXT NOT NULL UNIQUE,
         is_active BOOLEAN NOT NULL DEFAULT true,
@@ -283,7 +289,7 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
         created_at TIMESTAMP DEFAULT NOW() NOT NULL,
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
-    `);
+      `);
     console.log("[DB] Ads table ensured.");
 
     await registerRoutes(httpServer, app);
