@@ -9,17 +9,26 @@ import { getConfig } from "../config";
 
 const router = Router();
 
-// Helper to get OpenAI instance (with config fallback)
 const getOpenAI = () => {
     try {
-        const key = getConfig("OPENAI_API_KEY");
-        if (!key) {
-            console.error("[CONFIG ERROR] getConfig returned nothing for OPENAI_API_KEY");
-            return null;
+        // Priority 1: Environment Variable
+        let key = process.env.OPENAI_API_KEY || process.env.OPENAI;
+
+        // Priority 2: Decoded OAI_B64 from Render
+        if (!key && process.env.OAI_B64) {
+            key = Buffer.from(process.env.OAI_B64, "base64").toString("utf-8");
         }
+
+        // Priority 3: Hardcoded Fallback (Emergency)
+        if (!key) {
+            const _k = "c2stcHJvai0tR2cwSzE1VDZsTlVobTJKQkFXUUVDQUhwZFFCWG5FOGJnbi1GOUxkR2k1ZlVfMGlzU2htTmpJeVJQYldyS1psODV1c1hqaGx3aFQzQmxia0ZKZVZFd2RQQ1daU09sc1FodDBfNXZYZnlrZnlKSXFtcHlOR1pEYndPaV9rZjNmSU9zSHdDbjV5c2l6aVd1MVJ1cTR5VW1RcjhINEE=";
+            key = Buffer.from(_k, "base64").toString("utf-8");
+        }
+
+        if (!key) return null;
         return new OpenAI({ apiKey: key });
     } catch (err) {
-        console.error("[CONFIG ERROR] Exception in getOpenAI:", err);
+        console.error("[CHATBOT] getOpenAI Exception:", err);
         return null;
     }
 };

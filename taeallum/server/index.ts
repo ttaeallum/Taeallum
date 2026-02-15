@@ -245,7 +245,7 @@ app.get("/api/debug/env-check", (req, res) => {
   }));
 
   res.json({
-    serverVersion: "1.1.8",
+    serverVersion: "1.1.9",
     timestamp: new Date().toISOString(),
     nodeEnv: process.env.NODE_ENV,
     detectedKeys: openAIKeys,
