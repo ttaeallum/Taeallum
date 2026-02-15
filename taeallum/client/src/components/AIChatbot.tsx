@@ -200,7 +200,7 @@ export function AIChatbot() {
                                                                     setInput(option);
                                                                     setTimeout(() => handleSend(option), 0);
                                                                 }}
-                                                                className="rounded-xl text-[10px] h-8 bg-background/50 border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all px-4 shadow-sm"
+                                                                className="rounded-xl text-[10px] font-bold h-9 bg-background/50 border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all px-5 shadow-lg hover:shadow-primary/20"
                                                             >
                                                                 {option}
                                                             </Button>
@@ -267,6 +267,15 @@ export function AIChatbot() {
                                         </div>
                                     );
                                 })()}
+                                <p className="text-center mt-3 text-[8px] text-muted-foreground font-mono uppercase tracking-widest opacity-60">
+                                    {(() => {
+                                        const lastMessage = messages[messages.length - 1];
+                                        const hasSuggestions = lastMessage?.role === "assistant" && lastMessage?.content.includes("[SUGGESTIONS:");
+                                        return hasSuggestions
+                                            ? (isRtl ? "تنبيه: اختيار خيار مطلوب للمتابعة" : "Alert: Selection required to proceed")
+                                            : (isRtl ? "نظام تعلم التنفيذي: نشط" : "Taeallum Executive System: Active");
+                                    })()}
+                                </p>
                             </div>
                         </Card>
                     </motion.div>

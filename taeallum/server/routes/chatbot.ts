@@ -43,7 +43,7 @@ const getLimit = (plan: string) => {
 
 router.post("/", requireAuth, async (req: Request, res: Response) => {
     try {
-        const { message, sessionId } = req.body;
+        const { message: userMessage, sessionId } = req.body;
         const userId = req.session.userId;
 
         const openai = getOpenAI();
@@ -51,7 +51,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
             return res.status(500).json({ message: "OpenAI is not configured" });
         }
 
-        if (!message) {
+        if (!userMessage) {
             return res.status(400).json({ message: "Message is required" });
         }
 
@@ -193,7 +193,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 
 سياق الطالب الحالي: ${contextSummary}`
             },
-            { role: "user", content: message }
+            { role: "user", content: userMessage }
         ];
 
         let finalResponse = "";
