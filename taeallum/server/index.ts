@@ -1,25 +1,13 @@
-/** Platform Version: 1.1.3-stable (Env Sync) **/
+/** Platform Version: 1.1.4-stable (Resilient Sync) **/
 import * as dotenv from "dotenv";
-import path from "path";
-import fs from "fs";
-
-// Robust Env Loading
-dotenv.config();
-if (process.env.NODE_ENV === "production") {
-  const envPath = path.resolve(process.cwd(), ".env");
-  if (fs.existsSync(envPath)) {
-    const envConfig = dotenv.parse(fs.readFileSync(envPath));
-    for (const k in envConfig) {
-      if (!process.env[k]) process.env[k] = envConfig[k];
-    }
-  }
-}
-
 import express, { type Request, Response, NextFunction } from "express";
 import { createServer } from "http";
 import session from "express-session";
 import path from "path";
 import fs from "fs";
+
+// Robust Env Loading
+dotenv.config();
 
 import adminAuthRouter from "./routes/admin-auth";
 import adminRouter from "./routes/admin";
