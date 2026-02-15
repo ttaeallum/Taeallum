@@ -94,7 +94,7 @@ export default function Home() {
               <h1 className="font-black text-4xl sm:text-6xl md:text-8xl lg:text-9xl leading-tight md:leading-[0.9] text-foreground mb-4 md:mb-10 tracking-tighter">
                 بوابتك نحو <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary via-emerald-500 to-primary animate-gradient-x">
-                  إتقان المستقبل
+                  دورات مجانية
                 </span>
               </h1>
 
@@ -288,13 +288,13 @@ export default function Home() {
                 انضم إلى أكبر تجمع للمبرمجين والمبدعين العرب واستفد من خبرات المدرب الذكي والمسارات الاحترافية.
               </p>
               <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                <Link href="/auth">
+                <Link href="/ai-pricing">
                   <Button
                     size="lg"
                     variant="secondary"
                     className="h-14 md:h-18 px-8 md:px-12 text-lg md:text-2xl font-black text-primary hover:bg-white rounded-[1rem] md:rounded-[1.5rem] shadow-2xl gap-3 transition-all hover:scale-105"
                   >
-                    إنشاء حساب والبدء مجاناً
+                    اشترك بالمساعد الذكي
                   </Button>
                 </Link>
               </div>

@@ -64,7 +64,7 @@ export function Navbar() {
       { href: "/ai-agent", label: "المساعد الذكي" }
     ] : []),
     { href: "/courses", label: "جميع الكورسات" },
-    { href: "/blog", label: "المدونة" },
+    { href: "/about", label: "من نحن" },
   ];
 
   const isActive = (path: string) => location === path;
@@ -313,7 +313,7 @@ export function Footer() {
                 </>
               )}
               <Link href="/courses" className="hover:text-primary transition-colors">تصفح الكورسات</Link>
-              <Link href="/blog" className="hover:text-primary transition-colors">المدونة</Link>
+              <Link href="/about" className="hover:text-primary transition-colors">من نحن</Link>
             </div>
           </div>
 

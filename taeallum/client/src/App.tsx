@@ -24,7 +24,7 @@ import AdminOrders from "@/pages/admin-orders";
 import AdminAudit from "@/pages/admin-audit";
 import AdminAddCourse from "@/pages/admin-add-course";
 import AdminAds from "@/pages/admin-ads";
-import Blog from "@/pages/blog";
+import AboutUs from "@/pages/about";
 import AdminLogin from "@/pages/admin-login";
 import AIAgent from "@/pages/ai-agent";
 import AIPricing from "@/pages/ai-pricing";
@@ -75,7 +75,7 @@ function Router() {
       <Route path="/admin/ads" component={AdminAds} />
       <Route path="/admin/login" component={AdminLogin} />
 
-      <Route path="/blog" component={Blog} />
+      <Route path="/about" component={AboutUs} />
       <Route path="/ai-agent" component={AIAgent} />
       <Route path="/ai-pricing" component={AIPricing} />
       <Route path="/faq" component={FAQ} />
