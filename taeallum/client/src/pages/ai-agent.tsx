@@ -84,10 +84,11 @@ export default function AIAgent() {
     }
   }, [authLoading, user, messages.length, isRtl]);
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading) return;
+  const handleSendMessage = async (overrideMessage?: string) => {
+    const messageToSend = overrideMessage || inputValue;
+    if (!messageToSend.trim() || isLoading) return;
 
-    const userMsgText = inputValue.trim();
+    const userMsgText = messageToSend.trim();
     setMessages(prev => [...prev, {
       id: Date.now().toString(),
       role: "user",
@@ -109,6 +110,14 @@ export default function AIAgent() {
 
       if (data.logs) {
         setActiveLogs(prev => [...prev, ...data.logs]);
+      }
+
+      if (data.reply.includes("[REDIRECT:")) {
+        const match = data.reply.match(/\[REDIRECT:\s*(.*?)\]/);
+        if (match) {
+          const path = match[1];
+          setTimeout(() => window.location.href = path, 2000); // Redirect after 2s
+        }
       }
 
       setMessages(prev => [...prev, {
@@ -310,43 +319,68 @@ export default function AIAgent() {
                 {/* Tactical Chat Flow Container */}
                 <div className="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-hide">
                   <AnimatePresence>
-                    {messages.map((msg) => (
-                      <motion.div
-                        key={msg.id}
-                        initial={{ opacity: 0, x: msg.role === "user" ? 20 : -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
-                      >
-                        <div className={`group relative p-6 rounded-[2rem] max-w-[90%] md:max-w-[75%] text-sm leading-relaxed shadow-2xl ${msg.role === "user"
-                          ? "bg-slate-100 text-slate-900 font-bold rounded-tr-none"
-                          : "bg-slate-800/80 border border-slate-700/50 rounded-tl-none backdrop-blur-md"
-                          }`}>
-                          {/* Message Content */}
-                          {msg.content}
+                    {messages.map((msg, i) => {
+                      const suggestionMatch = msg.content.match(/\[SUGGESTIONS:\s*(.*?)\]/);
+                      const cleanContent = msg.content.replace(/\[SUGGESTIONS:.*?\]/, "").trim();
+                      const suggestions = suggestionMatch ? suggestionMatch[1].split("|").map(s => s.trim()) : [];
 
-                          {/* Act Indicators (Tools) */}
-                          {msg.logs && msg.logs.length > 0 && (
-                            <div className="mt-6 pt-4 border-t border-slate-700/50 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {msg.logs.map((log, idx) => (
-                                <div key={idx} className="flex items-center gap-2 p-2 bg-slate-900/50 rounded-xl border border-primary/20">
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                                  <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-tighter truncate">{log}</span>
-                                </div>
-                              ))}
+                      return (
+                        <motion.div
+                          key={msg.id}
+                          initial={{ opacity: 0, x: msg.role === "user" ? 20 : -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
+                        >
+                          <div className={`group relative p-6 rounded-[2rem] max-w-[90%] md:max-w-[75%] shadow-2xl ${msg.role === "user"
+                            ? "bg-slate-100 text-slate-900 font-bold rounded-tr-none"
+                            : "bg-slate-800/80 border border-slate-700/50 rounded-tl-none backdrop-blur-md"
+                            }`}>
+                            <div className="text-sm leading-relaxed">
+                              {cleanContent}
                             </div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 mt-3 px-4">
-                          <span className="text-[8px] text-slate-600 font-mono uppercase tracking-widest">
-                            SRC: {msg.role === "user" ? "COMMANDER" : "EXECUTIVE_AGENT"}
-                          </span>
-                          <span className="w-1 h-1 rounded-full bg-slate-800" />
-                          <span className="text-[8px] text-slate-600 font-mono">
-                            {msg.timestamp.toLocaleTimeString([], { hour12: false })}
-                          </span>
-                        </div>
-                      </motion.div>
-                    ))}
+
+                            {/* Suggestions UI */}
+                            {msg.role === "assistant" && suggestions.length > 0 && i === messages.length - 1 && (
+                              <div className="mt-6 flex flex-wrap gap-2 pt-4 border-t border-slate-700/30">
+                                {suggestions.map((option, idx) => (
+                                  <Button
+                                    key={idx}
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleSendMessage(option)}
+                                    className="rounded-xl bg-slate-900/50 border-primary/20 hover:bg-primary hover:text-primary-foreground text-[11px] font-bold h-9 transition-all"
+                                  >
+                                    <Sparkles className="w-3 h-3 mr-2" />
+                                    {option}
+                                  </Button>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Act Indicators (Tools) */}
+                            {msg.logs && msg.logs.length > 0 && (
+                              <div className="mt-6 pt-4 border-t border-slate-700/50 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {msg.logs.map((log, idx) => (
+                                  <div key={idx} className="flex items-center gap-2 p-2 bg-slate-900/50 rounded-xl border border-primary/20">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                    <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-tighter truncate">{log}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 mt-3 px-4">
+                            <span className="text-[8px] text-slate-600 font-mono uppercase tracking-widest">
+                              SRC: {msg.role === "user" ? "COMMANDER" : "EXECUTIVE_AGENT"}
+                            </span>
+                            <span className="w-1 h-1 rounded-full bg-slate-800" />
+                            <span className="text-[8px] text-slate-600 font-mono">
+                              {msg.timestamp.toLocaleTimeString([], { hour12: false })}
+                            </span>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
                   </AnimatePresence>
                   <div ref={messagesEndRef} />
                 </div>
@@ -368,7 +402,7 @@ export default function AIAgent() {
                       </div>
                     </div>
                     <Button
-                      onClick={handleSendMessage} disabled={!inputValue.trim() || isLoading}
+                      onClick={() => handleSendMessage()} disabled={!inputValue.trim() || isLoading}
                       size="icon"
                       className="h-14 w-14 rounded-2xl shadow-2xl shadow-primary/30 transition-all hover:scale-105"
                     >

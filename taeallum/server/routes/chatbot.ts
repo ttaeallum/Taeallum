@@ -32,7 +32,6 @@ const getOpenAI = () => {
 };
 
 // Helper to get limit based on plan
-// Helper to get limit based on plan
 const getLimit = (plan: string) => {
     switch (plan) {
         case "ultra": return Infinity;
@@ -100,7 +99,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                 type: "function",
                 function: {
                     name: "enroll_student",
-                    description: "Actively enroll the student in a specific course. Only use this if the student explicitly agrees or it is a critical part of their path.",
+                    description: "Actively enroll the student in a specific course. Only use this if the student explicitly agrees.",
                     parameters: {
                         type: "object",
                         properties: {
@@ -119,7 +118,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                     parameters: {
                         type: "object",
                         properties: {
-                            goal: { type: "string", description: "Main goal in Arabic (e.g. مطور ويب محترف)" },
+                            goal: { type: "string", description: "Main goal in Arabic" },
                             deadline: { type: "string", description: "Expected completion date" },
                             interests: { type: "array", items: { type: "string" } }
                         },
@@ -131,26 +130,26 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                 type: "function",
                 function: {
                     name: "create_study_plan",
-                    description: "Generate and save a structured study plan for the student in the database.",
+                    description: "Generate and save a structured study plan for the student. Call this ONLY when you have enough info (Goal, Level, Time).",
                     parameters: {
                         type: "object",
                         properties: {
-                            title: { type: "string", description: "Arabic title of the path" },
+                            title: { type: "string", description: "Arabic title of the path (e.g. مسار احتراف الفرونت إيند)" },
                             description: { type: "string", description: "Arabic summary" },
                             duration: { type: "string", description: "e.g. 3 Months" },
                             totalHours: { type: "number" },
-                            courses: {
+                            milestones: {
                                 type: "array",
                                 items: {
                                     type: "object",
                                     properties: {
-                                        title: { type: "string" },
-                                        week: { type: "number" }
+                                        title: { type: "string", description: "Milestone name (Arabic)" },
+                                        description: { type: "string", description: "Broad activities (Arabic)" }
                                     }
                                 }
                             }
                         },
-                        required: ["title", "duration", "totalHours", "courses"]
+                        required: ["title", "description", "duration", "totalHours", "milestones"]
                     }
                 }
             }
@@ -164,9 +163,10 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                 أنت لست مجرد شات بوت؛ أنت "مدير مشروع" تعليمي للطالب. مسؤوليتم هي قيادة الطالب للنجاح عبر "الاكتشاف الموجه" ثم "التنفيذ".
                 
                 [بروتوكول الاكتشاف - Discovery Phase]:
-                - ابدأ دائماً بالترحيب: "أهلاً بك في منصة تعلم".
+                - رحب بالطالب "مرة واحدة فقط" في بداية الجلسة. لا تكرر الترحيب في كل رسالة.
                 - يجب أن تطرح أسئلة شاملة ومفصلة لفهم: مستواه الحالي، أهدافه بدقة، والأوقات المتاحة له (عدد الساعات يومياً).
                 - اطرح سؤالاً واحداً فقط في كل مرة لضمان التركيز.
+                - **هام جداً**: بعد كل سؤال، قدم خيارات مقترحة للطالب ليختار منها لتسهيل التفاعل، استخدم التنسيق التالي في نهاية الرسالة: [SUGGESTIONS: خيار 1 | خيار 2 | خيار 3].
                 - لا تعطي المسار كاملاً إلا بعد جمع كافة المعطيات (المستوى، الوقت، الهدف).
                 - ابقِ المحادثة تفاعلية وودودة (شخصية المستشار الخبير).
                 - بمجرد جمع المعلومات الكافية، انتقل إلى "بروتوكول سير العمل".
@@ -174,7 +174,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                 [بروتوكول سير العمل - Workflow Protocol]:
                 بمجرد اكتمال الرؤية، ابدأ بتنفيذ المهام مع إظهار المراحل التالية:
                 1. [المرحلة: الاستكشاف - Analysis]: تحليل البيانات المجمعة وبناء الخطة.
-                2. [المرحلة: التنفيذ - Execution]: استدعاء الأدوات (Search, Enroll, Goals).
+                2. [المرحلة: التنفيذ - Execution]: استدعاء الأدوات (Search, Enroll, Goals, Plan).
                 3. [المرحلة: التحقق - Validation]: التحقق من توافق النتائج مع ROI.
                 4. [المرحلة: التقرير - Reporting]: تقديم المسار النهائي والخطوة التالية.
                 
@@ -182,6 +182,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                 - في مرحلة الاكتشاف: كن قصيراً ومباشراً في أسئلتك.
                 - في مرحلة التنفيذ: ابدأ بـ ملخص "Action Plan".
                 - استخدم النقاط لإظهار "الحالة" (Status).
+                - **مهم جداً**: بمجرد استدعاء "create_study_plan" بنجاح، يجب أن تطلب من الطالب التوجه لـ "قائمة المسارات" لمتابعة خطته، واستخدم هذا التنسيق في نهاية رسالتك بدقة: [REDIRECT: /tracks].
                 - [SYSTEM_ACT: ENROLLMENT_SUCCESS] عند التسجيل.
                 - تحدث بالعربية الفصحى الاحترافية.
                 - سياق الطالب الحالي: ${contextSummary}`
@@ -273,11 +274,11 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                         content: JSON.stringify(result)
                     });
                 }
-                continue; // Continue loop to react to tool output
+                continue;
             }
 
             finalResponse = reply.content || "";
-            break; // No more tool calls, exit loop
+            break;
         }
 
         res.json({
@@ -289,15 +290,8 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error("[AGENT ERROR]:", error);
 
-        let userMessage = "حدث خطأ غير متوقع في العميل الذكي";
-        if (error?.code === "insufficient_quota") {
-            userMessage = "رصيد الـ API الخاص بـ OpenAI قد نفد فعلياً. يرجى التأكد من شحن الرصيد في حسابك.";
-        } else if (error?.status === 429) {
-            userMessage = "لقد وصلت إلى حد الاستخدام المسموح به (Rate Limit). يرجى الانتظر قليلاً أو ترقية حساب OpenAI الخاص بك.";
-        }
-
         res.status(error?.status || 500).json({
-            message: userMessage,
+            message: message,
             detail: error.message,
             code: error.code || "unknown"
         });

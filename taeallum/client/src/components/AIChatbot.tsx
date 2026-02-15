@@ -29,10 +29,11 @@ export function AIChatbot() {
         scrollToBottom();
     }, [messages]);
 
-    const handleSend = async () => {
-        if (!input.trim() || isLoading) return;
+    const handleSend = async (overrideMessage?: string) => {
+        const messageToSend = overrideMessage || input;
+        if (!messageToSend.trim() || isLoading) return;
 
-        const userMessage = input.trim();
+        const userMessage = messageToSend.trim();
         const newMessages = [...messages, { role: "user" as const, content: userMessage }];
 
         // Optimistic update
@@ -74,6 +75,14 @@ export function AIChatbot() {
                 err.code = data.code;
                 err.debug = data.debug;
                 throw err;
+            }
+
+            if (data?.reply?.includes("[REDIRECT:")) {
+                const match = data.reply.match(/\[REDIRECT:\s*(.*?)\]/);
+                if (match) {
+                    const path = match[1];
+                    setTimeout(() => window.location.href = path, 2000); // Redirect after 2s
+                }
             }
 
             setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
@@ -124,18 +133,44 @@ export function AIChatbot() {
 
                             {/* Messages */}
                             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-dot-pattern">
-                                {messages.map((msg, i) => (
-                                    <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                                        <div
-                                            className={`max-w-[80%] p-3 rounded-2xl text-sm ${msg.role === "user"
-                                                ? "bg-primary text-primary-foreground rounded-tr-none"
-                                                : "bg-muted text-foreground rounded-tl-none border border-border"
-                                                }`}
-                                        >
-                                            {msg.content}
+                                {messages.map((msg, i) => {
+                                    const suggestionMatch = msg.content.match(/\[SUGGESTIONS:\s*(.*?)\]/);
+                                    const cleanContent = msg.content.replace(/\[SUGGESTIONS:.*?\]/, "").trim();
+                                    const suggestions = suggestionMatch ? suggestionMatch[1].split("|").map(s => s.trim()) : [];
+
+                                    return (
+                                        <div key={i} className="space-y-2">
+                                            <div className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                                                <div
+                                                    className={`max-w-[80%] p-3 rounded-2xl text-sm ${msg.role === "user"
+                                                        ? "bg-primary text-primary-foreground rounded-tr-none"
+                                                        : "bg-muted text-foreground rounded-tl-none border border-border"
+                                                        }`}
+                                                >
+                                                    {cleanContent}
+                                                </div>
+                                            </div>
+                                            {msg.role === "assistant" && suggestions.length > 0 && i === messages.length - 1 && (
+                                                <div className="flex flex-wrap gap-2 justify-start pl-2">
+                                                    {suggestions.map((option, idx) => (
+                                                        <Button
+                                                            key={idx}
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                setInput(option);
+                                                                setTimeout(() => handleSend(option), 0);
+                                                            }}
+                                                            className="rounded-full text-[11px] h-7 bg-background/50 hover:bg-primary hover:text-primary-foreground transition-all"
+                                                        >
+                                                            {option}
+                                                        </Button>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                                 {isLoading && (
                                     <div className="flex justify-start">
                                         <div className="bg-muted p-3 rounded-2xl rounded-tl-none border border-border flex items-center gap-2">
@@ -157,7 +192,7 @@ export function AIChatbot() {
                                         onKeyDown={(e) => e.key === "Enter" && handleSend()}
                                         className="rounded-full bg-muted/50 border-primary/10 focus:ring-primary/20"
                                     />
-                                    <Button size="icon" onClick={handleSend} disabled={!input.trim() || isLoading} className="rounded-full shrink-0">
+                                    <Button size="icon" onClick={() => handleSend()} disabled={!input.trim() || isLoading} className="rounded-full shrink-0">
                                         <Send className="w-4 h-4" />
                                     </Button>
                                 </div>
