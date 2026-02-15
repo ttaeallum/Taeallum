@@ -430,7 +430,7 @@ export default function LearnCourse() {
                                 <div className="bg-gradient-to-br from-primary/10 to-transparent p-8 rounded-3xl border border-primary/10 relative overflow-hidden group">
                                     <Sparkles className="absolute top-[-10px] left-[-10px] w-20 h-20 text-primary/5 group-hover:rotate-12 transition-transform duration-1000" />
                                     <h4 className="font-black text-white mb-2 text-right">هل تواجه صعوبة؟</h4>
-                                    <p className="text-xs text-zinc-400 leading-relaxed text-right mb-6">يمكنك دائماً سؤال المساعد الذكي "حمزة" حول أي جزئية في هذا الدرس.</p>
+                                    <p className="text-xs text-zinc-400 leading-relaxed text-right mb-6">يمكنك دائماً سؤال المساعد الذكي حول أي جزئية في هذا الدرس.</p>
                                     <Link href="/ai-agent">
                                         <Button size="sm" className="w-full bg-white text-zinc-950 hover:bg-zinc-200 font-bold rounded-xl h-10">
                                             فتح المساعد الذكي

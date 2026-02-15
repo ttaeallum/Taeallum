@@ -23,18 +23,18 @@ router.post("/create-checkout-session", requireAuth, async (req: Request, res: R
             return res.status(400).json({ message: "Plan ID is required" });
         }
 
-        let title = "اشتراك حمزة الذكي (Hamza Smart AI)";
+        let title = "اشتراك المساعد الذكي (Smart AI)";
         let amount = 3750; // $10 approx in SAR (cents) - actually let's use USD if possible or fix SAR.
         // The user said 10 dollars. $10 * 3.75 = 37.5 SAR. In cents it is 3750.
         const currency = "usd";
         amount = 1000; // $10.00 USD
 
         if (planId === "pro") {
-            title = "اشتراك حمزة الذكي (Hamza Smart AI Assistant)";
+            title = "اشتراك المساعد الذكي (Smart AI Assistant)";
             amount = 1000; // $10.00 USD
         } else {
             // Default to Pro if they try anything else, as it's the only paid plan
-            title = "اشتراك حمزة الذكي (Hamza Smart AI Assistant)";
+            title = "اشتراك المساعد الذكي (Smart AI Assistant)";
             amount = 1000;
         }
 
@@ -61,7 +61,8 @@ router.post("/create-checkout-session", requireAuth, async (req: Request, res: R
             cancel_url: `${req.headers.origin}/ai-pricing`,
             metadata: {
                 userId: userId!,
-                planId,
+                planId: planId, // This will reach the webhook
+                type: "subscription"
             },
         });
 

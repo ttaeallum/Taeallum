@@ -14,22 +14,13 @@ import { useToast } from "@/hooks/use-toast";
 // Currency data
 const currencies = {
   usd: { symbol: "$", name: "USD", flag: "🇺🇸" },
-  eur: { symbol: "€", name: "EUR", flag: "🇪🇺" },
-  gbp: { symbol: "£", name: "GBP", flag: "🇬🇧" },
-  aed: { symbol: "د.إ", name: "AED", flag: "🇦🇪" },
-  sar: { symbol: "ر.س", name: "SAR", flag: "🇸🇦" },
-  egp: { symbol: "ج.م", name: "EGP", flag: "🇪🇬" },
-  jod: { symbol: "د.أ", name: "JOD", flag: "🇯🇴" },
-  iqd: { symbol: "د.ع", name: "IQD", flag: "🇮🇶" },
 };
 
 type CurrencyCode = keyof typeof currencies;
 
 export default function AIPricing() {
   const [, setLocation] = useLocation();
-  const [isYearly, setIsYearly] = useState(false);
-  const [currency, setCurrency] = useState<CurrencyCode>("usd");
-  const [detectedCountry, setDetectedCountry] = useState<string>("");
+  const [currency] = useState<CurrencyCode>("usd");
 
   const { toast } = useToast();
 
@@ -58,39 +49,15 @@ export default function AIPricing() {
     },
   });
 
-  // Detect user's country and currency
-  useEffect(() => {
-    const detectCurrency = async () => {
-      try {
-        const response = await fetch("https://ipapi.co/json/");
-        const data = await response.json();
-        const countryCurrency = data.currency?.toLowerCase();
-
-        setDetectedCountry(data.country_name || "");
-
-        if (countryCurrency && currencies[countryCurrency as CurrencyCode]) {
-          setCurrency(countryCurrency as CurrencyCode);
-        }
-      } catch (error) {
-        console.error("Failed to detect currency:", error);
-      }
-    };
-
-    detectCurrency();
-  }, []);
+  // Removed currency detection
 
   const formatPrice = () => {
-    // Default to 'pro' pricing since we only have one paid plan now
-    const tierPrice = pricingTiers.pro.price;
-    const price = tierPrice[currency] || tierPrice.usd;
-
-    const yearlyPrice = isYearly ? Math.round(price * 12 * 0.8) : price;
-    const monthlyEquivalent = isYearly ? Math.round(yearlyPrice / 12) : price;
+    // Fixed $10 price
+    const price = 10;
 
     return {
-      price: isYearly ? yearlyPrice : price,
-      monthly: monthlyEquivalent,
-      symbol: currencies[currency].symbol,
+      price: price,
+      symbol: "$",
     };
   };
 
@@ -111,42 +78,16 @@ export default function AIPricing() {
               خطة واحدة، كل المميزات
             </Badge>
             <h1 className="text-4xl md:text-7xl font-black mb-6 tracking-tight text-primary">
-              اشتراك حمزة الذكي
+              اشتراك المساعد الذكي
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed font-medium">
               احصل على مساعدك الشخصي الذكي، خطط دراسية لا نهائية، ودعم فني متواصل بسعر رمزي.
             </p>
 
-            {/* Currency Selector */}
-            <div className="flex items-center justify-center gap-4 mb-8">
-              <span className="text-sm text-muted-foreground font-bold">العملة:</span>
-              <select
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
-                className="px-4 py-2 rounded-lg border-2 border-primary/20 bg-background text-sm font-bold focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-              >
-                {Object.entries(currencies).map(([code, data]) => (
-                  <option key={code} value={code}>
-                    {data.flag} {data.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Billing Toggle */}
-            <div className="flex items-center justify-center gap-4 mb-12 bg-muted/30 p-2 rounded-full w-fit mx-auto border border-border">
-              <span className={`text-sm px-4 py-1 rounded-full transition-all ${!isYearly ? "font-bold bg-background shadow-sm text-primary" : "text-muted-foreground"}`}>
-                شهري
-              </span>
-              <Switch
-                checked={isYearly}
-                onCheckedChange={setIsYearly}
-                className="data-[state=checked]:bg-primary"
-              />
-              <span className={`text-sm px-4 py-1 rounded-full transition-all ${isYearly ? "font-bold bg-background shadow-sm text-primary" : "text-muted-foreground"}`}>
-                سنوي <span className="text-xs text-green-600 font-bold mr-1">(وفّر 20%)</span>
-              </span>
-            </div>
+            {/* Price Plan Info */}
+            <p className="text-sm text-green-600 font-bold bg-green-100 px-6 py-2 rounded-full w-fit mx-auto mb-10 border border-green-200 shadow-sm">
+              سعر ثابت $10 شهرياً لجميع المستخدمين
+            </p>
           </motion.div>
 
           {/* Main Pricing Card */}
@@ -168,15 +109,10 @@ export default function AIPricing() {
                   <h3 className="text-2xl font-bold mb-2">اشتراك شامل</h3>
                   <div className="flex items-baseline gap-1 my-4">
                     <span className="text-5xl font-black text-primary">
-                      {pricing.symbol}{pricing.price.toLocaleString()}
+                      {pricing.symbol}{pricing.price}
                     </span>
-                    <span className="text-muted-foreground font-medium">/{isYearly ? "سنة" : "شهر"}</span>
+                    <span className="text-muted-foreground font-medium">/شهر</span>
                   </div>
-                  {isYearly && (
-                    <p className="text-sm text-green-600 font-bold bg-green-100 px-3 py-1 rounded-full mb-6">
-                      تكلفة شهرية: {pricing.symbol}{pricing.monthly.toLocaleString()} فقط
-                    </p>
-                  )}
 
                   <Button
                     size="lg"
@@ -221,7 +157,7 @@ export default function AIPricing() {
               <div className="p-6 rounded-2xl bg-muted/30 border border-border/50">
                 <Clock className="w-8 h-8 mx-auto text-primary mb-4" />
                 <h4 className="font-bold mb-2">متاح دائماً</h4>
-                <p className="text-sm text-muted-foreground">حمزة جاهز لمساعدتك 24 ساعة طوال أيام الأسبوع</p>
+                <p className="text-sm text-muted-foreground">المساعد الذكي جاهز لمساعدتك 24 ساعة طوال أيام الأسبوع</p>
               </div>
               <div className="p-6 rounded-2xl bg-muted/30 border border-border/50">
                 <Headphones className="w-8 h-8 mx-auto text-primary mb-4" />

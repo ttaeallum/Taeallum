@@ -400,7 +400,7 @@ export default function AdminCourses() {
                         <div className="space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
                             <Label htmlFor="aiDescription" className="font-bold flex items-center gap-2 text-primary">
                                 <Sparkles className="w-4 h-4" />
-                                وصف خاص للذكاء الاصطناعي (حمزة)
+                                وصف خاص للذكاء الاصطناعي (المساعد الذكي)
                             </Label>
                             <Textarea
                                 id="aiDescription"
@@ -409,7 +409,7 @@ export default function AdminCourses() {
                                 className="min-h-[80px] bg-background text-sm"
                                 placeholder="اشرح للذكاء الاصطناعي متى يجب أن يقترح هذا الكورس للطالب..."
                             />
-                            <p className="text-[10px] text-muted-foreground">هذا الوصف لن يراه الطلاب، سيستخدمه "حمزة" فقط كمرجع.</p>
+                            <p className="text-[10px] text-muted-foreground">هذا الوصف لن يراه الطلاب، سيستخدمه "المساعد الذكي" فقط كمرجع.</p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">

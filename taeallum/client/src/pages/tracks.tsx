@@ -84,7 +84,7 @@ export default function Tracks() {
             transition={{ delay: 0.2 }}
             className="text-muted-foreground text-xl max-w-2xl mx-auto leading-relaxed"
           >
-            هذه المسارات مصممة خصيصاً لك بواسطة مساعدك الذكي "حمزة" بناءً على أهدافك وطموحاتك.
+            هذه المسارات مصممة خصيصاً لك بواسطة المساعد الذكي بناءً على أهدافك وطموحاتك.
           </motion.p>
         </div>
       </div>
@@ -101,11 +101,11 @@ export default function Tracks() {
             </div>
             <h2 className="text-2xl font-black mb-4">لا توجد مسارات بعد!</h2>
             <p className="text-muted-foreground mb-8">
-              لم تقم بإنشاء أي مسار تعليمي حتى الآن. تحدث مع "حمزة" الآن ليصمم لك خطتك الدراسية الأولى.
+              لم تقم بإنشاء أي مسار تعليمي حتى الآن. تحدث مع المساعد الذكي الآن ليصمم لك خطتك الدراسية الأولى.
             </p>
             <Link href="/ai-agent">
               <Button size="lg" className="font-bold gap-2">
-                تحدث مع حمزة الآن <ArrowLeft className="w-4 h-4 rotate-180" />
+                تحدث مع المساعد الذكي الآن <ArrowLeft className="w-4 h-4 rotate-180" />
               </Button>
             </Link>
           </motion.div>
@@ -201,7 +201,7 @@ export default function Tracks() {
                                 <p className="text-sm text-muted-foreground">بنهاية هذا المسار ستكون جاهزاً لسوق العمل.</p>
                                 <Link href="/ai-agent">
                                   <Button className="mt-4 w-full md:w-auto font-bold shadow-lg shadow-primary/20" variant="outline">
-                                    المتابعة مع حمزة
+                                    المتابعة مع المساعد الذكي
                                   </Button>
                                 </Link>
                               </div>

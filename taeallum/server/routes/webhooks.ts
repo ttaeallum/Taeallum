@@ -36,37 +36,41 @@ router.post("/stripe", async (req: Request & { rawBody?: Buffer }, res: Response
         const session = event.data.object as Stripe.Checkout.Session;
 
         const userId = session.metadata?.userId;
-        const courseId = session.metadata?.courseId;
+        const planId = session.metadata?.planId;
+        const type = session.metadata?.type;
 
-        if (userId && courseId) {
-            console.log(`Payment confirmed for user ${userId} and course ${courseId}`);
+        if (userId && (planId || type === "subscription")) {
+            console.log(`Payment confirmed for user ${userId}, Plan: ${planId}`);
 
             try {
-                // 1. Create or update the order
+                // 1. Create the order
                 await db.insert(schema.orders).values({
                     userId,
-                    courseId,
+                    planId: planId || "pro",
                     amount: ((session.amount_total || 0) / 100).toString(),
                     status: "completed",
                     paymentId: session.id,
                 });
 
-                // 2. Create the enrollment
-                // Case for 'subscription' - we might need to handle specific 'subscription' courseId
-                if (courseId === "subscription") {
-                    // Logic for site-wide subscription could go here
-                    // For now we'll just log it
-                    console.log("Global subscription activated for user", userId);
-                } else {
-                    try {
-                        await db.insert(schema.enrollments).values({
-                            userId,
-                            courseId,
-                        });
-                    } catch (err) {
-                        console.log(`[WEBHOOK] Enrollment already exists for user ${userId}`);
-                    }
-                }
+                // 2. Activate Subscription
+                // Set end date to 30 days from now
+                const startDate = new Date();
+                const endDate = new Date();
+                endDate.setDate(endDate.getDate() + 30);
+
+                await db.insert(schema.subscriptions).values({
+                    userId,
+                    plan: planId || "pro",
+                    status: "active",
+                    stripeCustomerId: session.customer as string,
+                    stripeSubscriptionId: session.subscription as string,
+                    currentPeriodStart: startDate,
+                    currentPeriodEnd: endDate,
+                    amount: ((session.amount_total || 0) / 100).toString(),
+                    currency: session.currency || "usd",
+                });
+
+                console.log(`Subscription activated for user ${userId}`);
 
             } catch (dbErr) {
                 console.error("Database error during webhook:", dbErr);

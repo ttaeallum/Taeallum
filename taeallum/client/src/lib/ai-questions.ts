@@ -561,16 +561,9 @@ export const exampleStudyPlan: StudyPlan = {
 export const pricingTiers = {
   pro: {
     id: "pro",
-    name: "اشتراك حمزة الذكي (Smart AI)",
+    name: "اشتراك المساعد الذكي (Smart AI)",
     price: {
       usd: 10,
-      eur: 9.5,
-      gbp: 8,
-      aed: 37,
-      sar: 37.5,
-      egp: 480,
-      jod: 7,
-      iqd: 13000,
     },
     features: [
       "ذكاء اصطناعي فائق مدعوم بـ GPT-4o",

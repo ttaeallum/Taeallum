@@ -80,7 +80,7 @@ export default function AIAgent() {
       const initialMessage: Message = {
         id: "0",
         type: "agent",
-        content: "مرحباً! 👋 أنا حمزة، مساعدك الذكي. سأقوم بتحليل أهدافك ومهاراتك لأصمم لك خارطة طريق تعليمية مخصصة بالكامل.",
+        content: "مرحباً! 👋 أنا المساعد الذكي. سأقوم بتحليل أهدافك ومهاراتك لأصمم لك خارطة طريق تعليمية مخصصة بالكامل.",
         timestamp: new Date(),
       };
       setMessages([initialMessage]);
@@ -214,10 +214,10 @@ export default function AIAgent() {
                   Exclusive Feature
                 </Badge>
 
-                <h2 className="text-4xl font-heading font-black mb-6">دردش مع <span className="text-primary italic">حمزة الذكي</span></h2>
+                <h2 className="text-4xl font-heading font-black mb-6">دردش مع <span className="text-primary italic">المساعد الذكي</span></h2>
 
                 <p className="text-muted-foreground text-lg mb-10 leading-relaxed">
-                  احصل على وصول كامل لمساعدك الشخصي "حمزة" المدعوم بتقنية <span className="font-bold text-foreground">GPT-4o</span> لتصميم خريطة طريق مخصصة لك، الإجابة على استفساراتك البرمجية، ومتابعة تقدمك لحظة بلحظة.
+                  احصل على وصول كامل لمساعدك الشخصي الذكي المدعوم بتقنية <span className="font-bold text-foreground">GPT-4o</span> لتصميم خريطة طريق مخصصة لك، الإجابة على استفساراتك البرمجية، ومتابعة تقدمك لحظة بلحظة.
                 </p>
 
                 <div className="flex flex-col gap-4">
@@ -416,9 +416,8 @@ export default function AIAgent() {
 
               <h1 className="text-5xl md:text-7xl font-black mb-8 tracking-tighter leading-tight">
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary/80 to-emerald-500">
-                  حمزة:
-                </span><br />
-                مستشارك الأكاديمي الذكي
+                  المساعد الذكي:
+                </span>
               </h1>
 
               <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto font-medium leading-relaxed">
@@ -510,7 +509,7 @@ export default function AIAgent() {
                         <span className="absolute bottom-0.5 right-0.5 w-4 h-4 bg-green-500 border-2 border-background rounded-full z-20 shadow-sm" />
                       </div>
                       <div>
-                        <h3 className="font-black text-xl tracking-tight leading-none mb-1.5">حمزة الذكي</h3>
+                        <h3 className="font-black text-xl tracking-tight leading-none mb-1.5">المساعد الذكي</h3>
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
                           <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-70">
@@ -562,7 +561,7 @@ export default function AIAgent() {
                               {message.content}
                             </div>
                             <div className="flex items-center gap-2 mt-2 px-2 text-[10px] font-bold text-muted-foreground/50 uppercase tracking-tighter">
-                              <span>{message.type === 'agent' ? 'حمزة' : 'أنت'}</span>
+                              <span>{message.type === 'agent' ? 'المساعد الذكي' : 'أنت'}</span>
                               <span>•</span>
                               <span>{message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                             </div>
@@ -583,7 +582,7 @@ export default function AIAgent() {
                         <div className="bg-background/80 border border-primary/10 px-4 py-3 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-2">
                           <Loader2 className="w-3 h-3 animate-spin text-primary" />
                           <span className="text-[10px] font-medium text-muted-foreground">
-                            حمزة يكتب...
+                            المساعد الذكي يكتب...
                           </span>
                         </div>
                       </motion.div>
@@ -630,7 +629,7 @@ export default function AIAgent() {
                         <div className="relative flex-1 group">
                           <div className="absolute inset-0 bg-primary/5 rounded-[1.5rem] group-focus-within:bg-primary/10 transition-colors" />
                           <Textarea
-                            placeholder="تحدث مع حمزة، اطرح أسئلتك أو أجب..."
+                            placeholder="تحدث مع المساعد الذكي، اطرح أسئلتك أو أجب..."
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
                             onKeyDown={(e) => {

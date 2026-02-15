@@ -15,7 +15,7 @@ interface Message {
 export function AIChatbot() {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
-        { role: "assistant", content: "مرحباً! أنا حمزة، مساعدك الذكي في منصة تعلم. كيف يمكنني مساعدتك اليوم؟" }
+        { role: "assistant", content: "مرحباً! أنا المساعد الذكي في منصة تعلم. كيف يمكنني مساعدتك اليوم؟" }
     ]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -58,7 +58,7 @@ export function AIChatbot() {
             }
 
             if (response.status === 401) {
-                setMessages(prev => [...prev, { role: "assistant", content: "عذراً، يجب عليك تسجيل الدخول لتتمكن من التحدث مع حمزة." }]);
+                setMessages(prev => [...prev, { role: "assistant", content: "عذراً، يجب عليك تسجيل الدخول لتتمكن من التحدث مع المساعد الذكي." }]);
                 return;
             }
 
@@ -101,7 +101,7 @@ export function AIChatbot() {
                                         </AvatarFallback>
                                     </Avatar>
                                     <div>
-                                        <h3 className="font-bold text-sm">حمزة - المساعد الذكي</h3>
+                                        <h3 className="font-bold text-sm">المساعد الذكي</h3>
                                         <p className="text-[10px] opacity-80">متصل الآن</p>
                                     </div>
                                 </div>
@@ -128,7 +128,7 @@ export function AIChatbot() {
                                     <div className="flex justify-start">
                                         <div className="bg-muted p-3 rounded-2xl rounded-tl-none border border-border flex items-center gap-2">
                                             <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                                            <span className="text-[10px] text-muted-foreground">حمزة يفكر...</span>
+                                            <span className="text-[10px] text-muted-foreground">المساعد الذكي يفكر...</span>
                                         </div>
                                     </div>
                                 )}

@@ -57,7 +57,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
             return res.status(403).json({
                 message: "عذراً، هذه الخدمة متاحة للمشتركين فقط.",
                 upgradeRequired: true,
-                suggestion: "يرجى الاشتراك في خطة حمزة الذكي (10$ شهرياً) لتتمكن من استخدام المساعد الذكي."
+                suggestion: "يرجى الاشتراك في خطة المساعد الذكي (10$ شهرياً) لتتمكن من استخدام المساعد الذكي."
             });
         }
 
@@ -95,16 +95,23 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 
         // 4. Call OpenAI
         const response = await openai.chat.completions.create({
-            model: "gpt-3.5-turbo",
+            model: "gpt-4o-mini",
             messages: [
                 {
                     role: "system",
-                    content: `أنت مساعد ذكي لمنصة 'تعلم' (Taeallum) اسمك "حمزة". 
-                    خطة المستخدم الحالية: ${plan}.
-                    استخدم المعلومات التالية عن الكورسات المتاحة لترشيح الأنسب للطالب إذا طلب ذلك:
+                    content: `أنت "المساعد الذكي"، الخبير التعليمي والمرشد الأكاديمي لمنصة "تعلم" (Taeallum).
+                    مهمتك هي مساعدة الطلاب في رحلتهم التعليمية بكل احترافية وودية.
+                    
+                    سياق المستخدم:
+                    - خطة الاشتراك: ${plan}.
+                    - الدورات المتاحة حالياً في المنصة:
                     ${courseKnowledge}
                     
-                    ساعد الطلاب في الإجابة على أسئلتهم حول البرمجة، التقنية، والتصميم بأسلوب ودود وباللغة العربية.`
+                    إرشادات الإجابة:
+                    1. كن مشجعاً وملهماً دائماً.
+                    2. إذا سأل الطالب عن البرمجة أو التقنية أو التصميم، قدم إجابات دقيقة ومبسطة.
+                    3. حاول دائماً ربط الإجابات بالكورسات المتوفرة في المنصة إذا كانت ذات صلة.
+                    4. تحدث باللغة العربية الفصحى البسيطة والمحببة للطلاب.`
                 },
                 { role: "user", content: message }
             ],
@@ -131,7 +138,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
         // Handle specific OpenAI errors
         if (error?.status === 429 || error?.code === "insufficient_quota") {
             return res.status(429).json({
-                message: "عذراً، يبدو أن رصيد الـ API الخاص بـ OpenAI قد نفد. يرجى شحن الرصيد من لوحة تحكم OpenAI ليعود حمزة للعمل."
+                message: "عذراً، يبدو أن رصيد الـ API الخاص بـ OpenAI قد نفد. يرجى شحن الرصيد من لوحة تحكم OpenAI ليعود المساعد الذكي للعمل."
             });
         }
 

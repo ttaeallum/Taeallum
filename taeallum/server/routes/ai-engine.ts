@@ -66,7 +66,7 @@ router.post("/generate-plan", requireAuth, async (req: Request, res: Response) =
             return res.status(403).json({
                 message: "عذراً، هذه الخدمة متاحة للمشتركين فقط.",
                 upgradeRequired: true,
-                suggestion: "يرجى الاشتراك في خطة حمزة الذكي (10$ شهرياً) للحصول على خطة دراسية مخصصة."
+                suggestion: "يرجى الاشتراك في خطة المساعد الذكي (10$ شهرياً) للحصول على خطة دراسية مخصصة."
             });
         }
 
@@ -74,7 +74,7 @@ router.post("/generate-plan", requireAuth, async (req: Request, res: Response) =
 
         // 3. Prepare Prompt
         const prompt = `
-            You are "Hamza" (حمزة), an expert academic advisor for Taeallum (تعلم), an Arabic e-learning platform.
+            You are an expert academic advisor for Taeallum (تعلم), an Arabic e-learning platform.
             Your task is to build a "Zero to Hero" roadmap for the student based on their profile.
             
             Student Profile:

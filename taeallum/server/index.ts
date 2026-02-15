@@ -27,7 +27,13 @@ const app = express();
 const httpServer = createServer(app);
 
 
-app.use(express.json());
+app.use(express.json({
+  verify: (req: any, res, buf) => {
+    if (req.originalUrl.startsWith('/api/webhooks')) {
+      req.rawBody = buf;
+    }
+  }
+}));
 app.use(express.urlencoded({ extended: false }));
 app.set("trust proxy", 1); // Render standard for trust proxy
 
@@ -88,11 +94,11 @@ console.log("[SESSION] استخدام مخزن جلسات PostgreSQL");
 
     // 3. Lessons table: Add bunny_video_id, original_youtube_url, and video_owner_url if missing
     await pool.query(`
+      ALTER TABLE "lessons"
       ADD COLUMN IF NOT EXISTS "bunny_video_id" TEXT,
       ADD COLUMN IF NOT EXISTS "original_youtube_url" TEXT,
       ADD COLUMN IF NOT EXISTS "video_owner_url" TEXT;
     `);
-
     // 4. Create Ads table if missing
     await pool.query(`
       CREATE TABLE IF NOT EXISTS "ads" (

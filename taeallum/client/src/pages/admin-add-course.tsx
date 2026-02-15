@@ -313,7 +313,7 @@ export default function AdminAddCourse() {
                             <div className="space-y-2 p-4 bg-primary/5 rounded-xl border border-primary/20">
                                 <Label className="font-bold flex items-center gap-2 text-primary">
                                     <Sparkles className="w-4 h-4" />
-                                    وصف خاص للذكاء الاصطناعي (حمزة)
+                                    وصف خاص للذكاء الاصطناعي (المساعد الذكي)
                                 </Label>
                                 <Textarea
                                     placeholder="اشرح للذكاء الاصطناعي متى يجب أن يقترح هذا الكورس للطالب..."
