@@ -3,7 +3,7 @@ import OpenAI from "openai";
 import { requireAuth } from "./auth";
 import { db } from "../db";
 import { aiSessions, aiMessages, subscriptions, users, courses, enrollments, studyPlans } from "../db/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, ilike, or } from "drizzle-orm";
 
 import { getConfig } from "../config";
 
@@ -222,7 +222,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                 type: "function",
                 function: {
                     name: "create_study_plan",
-                    description: "Generate and save a structured study plan for the student. Call this ONLY when you have enough info (Goal, Level, Time).",
+                    description: "Generate and save a structured study plan for the student, linking it to actual courses on the platform. IMPORTANT: Before calling this, you MUST call search_platform_courses to find available courses and include their IDs in the milestones.",
                     parameters: {
                         type: "object",
                         properties: {
@@ -236,7 +236,8 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                                     type: "object",
                                     properties: {
                                         title: { type: "string", description: "Milestone name (Arabic)" },
-                                        description: { type: "string", description: "Broad activities (Arabic)" }
+                                        description: { type: "string", description: "Broad activities (Arabic)" },
+                                        courseIds: { type: "array", items: { type: "string" }, description: "Array of course UUIDs from search_platform_courses results to link to this milestone" }
                                     }
                                 }
                             }
@@ -275,7 +276,11 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 [SUGGESTIONS: ⏱️ ساعة واحدة (مسار مرن)|🔥 3 ساعات (مسار سريع)|🚀 5 ساعات+ (مسار مكثف)]
 
 الخطوة 4 — التنفيذ التلقائي:
-بمجرد حصولك على (القطاع + التخصص + الوقت)، استدعِ أداة create_study_plan فوراً بدون أي سؤال إضافي. بعد إنشاء المسار، أخبر الطالب: "تم إنشاء مسارك التعليمي بنجاح! 🎉 يمكنك مراجعته من صفحة المسارات." ثم أضف [REDIRECT: /tracks]
+بمجرد حصولك على (القطاع + التخصص + الوقت):
+1. أولاً: استدعِ أداة search_platform_courses بكلمات مفتاحية تتعلق بالتخصص المختار للحصول على الكورسات المتاحة.
+2. ثانياً: استدعِ أداة create_study_plan مع تضمين courseIds (من نتائج البحث) في كل milestone.
+3. بعد إنشاء المسار، أخبر الطالب: "تم إنشاء مسارك التعليمي بنجاح! 🎉 يمكنك مراجعته من صفحة المسارات." ثم أضف [REDIRECT: /tracks]
+ملاحظة مهمة: يجب أن تربط المسار بالكورسات الحقيقية الموجودة على المنصة حصراً. لا تخترع كورسات غير موجودة.
 
 [قواعد صارمة]:
 1. كل رد يحتوي على خيارات يجب أن ينتهي بكتلة [SUGGESTIONS: ...] حصراً. ممنوع سرد الخيارات كنص عادي أو كقائمة نقطية.
@@ -305,7 +310,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
         // 7. Agent Reasoning Loop
         let finalResponse = "";
         let toolLogs: string[] = [];
-        let maxSteps = 5;
+        let maxSteps = 8;
 
         for (let i = 0; i < maxSteps; i++) {
             const response = await openai.chat.completions.create({
@@ -326,11 +331,42 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                     let result;
                     if (functionName === "search_platform_courses") {
                         toolLogs.push(`استكشاف الموارد: ${args.query || args.category || ""}`);
+
+                        // Build search conditions
+                        const conditions: any[] = [eq(courses.isPublished, true)];
+                        if (args.query) {
+                            conditions.push(
+                                or(
+                                    ilike(courses.title, `%${args.query}%`),
+                                    ilike(courses.description, `%${args.query}%`),
+                                    ilike(courses.aiDescription || '', `%${args.query}%`)
+                                )
+                            );
+                        }
+
                         const searchResult = await db.query.courses.findMany({
                             where: eq(courses.isPublished, true),
-                            limit: 10
+                            limit: 20
                         });
-                        result = searchResult.map(c => `- ${c.title} (ID: ${c.id}) (${c.level}): ${c.aiDescription || c.description}`);
+
+                        // Filter by query keyword matching if provided
+                        let filtered = searchResult;
+                        if (args.query) {
+                            const q = args.query.toLowerCase();
+                            filtered = searchResult.filter(c =>
+                                c.title.toLowerCase().includes(q) ||
+                                c.description.toLowerCase().includes(q) ||
+                                (c.aiDescription && c.aiDescription.toLowerCase().includes(q))
+                            );
+                            // If no exact match, return all
+                            if (filtered.length === 0) filtered = searchResult;
+                        }
+                        if (args.level) {
+                            const leveled = filtered.filter(c => c.level === args.level);
+                            if (leveled.length > 0) filtered = leveled;
+                        }
+
+                        result = filtered.map(c => `- ${c.title} (ID: ${c.id}) (المستوى: ${c.level}): ${c.aiDescription || c.description?.slice(0, 150)}`);
                     }
                     else if (functionName === "enroll_student") {
                         toolLogs.push(`تنفيذ عملية تسجيل: ${args.courseTitle}`);
@@ -369,6 +405,82 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                     }
                     else if (functionName === "create_study_plan") {
                         toolLogs.push(`هندسة مسار تعليمي: ${args.title}`);
+
+                        // Fetch all platform courses to match with milestones
+                        const allCourses = await db.query.courses.findMany({
+                            where: eq(courses.isPublished, true)
+                        });
+
+                        // Build enriched milestones with course details
+                        const enrichedMilestones = (args.milestones || []).map((m: any) => {
+                            const milestoneCoursIds = m.courseIds || [];
+                            const matchedCourses = allCourses.filter(c => milestoneCoursIds.includes(c.id));
+
+                            return {
+                                title: m.title,
+                                description: m.description,
+                                courses: matchedCourses.map(c => ({
+                                    id: c.id,
+                                    title: c.title,
+                                    slug: c.slug,
+                                    level: c.level,
+                                    thumbnail: c.thumbnail
+                                }))
+                            };
+                        });
+
+                        // If no courses were matched via AI, auto-match by keyword
+                        const totalMatched = enrichedMilestones.reduce((sum: number, m: any) => sum + m.courses.length, 0);
+                        if (totalMatched === 0 && allCourses.length > 0) {
+                            for (const milestone of enrichedMilestones) {
+                                const keywords = milestone.title.toLowerCase().split(/\s+/);
+                                const matched = allCourses.filter(c =>
+                                    keywords.some((kw: string) => kw.length > 2 && (
+                                        c.title.toLowerCase().includes(kw) ||
+                                        c.description.toLowerCase().includes(kw)
+                                    ))
+                                ).slice(0, 3);
+                                milestone.courses = matched.map(c => ({
+                                    id: c.id,
+                                    title: c.title,
+                                    slug: c.slug,
+                                    level: c.level,
+                                    thumbnail: c.thumbnail
+                                }));
+                            }
+                        }
+
+                        // Auto-enroll the student in all matched courses
+                        const allMatchedCourseIds = new Set<string>();
+                        for (const m of enrichedMilestones) {
+                            for (const c of m.courses) {
+                                allMatchedCourseIds.add(c.id);
+                            }
+                        }
+
+                        for (const courseId of Array.from(allMatchedCourseIds)) {
+                            const [existing] = await db.select().from(enrollments)
+                                .where(and(
+                                    eq(enrollments.userId, userId!),
+                                    eq(enrollments.courseId, courseId)
+                                ));
+                            if (!existing) {
+                                await db.insert(enrollments).values({
+                                    userId: userId!,
+                                    courseId: courseId,
+                                    progress: 0
+                                });
+                            }
+                        }
+
+                        toolLogs.push(`تم ربط ${allMatchedCourseIds.size} كورس من المنصة بالمسار`);
+
+                        const planDataWithCourses = {
+                            ...args,
+                            milestones: enrichedMilestones,
+                            linkedCoursesCount: allMatchedCourseIds.size
+                        };
+
                         const [savedPlan] = await db.insert(studyPlans).values({
                             userId: userId!,
                             sessionId: session.id,
@@ -376,16 +488,16 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                             description: args.description,
                             duration: args.duration,
                             totalHours: args.totalHours,
-                            planData: args,
+                            planData: planDataWithCourses,
                             status: "active"
                         }).returning();
 
                         // Mark session as completed
                         await db.update(aiSessions)
-                            .set({ status: "completed", generatedPlan: args, updatedAt: new Date() })
+                            .set({ status: "completed", generatedPlan: planDataWithCourses, updatedAt: new Date() })
                             .where(eq(aiSessions.id, session.id));
 
-                        result = { success: true, planId: savedPlan.id };
+                        result = { success: true, planId: savedPlan.id, linkedCourses: allMatchedCourseIds.size };
                     }
 
                     openaiMessages.push({
