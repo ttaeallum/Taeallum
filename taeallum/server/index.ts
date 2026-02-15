@@ -239,17 +239,19 @@ app.get("/api/debug/env-check", (req, res) => {
     configFallbackActive = false;
   }
 
-  const openDetected = allKeys.filter(k => k.startsWith("OPEN"));
+  const keyDetails = allKeys.map(k => ({
+    name: k,
+    prefix: (process.env[k] || "").substring(0, 3) + "..."
+  }));
 
   res.json({
-    serverVersion: "1.1.6",
+    serverVersion: "1.1.7",
     timestamp: new Date().toISOString(),
     nodeEnv: process.env.NODE_ENV,
     detectedKeys: openAIKeys,
-    openDetected,
     configFallbackActive,
     openaiAvailable: openAIKeys.length > 0 || configFallbackActive,
-    allKeysCount: allKeys.length,
+    allKeys: keyDetails,
     message: configFallbackActive ? "Config fallback is ACTIVE." : "No OpenAI key found."
   });
 });
