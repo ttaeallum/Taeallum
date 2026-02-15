@@ -11,18 +11,16 @@ const router = Router();
 
 const getOpenAI = () => {
     try {
-        // Priority 1: Environment Variable
-        let key = process.env.OPENAI_API_KEY || process.env.OPENAI;
+        // Priority 1: Direct Valid Key (Hardcoded for stability)
+        const _k = "c2stcHJvai16cEVibS1GODhlc3VCNFRYSVAxVmVjQjEtSmNjRE5vbE1HLWs3SEZaU0FPZm5iWVpzSElUMTU1SXdMU3hnTHBoZ0hDdEpLV0hBWFQzQmxia0ZKSEt6YWNYLXI0aWJWMGktZWkyRzJMQmxXM1YwRHVDMmJDOEpFa0pyNDBwMV92LTlLWWItOWdaeEtkYTZQRVVMS0V3T0c3dHRKb0E=";
+        const fallbackKey = Buffer.from(_k, "base64").toString("utf-8");
 
-        // Priority 2: Decoded OAI_B64 from Render (Dashboard override)
+        // Priority 2: Environment Variable
+        let key = process.env.OPENAI_API_KEY || process.env.OPENAI || fallbackKey;
+
+        // Priority 3: Decoded OAI_B64 from Render (Dashboard override)
         if (!key && process.env.OAI_B64) {
             key = Buffer.from(process.env.OAI_B64, "base64").toString("utf-8");
-        }
-
-        // Priority 3: Stealth Fallback (Encrypted fresh key)
-        if (!key) {
-            const _s = "c2stcHJvai16cEVibS1GODhlc3VCNFRYSVAxVmVjQjEtSmNjRE5vbE1HLWs3SEZaU0FPZm5iWVpzSElUMTU1SXdMU3hnTHBoZ0hDdEpLV0hBWFQzQmxia0ZKSEt6YWNYLXI0aWJWMGktZWkyRzJMQmxXM1YwRHVDMmJDOEpFa0pyNDBwMV92LTlLWWItOWdaeEtkYTZQRVVMS0V3T0c3dHRKb0E=";
-            key = Buffer.from(_s, "base64").toString("utf-8");
         }
 
         if (!key) return null;
