@@ -7,10 +7,12 @@ import { eq, desc } from "drizzle-orm";
 
 const router = Router();
 
-const openaiKey = process.env.OPENAI || process.env.OPENAI_API_KEY;
-const openai = openaiKey
-    ? new OpenAI({ apiKey: openaiKey })
-    : null;
+// Helper to get OpenAI instance (Resilient to env loading order)
+const getOpenAI = () => {
+    const key = process.env.OPENAI || process.env.OPENAI_API_KEY;
+    if (!key) return null;
+    return new OpenAI({ apiKey: key });
+};
 
 // Helper to get limit based on plan
 // Helper to get limit based on plan
@@ -28,7 +30,9 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
         const { message, sessionId } = req.body;
         const userId = req.session.userId;
 
+        const openai = getOpenAI();
         if (!openai) {
+            console.error("[CHATBOT ERROR] OpenAI Key not found in process.env");
             return res.status(400).json({ message: "OpenAI is not configured" });
         }
 
