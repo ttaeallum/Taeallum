@@ -11,9 +11,17 @@ const router = Router();
 
 // Helper to get OpenAI instance (with config fallback)
 const getOpenAI = () => {
-    const key = getConfig("OPENAI_API_KEY");
-    if (!key) return null;
-    return new OpenAI({ apiKey: key });
+    try {
+        const key = getConfig("OPENAI_API_KEY");
+        if (!key) {
+            console.error("[CONFIG ERROR] getConfig returned nothing for OPENAI_API_KEY");
+            return null;
+        }
+        return new OpenAI({ apiKey: key });
+    } catch (err) {
+        console.error("[CONFIG ERROR] Exception in getOpenAI:", err);
+        return null;
+    }
 };
 
 // Helper to get limit based on plan
