@@ -73,3 +73,33 @@ export async function sendVerificationEmail(to: string, code: string) {
         return false;
     }
 }
+
+export async function sendPasswordResetEmail(to: string, code: string) {
+    const mailOptions = {
+        from: `"منصة تعلّم" <${smtpConfig.auth.user}>`,
+        to,
+        subject: "إعادة تعيين كلمة المرور - منصة تعلّم",
+        priority: "high" as const,
+        html: `
+            <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px; background-color: #ffffff;">
+                <h2 style="color: #4CAF50; text-align: center;">إعادة تعيين كلمة المرور</h2>
+                <p style="font-size: 16px; line-height: 1.6; color: #333;">لقد تلقينا طلباً لإعادة تعيين كلمة المرور الخاصة بحسابك. يرجى استخدام الرمز التالي لإكمال العملية:</p>
+                <div style="background: #f9f9f9; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 10px; border-radius: 8px; margin: 25px 0; color: #4CAF50; border: 1px dashed #4CAF50;">
+                    ${code}
+                </div>
+                <p style="font-size: 14px; color: #666;">إذا لم تطلب إعادة تعيين كلمة المرور، يرجى تجاهل هذا البريد.</p>
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
+                <p style="font-size: 12px; color: #999; text-align: center;">© 2026 منصة تعلّم. جميع الحقوق محفوظة.</p>
+            </div>
+        `,
+    };
+
+    try {
+        await transporter.sendMail(mailOptions);
+        return true;
+    } catch (error) {
+        console.error("[EMAIL ERROR]", error);
+        return false;
+    }
+}
+

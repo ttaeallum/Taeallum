@@ -90,10 +90,10 @@ export default function AboutUs() {
                             <Sparkles className="w-3 h-3 mr-2" />
                             قصتنا ورؤيتنا
                         </Badge>
-                        <h1 className="text-5xl md:text-7xl font-black mb-8 leading-[1.1] tracking-tighter">
+                        <h1 className="text-4xl md:text-7xl font-black mb-8 leading-tight tracking-tight">
                             منصة <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">تعلّم</span>
                         </h1>
-                        <p className="text-xl md:text-2xl text-muted-foreground font-medium max-w-2xl mx-auto leading-relaxed">
+                        <p className="text-lg md:text-2xl text-muted-foreground font-medium max-w-2xl mx-auto leading-relaxed px-4">
                             مستقبل التعليم الذكي باللغة العربية
                         </p>
                     </motion.div>
@@ -105,17 +105,17 @@ export default function AboutUs() {
                         viewport={{ once: true }}
                         className="w-full mb-32"
                     >
-                        <Card className="p-10 md:p-16 bg-card/60 border-border/40 rounded-[3rem] backdrop-blur-xl shadow-2xl relative overflow-hidden group border-2 border-primary/10">
+                        <Card className="p-6 md:p-16 bg-card/60 border-border/40 rounded-[2.5rem] md:rounded-[3rem] backdrop-blur-xl shadow-2xl relative overflow-hidden group border-2 border-primary/10">
                             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                                 <Target className="w-48 h-48" />
                             </div>
 
                             <div className="relative z-10 max-w-3xl mx-auto text-center">
-                                <h2 className="text-3xl font-black mb-8 flex items-center justify-center gap-4">
-                                    <Rocket className="w-8 h-8 text-primary" />
+                                <h2 className="text-2xl md:text-3xl font-black mb-6 flex items-center justify-center gap-4">
+                                    <Rocket className="w-6 h-6 md:w-8 md:h-8 text-primary" />
                                     لماذا بنينا "تعلّم"؟
                                 </h2>
-                                <p className="text-lg md:text-xl text-muted-foreground leading-[2] text-center font-medium">
+                                <p className="text-base md:text-xl text-muted-foreground leading-relaxed md:leading-[2] text-center font-medium">
                                     تعلّم هي مبادرة تعليمية عربية تسعى لإعادة صياغة تجربة التعلّم الذاتي. نحن نؤمن بأن المحتوى التعليمي عالي الجودة يجب أن يكون متاحاً للجميع ومنظماً بشكل يسهل على الطالب البدء من الصفر حتى الوصول للاحتراف المهني.
                                 </p>
                             </div>
@@ -150,14 +150,14 @@ export default function AboutUs() {
                         viewport={{ once: true }}
                         className="w-full mb-32"
                     >
-                        <Card className="p-12 md:p-20 bg-gradient-to-br from-card to-background border-border/60 rounded-[3.5rem] text-center relative overflow-hidden border-2">
+                        <Card className="p-6 md:p-20 bg-gradient-to-br from-card to-background border-border/60 rounded-[2.5rem] md:rounded-[3.5rem] text-center relative overflow-hidden border-2">
                             <div className="w-32 h-32 rounded-full bg-primary/10 border-4 border-primary/20 flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-primary/20">
                                 <span className="text-5xl font-black text-primary">ح</span>
                             </div>
-                            <h3 className="text-3xl font-black mb-3 italic">حمزة علي السرحي</h3>
-                            <p className="text-primary font-black text-sm uppercase tracking-widest mb-10">المؤسس والشؤون التقنية</p>
+                            <h3 className="text-2xl md:text-3xl font-black mb-3 italic">حمزة علي أمين السرخي</h3>
+                            <p className="text-primary font-black text-xs md:text-sm uppercase tracking-widest mb-10">المؤسس والشؤون التقنية</p>
 
-                            <p className="text-xl text-muted-foreground leading-[1.8] max-w-2xl mx-auto mb-16 font-medium">
+                            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed md:leading-[1.8] max-w-2xl mx-auto mb-16 font-medium">
                                 "هدفنا هو سد الفجوة في التعليم الرقمي العربي من خلال دمج المحتوى الأكاديمي مع تقنيات الذكاء الاصطناعي لخلق تجربة تعليمية مخصصة لكل طالب حسب احتياجاته وظروفه."
                             </p>
 
@@ -190,9 +190,9 @@ export default function AboutUs() {
                         viewport={{ once: true }}
                         className="text-center"
                     >
-                        <h2 className="text-4xl font-black mb-8">ابدأ رحلتك معنا اليوم</h2>
+                        <h2 className="text-3xl md:text-4xl font-black mb-8">ابدأ رحلتك معنا اليوم</h2>
                         <Link href="/courses">
-                            <Button size="lg" className="h-16 px-12 rounded-2xl text-lg font-black shadow-2xl shadow-primary/40 hover:scale-105 transition-transform">
+                            <Button size="lg" className="h-14 md:h-16 px-8 md:px-12 rounded-2xl text-base md:text-lg font-black shadow-2xl shadow-primary/40 hover:scale-105 transition-transform">
                                 انضم إلى تعلّم الآن
                             </Button>
                         </Link>

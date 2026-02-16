@@ -33,6 +33,7 @@ import Contact from "@/pages/contact";
 import Terms from "@/pages/terms";
 import Privacy from "@/pages/privacy";
 import Support from "@/pages/support";
+import ForgotPassword from "@/pages/forgot-password";
 
 function Router() {
   return (
@@ -83,6 +84,7 @@ function Router() {
       <Route path="/terms" component={Terms} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/support" component={Support} />
+      <Route path="/forgot-password" component={ForgotPassword} />
       <Route component={NotFound} />
     </Switch>
   );

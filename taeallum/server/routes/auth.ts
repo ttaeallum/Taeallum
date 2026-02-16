@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { db } from "../db";
 import { users, subscriptions } from "../db/schema";
 import { eq, desc, sql } from "drizzle-orm";
-import { sendVerificationEmail } from "../lib/email";
+import { sendVerificationEmail, sendPasswordResetEmail } from "../lib/email";
 
 const router = Router();
 const adminEmail = (process.env.ADMIN_EMAIL || "hamzaali200410@gmail.com").toLowerCase();
@@ -261,6 +261,71 @@ router.post("/login", async (req: Request, res: Response) => {
         });
     }
 });
+
+router.post("/forgot-password", async (req: Request, res: Response) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ message: "البريد الإلكتروني مطلوب" });
+        }
+
+        const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+        if (!user) {
+            // For security, don't confirm if user exists or not, but here we'll be helpful
+            return res.status(404).json({ message: "المستخدم غير موجود" });
+        }
+
+        const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const resetCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+        await db.update(users)
+            .set({ verificationCode: resetCode, verificationCodeExpiresAt: resetCodeExpiresAt })
+            .where(eq(users.id, user.id));
+
+        await sendPasswordResetEmail(email, resetCode);
+
+        return res.json({ message: "تم إرسال رمز إعادة تعيين كلمة المرور إلى بريدك الإلكتروني" });
+    } catch (error) {
+        console.error("[FORGOT PASSWORD ERROR]", error);
+        return res.status(500).json({ message: "حدث خطأ أثناء تنفيذ الطلب" });
+    }
+});
+
+router.post("/reset-password", async (req: Request, res: Response) => {
+    try {
+        const { email, code, newPassword } = req.body;
+
+        if (!email || !code || !newPassword) {
+            return res.status(400).json({ message: "جميع الحقول مطلوبة" });
+        }
+
+        const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+
+        if (!user || user.verificationCode !== code) {
+            return res.status(400).json({ message: "الرمز غير صحيح" });
+        }
+
+        if (user.verificationCodeExpiresAt && user.verificationCodeExpiresAt < new Date()) {
+            return res.status(400).json({ message: "الرمز منتهي الصلاحية" });
+        }
+
+        const passwordHash = await bcrypt.hash(newPassword, 10);
+
+        await db.update(users)
+            .set({
+                passwordHash,
+                verificationCode: null,
+                verificationCodeExpiresAt: null
+            })
+            .where(eq(users.id, user.id));
+
+        return res.json({ message: "تم تغيير كلمة المرور بنجاح" });
+    } catch (error) {
+        console.error("[RESET PASSWORD ERROR]", error);
+        return res.status(500).json({ message: "حدث خطأ أثناء إعادة تعيين كلمة المرور" });
+    }
+});
+
 
 router.post("/logout", (req: Request, res: Response) => {
     req.session.destroy((err) => {
