@@ -318,19 +318,9 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 
                         // Build search conditions
                         const conditions: any[] = [eq(courses.isPublished, true)];
-                        if (args.query) {
-                            conditions.push(
-                                or(
-                                    ilike(courses.title, `%${args.query}%`),
-                                    ilike(courses.description, `%${args.query}%`),
-                                    ilike(courses.aiDescription || '', `%${args.query}%`)
-                                )
-                            );
-                        }
-
                         const searchResult = await db.query.courses.findMany({
                             where: eq(courses.isPublished, true),
-                            limit: 20
+                            limit: 50
                         });
 
                         // Filter by query keyword matching if provided
@@ -338,12 +328,11 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                         if (args.query) {
                             const q = args.query.toLowerCase();
                             filtered = searchResult.filter(c =>
-                                c.title.toLowerCase().includes(q) ||
-                                c.description.toLowerCase().includes(q) ||
+                                (c.title && c.title.toLowerCase().includes(q)) ||
+                                (c.description && c.description.toLowerCase().includes(q)) ||
                                 (c.aiDescription && c.aiDescription.toLowerCase().includes(q))
                             );
-                            // If no exact match, return all
-                            if (filtered.length === 0) filtered = searchResult;
+                            // If no results for query, don't return everything, keep it empty for AI to know
                         }
                         if (args.level) {
                             const leveled = filtered.filter(c => c.level === args.level);
@@ -539,12 +528,12 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
         });
 
     } catch (error: any) {
-        console.error("[AGENT ERROR]:", error);
+        console.error("CRITICAL [AGENT ERROR]:", error);
 
-        res.status(error?.status || 500).json({
-            message: "حدث خطأ في المساعد الذكي",
-            detail: error.message,
-            code: error.code || "unknown"
+        res.status(500).json({
+            message: "عذراً، حدث خطأ تقني في معالجة طلبك.",
+            detail: error.message || "Unknown error",
+            code: error.code || "ERR_AGENT_FLOW"
         });
     }
 });
