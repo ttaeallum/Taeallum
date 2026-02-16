@@ -541,10 +541,19 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error("CRITICAL [AGENT ERROR]:", error);
 
-        // Return a more structured error if possible
+        // Log detailed error for admin
+        const errorLog = {
+            message: error.message,
+            stack: error.stack,
+            time: new Date().toISOString(),
+            userId
+        };
+        console.error("[CHATBOT_LOG]", JSON.stringify(errorLog));
+
+        // Return a professional user-facing error
         res.status(500).json({
-            message: "عذراً، حدث خطأ تقني في معالجة طلبك بالمساعد الذكي.",
-            detail: error.message || "Unknown error",
+            message: "عذراً، المساعد الذكي يواجه تقلبات في الاتصال حالياً. يرجى المحاولة بعد لحظات. (The Smart Assistant is experiencing connection issues, please try again.)",
+            detail: error.message,
             code: "ERR_AGENT_FLOW"
         });
     }

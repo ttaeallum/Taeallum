@@ -11,31 +11,25 @@ import {
   Bot,
   User,
   Loader2,
-  LayoutDashboard,
-  Trophy,
-  BookOpen,
   Target,
-  Zap,
-  Fingerprint,
   Activity,
-  Box,
   Brain,
-  Search,
   CheckCircle2,
-  Clock,
   History,
+  RotateCcw,
+  LayoutDashboard,
+  Compass,
+  Zap,
   ShieldCheck,
-  Rocket,
-  Settings,
-  AlertTriangle,
+  ChevronRight,
+  ChevronLeft,
   Cpu,
   Globe,
-  Lock,
-  RotateCcw
+  Settings
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 
@@ -50,6 +44,8 @@ interface Message {
 export default function AIAgent() {
   const { i18n } = useTranslation();
   const isRtl = i18n.language === 'ar';
+  const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   const { data: user, isLoading: authLoading } = useQuery({
     queryKey: ["auth-me"],
@@ -60,7 +56,6 @@ export default function AIAgent() {
     },
   });
 
-  const queryClient = useQueryClient();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -68,12 +63,10 @@ export default function AIAgent() {
   const [sessionLoaded, setSessionLoaded] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [showLogs, setShowLogs] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [, setLocation] = useLocation();
 
-  // Load existing session from database
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   const { data: sessionData, isLoading: sessionLoading } = useQuery({
     queryKey: ["chatbot-session"],
     queryFn: async () => {
@@ -86,20 +79,21 @@ export default function AIAgent() {
 
   const scrollToBottom = (instant = false) => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: instant ? "auto" : "smooth"
+      });
     }
   };
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, activeLogs, isLoading]);
+  }, [messages, isLoading]);
 
-  // Load messages from DB session or show welcome
   useEffect(() => {
     if (authLoading || sessionLoading || !user || sessionLoaded) return;
 
     if (sessionData?.messages && sessionData.messages.length > 0) {
-      // Restore messages from database
       setMessages(sessionData.messages.map((m: any) => ({
         id: m.id,
         role: m.role as "user" | "assistant",
@@ -108,7 +102,6 @@ export default function AIAgent() {
         logs: m.logs
       })));
 
-      // Attempt to derive current step from last assistant message
       const lastAssistantMsg = [...sessionData.messages].reverse().find(m => m.role === "assistant");
       if (lastAssistantMsg) {
         if (lastAssistantMsg.content.includes("REDIRECT:")) setCurrentStep(5);
@@ -117,13 +110,12 @@ export default function AIAgent() {
         else if (lastAssistantMsg.content.includes("التحليل النفسي")) setCurrentStep(2);
       }
     } else {
-      // No existing session — show welcome message
       setMessages([{
         id: "init",
         role: "assistant",
         content: isRtl
-          ? "أهلاً بك في منصة تعلّم. أنا مساعدك الذكي. لنبدأ معاً، أي من هذه المجالات يثير اهتمامك؟ [SUGGESTIONS: البرمجة والأنظمة|البيانات والذكاء الاصطناعي|الإبداع والتصميم|الأعمال والتجارة الرقمية|اللغات والمهارات العامة]"
-          : "Welcome to Taeallum. I'm your Smart Assistant. Let's start together, which of these fields interests you? [SUGGESTIONS: Programming & Systems|Data & AI|Design & Creativity|Business & Digital Commerce|Languages & General Skills]",
+          ? "مرحباً بك في مستقبل التعليم. أنا مساعدك الذكي، مصمم خصيصاً لتحويل طموحاتك إلى مسار تعليمي ملموس. لنبدأ رحلتنا الاستكشافية: ما هو المجال الذي يثير فضولك وترغب في احترافه؟ [SUGGESTIONS: تطوير البرمجيات والأنظمة|الذكاء الاصطناعي وعلوم البيانات|التصميم وتجربة المستخدم|إدارة الأعمال الرقمية|اللغات والمهارات العالمية]"
+          : "Welcome to the future of learning. I'm your Smart Assistant, dedicated to turning your ambitions into a tangible learning path. Let's begin: which field sparks your curiosity and makes you want to go pro? [SUGGESTIONS: Software & Systems Development|AI & Data Science|Design & UX|Digital Business Management|Languages & Global Skills]",
         timestamp: new Date()
       }]);
     }
@@ -132,62 +124,50 @@ export default function AIAgent() {
 
   const handleNewChat = async () => {
     try {
-      await fetch("/api/chatbot/reset-session", {
-        method: "POST",
-        credentials: "include"
-      });
+      await fetch("/api/chatbot/reset-session", { method: "POST", credentials: "include" });
       setMessages([{
         id: "init",
         role: "assistant",
         content: isRtl
-          ? "أهلاً بك في منصة تعلّم. أنا مساعدك الذكي. لنبدأ معاً، أي من هذه المجالات يثير اهتمامك؟ [SUGGESTIONS: البرمجة والأنظمة|البيانات والذكاء الاصطناعي|الإبداع والتصميم|الأعمال والتجارة الرقمية|اللغات والمهارات العامة]"
-          : "Welcome to Taeallum. I'm your Smart Assistant. Let's start together, which of these fields interests you? [SUGGESTIONS: Programming & Systems|Data & AI|Design & Creativity|Business & Digital Commerce|Languages & General Skills]",
+          ? "أهلاً بك مجدداً. لنبدأ من جديد بتحديد شغفك. أي مجال تفضل؟ [SUGGESTIONS: البرمجة وتطوير الأنظمة|علم البيانات والذكاء الاصطناعي|التصميم الإبداعي|الأعمال والتجارة الرقمية|اللغات والمهارات الشخصية]"
+          : "Welcome back. Let's start fresh by identifying your passion. Which field do you prefer? [SUGGESTIONS: Programming & Systems|Data Science & AI|Creative Design|Business & Digital Commerce|Languages & Soft Skills]",
         timestamp: new Date()
       }]);
       setActiveLogs([]);
       setCurrentStep(1);
       queryClient.invalidateQueries({ queryKey: ["chatbot-session"] });
     } catch (err) {
-      console.error("Failed to reset session", err);
+      console.error("Reset failed", err);
     }
   };
 
   const handleSendMessage = async (overrideMessage?: string) => {
-    const messageToSend = overrideMessage || inputValue;
-    if (!messageToSend.trim() || isLoading) return;
+    const text = overrideMessage || inputValue;
+    if (!text.trim() || isLoading) return;
 
-    const userMsgText = messageToSend.trim();
     setMessages(prev => [...prev, {
       id: Date.now().toString(),
       role: "user",
-      content: userMsgText,
+      content: text.trim(),
       timestamp: new Date()
     }]);
     setInputValue("");
     setIsLoading(true);
-    setActiveLogs([isRtl ? "جاري تحليل المعطيات..." : "Analyzing data points..."]);
 
     try {
       const response = await fetch("/api/chatbot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMsgText }),
+        body: JSON.stringify({ message: text.trim() }),
       });
 
       const data = await response.json();
+      if (data.logs) setActiveLogs(prev => [...prev, ...data.logs]);
 
-      if (data.logs) {
-        setActiveLogs(prev => [...prev, ...data.logs]);
-      }
-
-      const botReply = data.reply || data.message || "";
-
-      if (botReply.includes("[REDIRECT:")) {
-        const match = botReply.match(/\[REDIRECT:\s*(.*?)\]/);
-        if (match) {
-          const path = match[1];
-          setTimeout(() => setLocation(path), 1500); // Redirect via SPA router after 1.5s
-        }
+      const reply = data.reply || data.message || "";
+      if (reply.includes("[REDIRECT:")) {
+        const path = reply.match(/\[REDIRECT:\s*(.*?)\]/)?.[1];
+        if (path) setTimeout(() => setLocation(path), 1500);
       }
 
       if (data.step) {
@@ -198,16 +178,15 @@ export default function AIAgent() {
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: botReply,
+        content: reply,
         timestamp: new Date(),
         logs: data.logs
       }]);
-
     } catch (error) {
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: "assistant",
-        content: isRtl ? "عذراً، حدث خطأ في معالجة طلبك." : "Sorry, an error occurred while processing your request.",
+        content: isRtl ? "عذراً، المساعد الذكي يواجه تقلبات في الاتصال حالياً. يرجى المحاولة بعد لحظات." : "Connection fluctuations detected. Please try again in a moment.",
         timestamp: new Date()
       }]);
     } finally {
@@ -216,21 +195,25 @@ export default function AIAgent() {
   };
 
   const isSubscribed = user?.isSubscribed || user?.role === "admin";
-  if (!authLoading && !isSubscribed) {
+
+  if (authLoading) return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+
+  if (!isSubscribed) {
     return (
       <Layout>
-        <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-          <Card className="max-w-xl w-full p-12 text-center border-none shadow-2xl bg-card/50 backdrop-blur-2xl rounded-[3rem]">
-            <div className="bg-primary/10 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8">
-              <Sparkles className="w-12 h-12 text-primary" />
+        <div className="min-h-screen flex items-center justify-center p-6 bg-background relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(var(--primary-rgb),0.1),transparent_70%)]" />
+          <Card className="max-w-xl w-full p-12 text-center border-none shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] bg-card/40 backdrop-blur-3xl rounded-[3rem] relative z-10">
+            <div className="w-24 h-24 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner">
+              <Cpu className="w-12 h-12 text-primary" />
             </div>
-            <h2 className="text-4xl font-bold mb-6 tracking-tight">{isRtl ? "المساعد الذكي" : "Smart Assistant"}</h2>
-            <p className="text-muted-foreground text-lg mb-12 leading-relaxed">
-              {isRtl ? "ابدأ رحلتك التعليمية المخصصة اليوم مع المساعد الذكي المدعوم بالذكاء الاصطناعي." : "Start your personalized learning journey today with our AI-powered Smart Assistant."}
+            <h2 className="text-4xl font-black mb-6 tracking-tight">{isRtl ? "ذكاء اصطناعي حصري" : "Exclusive Intelligence"}</h2>
+            <p className="text-muted-foreground text-lg mb-12 leading-relaxed px-4">
+              {isRtl ? "هذه التجربة المتقدمة مصممة حصرياً للمشتركين لضمان أعلى جودة في تحليل المسارات الأكاديمية." : "This advanced experience is exclusively designed for subscribers to ensure the highest quality academic analysis."}
             </p>
             <Link href="/ai-pricing">
-              <Button size="lg" className="w-full h-16 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform">
-                {isRtl ? "اشترك الآن للمتابعة" : "Subscribe to Continue"}
+              <Button size="lg" className="w-full h-16 rounded-[1.2rem] text-lg font-black shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                {isRtl ? "ترقية الحساب الآن" : "Upgrade Account Now"}
               </Button>
             </Link>
           </Card>
@@ -242,128 +225,144 @@ export default function AIAgent() {
   return (
     <Layout>
       {showConfetti && <ConfettiCelebration onComplete={() => setShowConfetti(false)} />}
-      <div className="min-h-[100dvh] bg-background text-foreground flex flex-col pt-20">
-        <div className="container max-w-6xl mx-auto px-4 flex-1 flex flex-col pb-8">
+      <div className="min-h-screen bg-[#fafafa] dark:bg-[#050505] flex flex-col pt-24 pb-8 overflow-hidden font-sans">
 
-          {/* Main Interface */}
-          <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 h-full max-h-[85vh]">
+        <div className="container max-w-[1500px] w-full px-6 flex-1 flex flex-col gap-6">
 
-            {/* Sidebar: Mission & Progress */}
-            <aside className="lg:col-span-3 flex flex-col gap-6 overflow-y-auto hidden lg:flex py-4">
-              <Card className="p-6 bg-card/40 border-none shadow-sm rounded-[2rem] backdrop-blur-md">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-primary/10 rounded-xl">
-                    <Target className="w-5 h-5 text-primary" />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full flex-1 min-h-0">
+
+            {/* Sidebar : Navigation & Progress */}
+            <aside className="lg:col-span-3 flex flex-col gap-6 hidden lg:flex h-full">
+              <Card className="p-8 bg-white/80 dark:bg-zinc-900/50 border-none shadow-xl rounded-[2.5rem] backdrop-blur-3xl flex flex-col gap-10 flex-1 overflow-hidden">
+
+                <div className="space-y-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-primary/10 rounded-2xl flex items-center justify-center">
+                      <Target className="w-5 h-5 text-primary" />
+                    </div>
+                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">{isRtl ? "مراحل الهندسة" : "Engineering Steps"}</h3>
                   </div>
-                  <h3 className="font-bold text-sm">{isRtl ? "هدفك الحالي" : "Current Goal"}</h3>
+
+                  <div className="relative space-y-10">
+                    <div className="absolute top-2 bottom-2 left-[15px] w-[2px] bg-muted/30" />
+                    {[
+                      { label: isRtl ? "اكتشاف الشغف" : "Passion Discovery", step: 1 },
+                      { label: isRtl ? "تحليل النمط" : "Pattern Analysis", step: 2 },
+                      { label: isRtl ? "جدولة الوقت" : "Time Scheduling", step: 3 },
+                      { label: isRtl ? "مستوى الخبرة" : "Expertise Level", step: 4 },
+                      { label: isRtl ? "توليد المسار" : "Path Generation", step: 5 },
+                    ].map((s, idx) => {
+                      const isActive = currentStep === s.step;
+                      const isDone = currentStep > s.step;
+                      return (
+                        <div key={idx} className="flex items-center gap-6 relative z-10">
+                          <div className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black transition-all duration-700",
+                            isDone ? "bg-primary text-white shadow-lg shadow-primary/20" :
+                              isActive ? "bg-white dark:bg-zinc-800 border-2 border-primary text-primary" : "bg-muted/40 text-muted-foreground"
+                          )}>
+                            {isDone ? <CheckCircle2 className="w-4 h-4" /> : s.step}
+                          </div>
+                          <span className={cn(
+                            "text-sm font-bold transition-all duration-500",
+                            isActive ? "text-foreground scale-105" : "text-muted-foreground/40"
+                          )}>{s.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                <div className="space-y-6">
-                  <div>
-                    <p className="text-sm font-medium mb-3 text-foreground/80">
-                      {user?.preferences?.main_goal || (isRtl ? "بانتظار تحديد هدفك..." : "Waiting for your goal...")}
-                    </p>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${(currentStep / 5) * 100}%` }}
-                        className="h-full bg-primary"
-                      />
+                <div className="mt-auto space-y-6 pt-10 border-t border-border/10">
+                  <div className="bg-primary/5 p-6 rounded-[2rem]">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Zap className="w-4 h-4 text-amber-500 animate-pulse" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-primary">{isRtl ? "المستهدف" : "Active Target"}</span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground mt-2 text-right">
-                      {isRtl ? `المرحلة ${currentStep} من 5` : `Step ${currentStep} of 5`}
+                    <p className="text-sm font-bold leading-relaxed text-foreground/90 italic">
+                      "{user?.preferences?.main_goal || (isRtl ? "بانتظار تحديد هدفك..." : "Awaiting mission parameters...")}"
                     </p>
                   </div>
 
-                  <div className="pt-4 border-t border-border/50">
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-3">{isRtl ? "الاهتمامات" : "Interests"}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {user?.preferences?.interests?.map((interest: string) => (
-                        <Badge key={interest} variant="secondary" className="rounded-lg bg-primary/5 text-primary border-none px-3 py-1 text-[10px]">{interest}</Badge>
-                      )) || <span className="text-[10px] text-muted-foreground italic">...</span>}
-                    </div>
+                  <div className="flex flex-wrap gap-2">
+                    {user?.preferences?.interests?.map((interest: string) => (
+                      <Badge key={interest} className="rounded-full bg-muted/60 text-muted-foreground hover:text-primary hover:bg-primary/5 border-none px-4 py-1.5 text-[9px] font-black transition-all">
+                        {interest}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
               </Card>
-
-              <div className="mt-auto">
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowLogs(!showLogs)}
-                  className="w-full justify-between text-muted-foreground hover:text-primary rounded-xl"
-                >
-                  <span className="text-xs font-bold">{isRtl ? "عرض حالة النظام" : "System Status"}</span>
-                  {showLogs ? <Lock className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
-                </Button>
-
-                <AnimatePresence>
-                  {showLogs && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="mt-2 p-4 bg-muted/30 rounded-2xl overflow-hidden"
-                    >
-                      <div className="space-y-2">
-                        {activeLogs.slice(-3).map((log, i) => (
-                          <div key={i} className="flex gap-2 text-[9px] font-mono text-muted-foreground">
-                            <span className="text-primary">•</span>
-                            <span className="truncate">{log}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
             </aside>
 
-            {/* Main Chat Center */}
-            <main className="lg:col-span-9 flex flex-col h-full overflow-hidden">
-              <Card className="flex-1 bg-card/30 border-none shadow-2xl rounded-[3rem] flex flex-col overflow-hidden backdrop-blur-xl relative">
+            {/* Main Intelligence Core */}
+            <main className="lg:col-span-6 flex flex-col h-full min-h-0">
+              <Card className="flex-1 bg-white/90 dark:bg-zinc-950/80 border-none shadow-2xl rounded-[3rem] flex flex-col overflow-hidden backdrop-blur-3xl relative h-full">
 
-                {/* Clean Stepper Integrated */}
-                <div className="pt-8 pb-4 border-b border-border/10 bg-gradient-to-b from-card/50 to-transparent">
-                  <ProgressStepper currentStep={currentStep} isRtl={isRtl} />
-                </div>
+                {/* Glass Header */}
+                <header className="px-8 py-6 flex items-center justify-between border-b border-border/5 bg-white/50 dark:bg-black/20">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-zinc-900 dark:bg-zinc-100 rounded-2xl flex items-center justify-center shadow-2xl rotate-3">
+                      <Sparkles className="w-6 h-6 text-white dark:text-black" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-black tracking-tighter">{isRtl ? "المساعد الذكي" : "Smart Assistant"}</h2>
+                      <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                        <span className="text-[10px] font-mono text-muted-foreground uppercase opacity-60">Neural Network Active</span>
+                      </div>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={handleNewChat} className="rounded-2xl hover:bg-primary/5">
+                    <RotateCcw className="w-5 h-5 text-muted-foreground" />
+                  </Button>
+                </header>
 
-                {/* Chat Flow */}
+                {/* Message Stream */}
                 <div
                   ref={scrollContainerRef}
-                  className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8 scroll-smooth"
+                  className="flex-1 overflow-y-auto px-6 md:px-12 py-10 space-y-10 scrollbar-none"
                 >
-                  <AnimatePresence>
+                  <AnimatePresence initial={false}>
                     {messages.map((msg, i) => {
                       const content = msg.content || "";
                       const suggestionMatch = content.match(/\[SUGGESTIONS:\s*(.*?)\]/);
-                      const rawContent = content.replace(/\[SUGGESTIONS:.*?\]/, "").trim();
-                      const cleanContent = rawContent.replace(/[\u1F600-\u1F64F\u1F300-\u1F5FF\u1F680-\u1F6FF\u2600-\u26FF\u2700-\u27BF]/g, '').trim();
+                      const cleanContent = content.replace(/\[SUGGESTIONS:.*?\]/, "").trim();
 
                       return (
                         <motion.div
                           key={msg.id}
-                          initial={{ opacity: 0, scale: 0.98 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                          initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          transition={{ type: "spring", duration: 0.8 }}
+                          className={cn(
+                            "flex flex-col gap-4",
+                            msg.role === "user" ? "items-end" : "items-start"
+                          )}
                         >
-                          <div className={`max-w-[85%] md:max-w-[75%] px-6 py-4 rounded-[2rem] shadow-sm ${msg.role === "user"
-                            ? "bg-primary text-primary-foreground font-semibold rounded-tr-sm"
-                            : "bg-background/80 border border-border/30 rounded-tl-sm backdrop-blur-md"
-                            }`}>
-                            <div className={`text-sm md:text-base leading-relaxed ${isRtl ? "text-right" : "text-left"}`}>
+                          <div className={cn(
+                            "max-w-[85%] px-8 py-6 shadow-sm border border-border/5 transition-all duration-500 group",
+                            msg.role === "user"
+                              ? "bg-primary text-primary-foreground font-bold rounded-[2.5rem] rounded-tr-md shadow-xl shadow-primary/10"
+                              : "bg-white dark:bg-zinc-900 text-foreground font-medium rounded-[2.5rem] rounded-tl-md shadow-xl shadow-black/5 dark:shadow-none"
+                          )}>
+                            <div className={cn(
+                              "text-[15px] leading-relaxed",
+                              isRtl ? "text-right" : "text-left"
+                            )}>
                               {cleanContent}
                             </div>
 
                             {msg.role === "assistant" && suggestionMatch && (
-                              <div className="mt-8 flex flex-wrap gap-2 justify-end">
+                              <div className="mt-8 flex flex-wrap gap-3 justify-end">
                                 {suggestionMatch[1].split("|").map((suggestion, idx) => (
                                   <motion.button
                                     key={idx}
-                                    whileHover={{ scale: 1.05 }}
+                                    whileHover={{ y: -3, scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => handleSendMessage(suggestion.trim())}
                                     disabled={isLoading || i < messages.length - 1}
-                                    className="px-5 py-3 rounded-full bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground transition-all text-xs font-bold"
+                                    className="px-6 py-3.5 rounded-2xl bg-primary/5 dark:bg-primary/20 border border-primary/20 text-primary hover:bg-primary hover:text-white transition-all text-xs font-black"
                                   >
                                     {suggestion.trim()}
                                   </motion.button>
@@ -371,6 +370,9 @@ export default function AIAgent() {
                               </div>
                             )}
                           </div>
+                          <span className="text-[9px] font-black uppercase text-muted-foreground/30 px-4">
+                            {msg.role === "assistant" ? "Taeallum Engine" : "User Input"}
+                          </span>
                         </motion.div>
                       );
                     })}
@@ -378,20 +380,21 @@ export default function AIAgent() {
 
                   {isLoading && (
                     <div className="flex justify-start">
-                      <div className="px-6 py-4 rounded-[2rem] rounded-tl-sm bg-background/50 border border-border/20 backdrop-blur-sm">
-                        <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                      <div className="px-6 py-4 bg-muted/20 rounded-3xl flex items-center gap-3">
+                        <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Thinking...</span>
                       </div>
                     </div>
                   )}
-                  <div ref={messagesEndRef} />
                 </div>
 
-                {/* Minimal Input Bar */}
-                <div className="p-6 md:p-8 bg-gradient-to-t from-card/80 via-card/50 to-transparent">
-                  <div className="relative group max-w-4xl mx-auto">
-                    <div className="absolute inset-0 bg-primary/5 rounded-3xl blur-xl group-focus-within:bg-primary/10 transition-colors" />
-                    <div className="relative flex items-center bg-background/80 border border-border/50 rounded-3xl overflow-hidden shadow-lg focus-within:border-primary/50 transition-all px-4 py-2">
+                {/* Input Console */}
+                <div className="px-8 pb-10 pt-4 bg-gradient-to-t from-white dark:from-zinc-950 to-transparent">
+                  <div className="relative group max-w-2xl mx-auto">
+                    <div className="absolute -inset-1 bg-primary/20 rounded-[2.5rem] blur opacity-20 group-focus-within:opacity-100 transition duration-500" />
+                    <div className="relative flex items-center bg-white dark:bg-zinc-900 border border-border/60 dark:border-white/10 rounded-[2.2rem] overflow-hidden shadow-2xl px-6 py-3 transition-all">
                       <Textarea
+                        ref={textareaRef}
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         onKeyDown={(e) => {
@@ -400,90 +403,88 @@ export default function AIAgent() {
                             handleSendMessage();
                           }
                         }}
-                        placeholder={isRtl ? "تحدث مع مساعدك الذكي..." : "Talk to your smart assistant..."}
-                        className="flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 resize-none min-h-[44px] max-h-[120px] text-sm py-3"
+                        placeholder={isRtl ? "أخبرنا عن طموحاتك..." : "Tell us about your ambitions..."}
+                        className="flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 resize-none min-h-[50px] max-h-[150px] text-base py-3 px-0 font-medium placeholder:text-muted-foreground/20"
                         disabled={isLoading}
                       />
-                      <div className="flex items-center gap-2 pl-2 border-l border-border/30 ml-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={handleNewChat}
-                          className="text-muted-foreground hover:text-primary"
-                          title={isRtl ? "محادثة جديدة" : "New Chat"}
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          onClick={() => handleSendMessage()}
-                          disabled={!inputValue.trim() || isLoading}
-                          size="icon"
-                          className="h-10 w-10 rounded-2xl shadow-lg"
-                        >
-                          <Send className={`w-4 h-4 ${isRtl ? 'rotate-180' : ''}`} />
-                        </Button>
-                      </div>
+                      <Button
+                        onClick={() => handleSendMessage()}
+                        disabled={!inputValue.trim() || isLoading}
+                        size="icon"
+                        className="h-14 w-14 rounded-full shadow-2xl transition-all hover:scale-105 active:scale-95 flex-shrink-0"
+                      >
+                        <Send className={cn("w-6 h-6", isRtl && "rotate-180")} />
+                      </Button>
                     </div>
                   </div>
                 </div>
               </Card>
             </main>
+
+            {/* Right Panel : Live Intelligence */}
+            <aside className="lg:col-span-3 flex flex-col gap-6 hidden lg:flex h-full">
+              <Card className="p-8 bg-white/80 dark:bg-zinc-900/50 border-none shadow-xl rounded-[2.5rem] backdrop-blur-3xl flex flex-col gap-10 flex-1 overflow-hidden">
+
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">{isRtl ? "سجل التفكير" : "Live Brain Cycles"}</h3>
+                    <Activity className="w-4 h-4 text-emerald-500 animate-[pulse_2s_infinite]" />
+                  </div>
+
+                  <div className="space-y-4">
+                    {activeLogs.slice(-6).map((log, i) => (
+                      <div key={i} className="flex gap-4 group animate-in fade-in slide-in-from-right-2 duration-500">
+                        <div className="w-1 h-6 bg-primary/40 rounded-full group-hover:scale-y-125 transition-transform" />
+                        <div className="flex flex-col">
+                          <span className="text-[9px] font-black font-mono text-muted-foreground/30">CORE_LOG_${i}</span>
+                          <span className="text-[11px] font-bold text-foreground/70 leading-tight uppercase tracking-tight">{log}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {activeLogs.length === 0 && (
+                      <div className="text-center py-20 opacity-20">
+                        <Globe className="w-10 h-10 mx-auto mb-4" />
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em]">{isRtl ? "في انتظار البيانات" : "Awaiting Stream"}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-auto space-y-6">
+                  <div className="p-6 bg-white dark:bg-zinc-800 rounded-[2rem] border border-border/40 shadow-sm relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-2 opacity-5 scale-150 rotate-12 group-hover:scale-[2] transition-transform duration-1000">
+                      <ShieldCheck className="w-12 h-12" />
+                    </div>
+                    <div className="flex items-center gap-3 mb-3">
+                      <Settings className="w-3 h-3 text-primary animate-spin-slow" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-primary">{isRtl ? "نظام آمن" : "Secure Node"}</span>
+                    </div>
+                    <p className="text-[11px] font-bold text-muted-foreground leading-relaxed">
+                      {isRtl ? "تحليلك يتم بأعلى معايير الخصوصية والأمان باستخدام نماذج GPT-4o المتقدمة." : "Analysis processed under top privacy standards using GPT-4o global nodes."}
+                    </p>
+                  </div>
+
+                  <Link href="/dashboard" className="block">
+                    <Button variant="outline" className="w-full h-16 rounded-[1.5rem] border-border/40 hover:bg-primary/5 hover:border-primary/20 text-xs font-black uppercase transition-all shadow-sm">
+                      <LayoutDashboard className="w-4 h-4 mr-2" />
+                      {isRtl ? "لوحة القيادة" : "Dashboard"}
+                    </Button>
+                  </Link>
+                </div>
+              </Card>
+            </aside>
+
           </div>
         </div>
       </div>
+      <style>{`
+        .scrollbar-none::-webkit-scrollbar { display: none; }
+        .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+        .animate-spin-slow { animation: spin 8s linear infinite; }
+      `}</style>
     </Layout>
   );
 }
-
-// --- Simplified UI Components ---
-
-function ProgressStepper({ currentStep, isRtl }: { currentStep: number, isRtl: boolean }) {
-  const stepsAr = ["اكتشاف الشغف", "النمط النفسي", "إدارة الوقت", "تحديد المستوى", "إطلاق المسار"];
-  const stepsEn = ["Discovery", "Psychology", "Routine", "Level", "Launch"];
-  const steps = isRtl ? stepsAr : stepsEn;
-
-  return (
-    <div className="flex items-center justify-between w-full max-w-3xl mx-auto px-4" dir={isRtl ? "rtl" : "ltr"}>
-      {steps.map((label, i) => {
-        const stepNum = i + 1;
-        const isActive = stepNum === currentStep;
-        const isCompleted = stepNum < currentStep;
-
-        return (
-          <div key={i} className="flex flex-col items-center flex-1 relative">
-            {/* Connector */}
-            {i < steps.length - 1 && (
-              <div className={`absolute top-4 ${isRtl ? '-left-1/2' : '-right-1/2'} w-full h-0.5 ${isCompleted ? "bg-primary" : "bg-muted"
-                } -z-0 translate-y-[-50%]`} />
-            )}
-
-            <motion.div
-              animate={{
-                scale: isActive ? 1.1 : 1,
-                backgroundColor: isActive || isCompleted ? "var(--primary)" : "var(--card)",
-                borderColor: isActive || isCompleted ? "var(--primary)" : "var(--border)"
-              }}
-              className={cn(
-                "w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] font-bold z-10 transition-all",
-                isActive || isCompleted ? "text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground"
-              )}
-            >
-              {isCompleted ? <CheckCircle2 className="w-4 h-4" /> : stepNum}
-            </motion.div>
-
-            <span className={cn(
-              "text-[10px] whitespace-nowrap mt-3 font-semibold tracking-tight transition-colors",
-              isActive ? "text-primary" : "text-muted-foreground opacity-50"
-            )}>
-              {label}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 
 function ConfettiCelebration({ onComplete }: { onComplete: () => void }) {
   useEffect(() => {
@@ -491,44 +492,26 @@ function ConfettiCelebration({ onComplete }: { onComplete: () => void }) {
     script.src = "https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js";
     script.async = true;
     document.body.appendChild(script);
-
     script.onload = () => {
       // @ts-ignore
       if (window.confetti) {
         const duration = 3 * 1000;
         const animationEnd = Date.now() + duration;
         const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
-
         const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
-
         const interval: any = setInterval(function () {
           const timeLeft = animationEnd - Date.now();
-
-          if (timeLeft <= 0) {
-            clearInterval(interval);
-            onComplete();
-            return;
-          }
-
+          if (timeLeft <= 0) { clearInterval(interval); onComplete(); return; }
           const particleCount = 50 * (timeLeft / duration);
           // @ts-ignore
           window.confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
           // @ts-ignore
           window.confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
         }, 250);
-
         return () => clearInterval(interval);
       }
     };
-
-    return () => {
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
-    };
+    return () => { if (document.body.contains(script)) document.body.removeChild(script); };
   }, [onComplete]);
-
   return null;
 }
-
-
