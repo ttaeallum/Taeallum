@@ -310,7 +310,18 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
             if (reply.tool_calls) {
                 for (const toolCall of reply.tool_calls) {
                     const functionName = toolCall.function.name;
-                    const args = JSON.parse(toolCall.function.arguments);
+                    let args;
+                    try {
+                        args = JSON.parse(toolCall.function.arguments);
+                    } catch (err) {
+                        console.error("Failed to parse tool arguments:", toolCall.function.arguments);
+                        openaiMessages.push({
+                            role: "tool",
+                            tool_call_id: toolCall.id,
+                            content: JSON.stringify({ error: "Invalid JSON arguments" })
+                        });
+                        continue;
+                    }
 
                     let result;
                     if (functionName === "search_platform_courses") {
@@ -530,10 +541,11 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error("CRITICAL [AGENT ERROR]:", error);
 
+        // Return a more structured error if possible
         res.status(500).json({
-            message: "عذراً، حدث خطأ تقني في معالجة طلبك.",
+            message: "عذراً، حدث خطأ تقني في معالجة طلبك بالمساعد الذكي.",
             detail: error.message || "Unknown error",
-            code: error.code || "ERR_AGENT_FLOW"
+            code: "ERR_AGENT_FLOW"
         });
     }
 });

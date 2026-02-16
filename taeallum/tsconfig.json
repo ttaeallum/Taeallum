@@ -13,6 +13,7 @@
   ],
   "compilerOptions": {
     "incremental": true,
+    "target": "ESNext",
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
     "noEmit": true,
     "module": "ESNext",
