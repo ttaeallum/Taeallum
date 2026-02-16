@@ -123,9 +123,10 @@ export default function AIAgent() {
       // Attempt to derive current step from last assistant message
       const lastAssistantMsg = [...sessionData.messages].reverse().find(m => m.role === "assistant");
       if (lastAssistantMsg) {
-        if (lastAssistantMsg.content.includes("REDIRECT:")) setCurrentStep(4);
-        else if (lastAssistantMsg.content.includes("كم ساعة يومياً")) setCurrentStep(3);
-        else if (lastAssistantMsg.content.includes("التخصص الذي تريد احترافه")) setCurrentStep(2);
+        if (lastAssistantMsg.content.includes("REDIRECT:")) setCurrentStep(5);
+        else if (lastAssistantMsg.content.includes("الخلفية المعرفية")) setCurrentStep(4);
+        else if (lastAssistantMsg.content.includes("تحليل الوقت")) setCurrentStep(3);
+        else if (lastAssistantMsg.content.includes("التحليل النفسي")) setCurrentStep(2);
       }
     } else {
       // No existing session — show welcome message
@@ -133,8 +134,8 @@ export default function AIAgent() {
         id: "init",
         role: "assistant",
         content: isRtl
-          ? "أهلاً بك في منصة تعلّم! 🚀 أنا مساعدك الذكي. لنبدأ معاً، أي من هذه المجالات يثير اهتمامك؟ [SUGGESTIONS: 💻 البرمجة والأنظمة|🤖 البيانات والذكاء الاصطناعي|🎨 الإبداع والتصميم|📈 الأعمال والتجارة الرقمية|🌐 اللغات والمهارات العامة]"
-          : "Welcome to Taeallum! 🚀 I'm your Smart Assistant. Let's start together, which of these fields interests you? [SUGGESTIONS: 💻 Programming & Systems|🤖 Data & AI|🎨 Design & Creativity|📈 Business & Digital Commerce|🌐 Languages & General Skills]",
+          ? "أهلاً بك في منصة تعلّم. أنا مساعدك الذكي. لنبدأ معاً، أي من هذه المجالات يثير اهتمامك؟ [SUGGESTIONS: البرمجة والأنظمة|البيانات والذكاء الاصطناعي|الإبداع والتصميم|الأعمال والتجارة الرقمية|اللغات والمهارات العامة]"
+          : "Welcome to Taeallum. I'm your Smart Assistant. Let's start together, which of these fields interests you? [SUGGESTIONS: Programming & Systems|Data & AI|Design & Creativity|Business & Digital Commerce|Languages & General Skills]",
         timestamp: new Date()
       }]);
     }
@@ -152,8 +153,8 @@ export default function AIAgent() {
         id: "init",
         role: "assistant",
         content: isRtl
-          ? "أهلاً بك في منصة تعلّم! 🚀 أنا مساعدك الذكي. لنبدأ معاً، أي من هذه المجالات يثير اهتمامك؟ [SUGGESTIONS: 💻 البرمجة والأنظمة|🤖 البيانات والذكاء الاصطناعي|🎨 الإبداع والتصميم|📈 الأعمال والتجارة الرقمية|🌐 اللغات والمهارات العامة]"
-          : "Welcome to Taeallum! 🚀 I'm your Smart Assistant. Let's start together, which of these fields interests you? [SUGGESTIONS: 💻 Programming & Systems|🤖 Data & AI|🎨 Design & Creativity|📈 Business & Digital Commerce|🌐 Languages & General Skills]",
+          ? "أهلاً بك في منصة تعلّم. أنا مساعدك الذكي. لنبدأ معاً، أي من هذه المجالات يثير اهتمامك؟ [SUGGESTIONS: البرمجة والأنظمة|البيانات والذكاء الاصطناعي|الإبداع والتصميم|الأعمال والتجارة الرقمية|اللغات والمهارات العامة]"
+          : "Welcome to Taeallum. I'm your Smart Assistant. Let's start together, which of these fields interests you? [SUGGESTIONS: Programming & Systems|Data & AI|Design & Creativity|Business & Digital Commerce|Languages & General Skills]",
         timestamp: new Date()
       }]);
       setActiveLogs([]);
@@ -378,77 +379,67 @@ export default function AIAgent() {
                 {/* Tactical Chat Flow Container */}
                 <div
                   ref={scrollContainerRef}
-                  className="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-hide"
+                  className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-10 scrollbar-hide"
                 >
                   <AnimatePresence>
                     {messages.map((msg, i) => {
                       const content = msg.content || "";
                       const suggestionMatch = content.match(/\[SUGGESTIONS:\s*(.*?)\]/);
-                      const cleanContent = content.replace(/\[SUGGESTIONS:.*?\]/, "").trim();
-                      const suggestions = suggestionMatch ? suggestionMatch[1].split("|").map(s => s.trim()) : [];
+                      const rawContent = content.replace(/\[SUGGESTIONS:.*?\]/, "").trim();
+
+                      // Remove emojis from the content for a cleaner look as requested
+                      const cleanContent = rawContent.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
 
                       return (
                         <motion.div
                           key={msg.id}
-                          initial={{ opacity: 0, x: msg.role === "user" ? 20 : -20 }}
-                          animate={{ opacity: 1, x: 0 }}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
                           className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
                         >
-                          <div className={`group relative p-6 rounded-[2rem] max-w-[90%] md:max-w-[75%] shadow-2xl ${msg.role === "user"
+                          <div className={`group relative p-4 md:p-6 rounded-2xl md:rounded-[2rem] max-w-[95%] md:max-w-[80%] shadow-xl transition-all ${msg.role === "user"
                             ? "bg-primary text-primary-foreground font-bold rounded-tr-none"
-                            : "bg-muted border border-border/50 rounded-tl-none backdrop-blur-md"
+                            : "bg-muted/80 border border-border/40 rounded-tl-none backdrop-blur-sm"
                             }`}>
-                            <div className="text-sm leading-relaxed">
-                              {msg.role === "user" ? (
-                                <div className="text-sm leading-relaxed">
-                                  {cleanContent}
-                                </div>
-                              ) : (
-                                <div className="prose prose-sm dark:prose-invert max-w-none text-right font-medium leading-relaxed">
-                                  {/* Parse content to separate text from suggestions */}
-                                  {msg.content.split("[SUGGESTIONS:")[0]}
+                            <div className="text-sm md:text-base leading-relaxed">
+                              <div className={msg.role === "assistant" ? "text-right font-medium" : "text-right"}>
+                                {cleanContent}
+                              </div>
 
-                                  {/* Render Suggestions with Animation */}
-                                  {msg.content.includes("[SUGGESTIONS:") && (
-                                    <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                      {msg.content.split("[SUGGESTIONS:")[1].replace("]", "").split("|").map((suggestion, idx) => (
-                                        <motion.button
-                                          key={idx}
-                                          initial={{ opacity: 0, y: 10 }}
-                                          animate={{ opacity: 1, y: 0 }}
-                                          transition={{ delay: idx * 0.1 }}
-                                          onClick={() => handleSendMessage(suggestion.trim())}
-                                          disabled={isLoading || i < messages.length - 1}
-                                          className="relative group flex items-center gap-3 p-4 rounded-2xl bg-card border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all text-right w-full"
-                                        >
-                                          <div className="w-10 h-10 rounded-xl bg-background border border-border/50 flex items-center justify-center text-xl shadow-sm group-hover:scale-110 transition-transform">
-                                            {suggestion.trim().split(" ")[0]} {/* Emoji */}
-                                          </div>
-                                          <span className="text-sm font-bold text-foreground/80 group-hover:text-primary transition-colors">
-                                            {suggestion.trim().substring(suggestion.trim().indexOf(" ") + 1)}
-                                          </span>
-                                          {/* Ripple Effect Container */}
-                                          <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
-                                            <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                          </div>
-                                        </motion.button>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                              {/* Act Indicators (Tools) */}
-                              {msg.logs && msg.logs.length > 0 && (
-                                <div className="mt-6 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                  {msg.logs.map((log, idx) => (
-                                    <div key={idx} className="flex items-center gap-2 p-2 bg-background/50 rounded-xl border border-primary/20">
-                                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                                      <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-tighter truncate">{log}</span>
-                                    </div>
-                                  ))}
+                              {/* Render Suggestions with Tactical Design */}
+                              {msg.role === "assistant" && suggestionMatch && (
+                                <div className="mt-6 flex flex-wrap justify-end gap-2 md:gap-3">
+                                  {suggestionMatch[1].split("|").map((suggestion, idx) => {
+                                    const text = suggestion.trim().replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
+                                    return (
+                                      <motion.button
+                                        key={idx}
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ delay: idx * 0.05 }}
+                                        onClick={() => handleSendMessage(suggestion.trim())}
+                                        disabled={isLoading || i < messages.length - 1}
+                                        className="px-4 py-2 md:px-6 md:py-3 rounded-xl bg-card border border-border/60 hover:border-primary/50 hover:bg-primary/5 transition-all text-sm font-bold text-foreground/90 hover:text-primary shadow-sm active:scale-95"
+                                      >
+                                        {text}
+                                      </motion.button>
+                                    );
+                                  })}
                                 </div>
                               )}
                             </div>
+
+                            {/* Tool Feedback Loop */}
+                            {msg.logs && msg.logs.length > 0 && (
+                              <div className="mt-4 pt-4 border-t border-border/20 flex flex-wrap gap-2 justify-end">
+                                {msg.logs.map((log, idx) => (
+                                  <div key={idx} className="flex items-center gap-1.5 px-2 py-1 bg-background/40 rounded-lg border border-primary/10">
+                                    <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span className="text-[9px] font-mono text-emerald-500 uppercase tracking-tighter">{log}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </motion.div>
                       );
@@ -525,7 +516,7 @@ export default function AIAgent() {
                         </div>
                         <p className="text-center mt-3 text-[9px] text-muted-foreground">
                           {hasSuggestions
-                            ? (isRtl ? "👆 اختر أحد الخيارات للمتابعة" : "👆 Select an option to continue")
+                            ? (isRtl ? "اختر أحد الخيارات للمتابعة" : "Select an option to continue")
                             : (isRtl ? "المساعد الذكي جاهز لمساعدتك" : "Smart Assistant ready to help")}
                         </p>
                       </>
