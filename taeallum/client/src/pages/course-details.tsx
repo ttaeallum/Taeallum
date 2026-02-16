@@ -64,7 +64,7 @@ export default function CourseDetail() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="container py-12 px-4 md:px-8 max-w-screen-2xl space-y-8">
+        <div className="container py-12 px-4 md:px-8 max-w-5xl mx-auto space-y-8">
           <Skeleton className="h-64 rounded-3xl w-full" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             <div className="md:col-span-2 space-y-4">
@@ -114,7 +114,7 @@ export default function CourseDetail() {
       />
       {/* Course Hero */}
       <div className="bg-muted/30 border-b border-border/40 py-12 lg:py-20" dir="rtl">
-        <div className="container px-4 md:px-8 max-w-screen-2xl">
+        <div className="container px-4 md:px-8 max-w-5xl mx-auto">
           <div className="flex flex-col lg:flex-row gap-12 items-start">
             <div className="flex-1 space-y-6 text-right">
               <div className="flex flex-wrap gap-2 justify-end lg:justify-start">
@@ -187,7 +187,7 @@ export default function CourseDetail() {
         </div>
       </div>
 
-      <div className="container px-4 md:px-8 max-w-screen-2xl py-16" dir="rtl">
+      <div className="container px-4 md:px-8 max-w-5xl mx-auto py-16" dir="rtl">
         <Tabs defaultValue="overview" className="space-y-12">
           <TabsList className="w-full justify-start bg-transparent border-b rounded-none p-0 h-auto gap-8">
             <TabsTrigger value="overview" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent pb-4 px-0 text-lg font-bold">نظرة عامة</TabsTrigger>

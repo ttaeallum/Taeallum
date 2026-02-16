@@ -88,7 +88,7 @@ export default function Courses() {
         </script>
       )}
       <div className="bg-muted/30 py-10 md:py-12 border-b border-border/40">
-        <div className="container px-4 md:px-8 max-w-screen-2xl">
+        <div className="container px-4 md:px-8 max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-right gap-8 md:gap-6">
             <div className="space-y-2">
               <h1 className="text-3xl md:text-3xl font-heading font-bold">دورات تقنية وتخصصات مجانية</h1>
@@ -121,7 +121,7 @@ export default function Courses() {
         </div>
       </div>
 
-      <div className="container px-4 md:px-8 max-w-screen-2xl py-12">
+      <div className="container px-4 md:px-8 max-w-5xl mx-auto py-12">
         <div className="flex flex-col lg:flex-row gap-8">
           <div className="flex-1">
             <div className="flex justify-between items-center mb-6">

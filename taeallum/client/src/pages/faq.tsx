@@ -4,7 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useTranslation } from "react-i18next";
+import { Link } from "wouter";
+import { Seo } from "@/components/seo";
 
 interface FAQItem {
   id: string;
@@ -37,24 +38,24 @@ const faqItems: FAQItem[] = [
   },
   {
     id: "4",
-    category: "المدرب الشخصي",
-    question: "كيف يعمل المدرب الشخصي بالذكاء الاصطناعي؟",
+    category: "المساعد الذكي",
+    question: "كيف يعمل المساعد الذكي؟",
     answer:
-      "المدرب الشخصي يطرح عليك 10 أسئلة ذكية لفهم أهدافك وخبرتك وأسلوب تعلمك. بناءً على إجاباتك، ينشئ لك خطة دراسية مخصصة تماماً تناسب احتياجاتك.",
+      "المساعد الذكي يجري تشخيصاً عميقاً لاهتماماتك، أسلوب تعلمك، ووقتك المتاح. بناءً على ذلك، يصمم لك مساراً تعليمياً مخصصاً مرتبطاً بالكورسات الحقيقية على المنصة.",
   },
   {
     id: "5",
-    category: "المدرب الشخصي",
-    question: "ما الفرق بين خطة مخصصة وخطة + متابعة؟",
+    category: "المساعد الذكي",
+    question: "كم تكلفة اشتراك المساعد الذكي؟",
     answer:
-      "خطة مخصصة ($49): توفر خطة دراسية مخصصة لمرة واحدة. خطة + متابعة ($149/شهر): توفر الخطة المخصصة بالإضافة إلى متابعة أسبوعية وتوصيات ذكية مستمرة ودعم 24/7.",
+      "الاشتراك بسعر ثابت $10 شهرياً فقط. يشمل كل المميزات: التشخيص الذكي، إنشاء خطط دراسية غير محدودة، والدعم الفني المستمر.",
   },
   {
     id: "6",
-    category: "المدرب الشخصي",
-    question: "هل يمكنني الترقية من خطة إلى أخرى؟",
+    category: "المساعد الذكي",
+    question: "هل يمكنني إلغاء الاشتراك في أي وقت؟",
     answer:
-      "نعم، يمكنك الترقية من خطة مخصصة إلى خطة + متابعة في أي وقت. سيتم احتساب الفرق في السعر.",
+      "نعم، يمكنك إلغاء اشتراكك في المساعد الذكي في أي وقت من لوحة التحكم الخاصة بك. لا توجد التزامات طويلة الأجل.",
   },
   {
     id: "7",
@@ -100,10 +101,9 @@ const faqItems: FAQItem[] = [
   },
 ];
 
-const categories = ["الكل", "الكورسات", "المدرب الشخصي", "الدفع", "الحساب"];
+const categories = ["الكل", "الكورسات", "المساعد الذكي", "الدفع", "الحساب"];
 
 export default function FAQ() {
-  const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState("الكل");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -119,8 +119,9 @@ export default function FAQ() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-background py-12">
-        <div className="container max-w-4xl px-4 md:px-8">
+      <Seo title="الأسئلة الشائعة" description="إجابات على الأسئلة الأكثر شيوعاً حول منصة تعلّم والمساعد الذكي." />
+      <div className="min-h-screen py-16 md:py-24" dir="rtl">
+        <div className="container max-w-3xl mx-auto px-4 md:px-8">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -165,11 +166,10 @@ export default function FAQ() {
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-full transition-all ${
-                  selectedCategory === category
+                className={`px-4 py-2 rounded-full transition-all ${selectedCategory === category
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted hover:bg-muted/80 text-muted-foreground"
-                }`}
+                  }`}
               >
                 {category}
               </button>
@@ -256,11 +256,13 @@ export default function FAQ() {
             transition={{ delay: 0.3 }}
             className="mt-12 text-center bg-primary/5 rounded-lg p-8 border border-primary/20"
           >
-            <h2 className="text-2xl font-bold mb-4">لم تجد إجابتك؟</h2>
-            <p className="text-muted-foreground mb-6">
-              تواصل معنا مباشرة وسنكون سعداء بمساعدتك
+            <h2 className="text-xl font-bold mb-3">لم تجد إجابتك؟</h2>
+            <p className="text-muted-foreground mb-5 text-sm">
+              تواصل معنا مباشرة وسنكون سعداء بمساعدتك.
             </p>
-            <Button size="lg">اتصل بنا</Button>
+            <Link href="/contact">
+              <Button size="lg" className="rounded-xl">اتصل بنا</Button>
+            </Link>
           </motion.div>
         </div>
       </div>

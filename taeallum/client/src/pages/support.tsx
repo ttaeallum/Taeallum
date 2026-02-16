@@ -36,7 +36,7 @@ export default function Support() {
     return (
         <Layout>
             <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-background py-20">
-                <div className="container max-w-6xl px-4 md:px-8">
+                <div className="max-w-5xl mx-auto px-4 md:px-8">
                     {/* Hero Section */}
                     <div className="text-center mb-16">
                         <motion.h1

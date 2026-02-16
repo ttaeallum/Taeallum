@@ -1,18 +1,17 @@
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, Clock, Trophy, PlayCircle, Loader2 } from "lucide-react";
+import { BookOpen, Clock, Trophy, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { Seo } from "@/components/seo";
 
 export default function Dashboard() {
   const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ["auth-me"],
     queryFn: async () => {
-      const res = await fetch("/api/auth/me", {
-        credentials: "include"
-      });
+      const res = await fetch("/api/auth/me", { credentials: "include" });
       if (!res.ok) return null;
       return res.json();
     }
@@ -31,10 +30,10 @@ export default function Dashboard() {
   if (!user) {
     return (
       <Layout>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-4">
           <h1 className="text-2xl font-bold">يجب تسجيل الدخول أولاً</h1>
           <Link href="/auth">
-            <Button>تسجيل الدخول</Button>
+            <Button className="rounded-xl">تسجيل الدخول</Button>
           </Link>
         </div>
       </Layout>
@@ -43,89 +42,58 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="bg-muted/30 py-8 border-b border-border/40" dir="rtl">
-        <div className="container px-4 md:px-8 max-w-screen-2xl">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-2xl">
+      <Seo title="لوحة التحكم" description="لوحة تحكم حسابك الشخصي على منصة تعلّم." />
+      <div className="py-8 md:py-12 border-b border-border/30" dir="rtl">
+        <div className="container max-w-4xl mx-auto px-4 md:px-8">
+          {/* User Header */}
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
               {user.fullName?.[0]?.toUpperCase() || "U"}
             </div>
             <div>
-              <h1 className="text-2xl font-bold">مرحباً، {user.fullName}</h1>
-              <p className="text-muted-foreground text-right">واصل رحلة تعلمك اليوم!</p>
+              <h1 className="text-xl md:text-2xl font-bold">مرحباً، {user.fullName}</h1>
+              <p className="text-sm text-muted-foreground">واصل رحلة تعلمك اليوم</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-            <div className="bg-card p-6 rounded-xl border border-border/50 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
-                <BookOpen className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground text-right">كورسات مسجلة</p>
-                <p className="text-2xl font-bold text-right">0</p>
-              </div>
-            </div>
-            <div className="bg-card p-6 rounded-xl border border-border/50 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
-                <Clock className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground text-right">ساعات تعلم</p>
-                <p className="text-2xl font-bold text-right">0</p>
-              </div>
-            </div>
-            <div className="bg-card p-6 rounded-xl border border-border/50 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                <Trophy className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground text-right">شهادات</p>
-                <p className="text-2xl font-bold text-right">0</p>
-              </div>
-            </div>
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-3 md:gap-4">
+            {[
+              { icon: BookOpen, label: "كورسات مسجلة", value: "0", color: "text-blue-500 bg-blue-500/10" },
+              { icon: Clock, label: "ساعات تعلم", value: "0", color: "text-amber-500 bg-amber-500/10" },
+              { icon: Trophy, label: "شهادات", value: "0", color: "text-emerald-500 bg-emerald-500/10" }
+            ].map((stat, i) => (
+              <Card key={i} className="p-4 md:p-5 border-border/30 text-center">
+                <div className={`w-10 h-10 rounded-xl ${stat.color} flex items-center justify-center mx-auto mb-3`}>
+                  <stat.icon className="w-5 h-5" />
+                </div>
+                <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
+                <p className="text-2xl font-bold">{stat.value}</p>
+              </Card>
+            ))}
           </div>
         </div>
       </div>
 
-      <div className="container px-4 md:px-8 max-w-screen-2xl py-8" dir="rtl">
-        <Tabs defaultValue="learning" className="space-y-8">
+      <div className="container max-w-4xl mx-auto px-4 md:px-8 py-8" dir="rtl">
+        <Tabs defaultValue="learning" className="space-y-6">
           <TabsList className="w-full md:w-auto h-auto flex flex-wrap gap-2 bg-transparent p-0">
-            <TabsTrigger value="learning" className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-lg px-6 py-2 border border-border/50">التعلم الحالي</TabsTrigger>
-            <TabsTrigger value="completed" className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-lg px-6 py-2 border border-border/50">المكتملة</TabsTrigger>
+            <TabsTrigger value="learning" className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl px-5 py-2 border border-border/40 text-sm">التعلم الحالي</TabsTrigger>
+            <TabsTrigger value="completed" className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl px-5 py-2 border border-border/40 text-sm">المكتملة</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="learning" className="space-y-6">
-            <h2 className="text-xl font-bold mb-4 text-right">أكمل من حيث توقفت</h2>
-            <div className="text-center py-12 bg-card border border-border/50 rounded-xl text-muted-foreground">
-              لا توجد كورسات قيد التعلم حالياً. ابدأ بتصفح المكتبة!
-              <div className="mt-4">
-                <Link href="/courses">
-                  <Button variant="outline">تصفح المكتبة</Button>
-                </Link>
-              </div>
+          <TabsContent value="learning" className="space-y-4">
+            <div className="text-center py-16 bg-card border border-border/30 rounded-2xl text-muted-foreground">
+              <p className="mb-4">لا توجد كورسات قيد التعلم حالياً</p>
+              <Link href="/courses">
+                <Button variant="outline" className="rounded-xl">تصفح المكتبة</Button>
+              </Link>
             </div>
           </TabsContent>
 
           <TabsContent value="completed">
-            <div className="text-center py-12 text-muted-foreground bg-card border border-border/50 rounded-xl font-bold">
-              لا توجد كورسات مكتملة بعد. واصل التقدم!
-            </div>
-          </TabsContent>
-
-          <TabsContent value="billing">
-            <div className="bg-card border border-border/50 rounded-xl p-6 max-w-2xl text-right">
-              <h3 className="font-bold text-lg mb-4">اشتراكك الحالي</h3>
-              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg mb-6 flex-row-reverse">
-                <div className="text-right">
-                  <p className="font-bold text-primary">لا يوجد اشتراك نشط</p>
-                  <p className="text-sm text-muted-foreground">قم بالاشتراك للوصول لخدمات المدرب الذكي</p>
-                </div>
-                <div>
-                  <Link href="/ai-pricing">
-                    <Button size="sm">اشترك الآن</Button>
-                  </Link>
-                </div>
-              </div>
+            <div className="text-center py-16 text-muted-foreground bg-card border border-border/30 rounded-2xl">
+              <p>لا توجد كورسات مكتملة بعد. واصل التقدم</p>
             </div>
           </TabsContent>
         </Tabs>

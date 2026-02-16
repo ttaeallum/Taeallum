@@ -59,7 +59,7 @@ export default function Tracks() {
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5" />
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
 
-        <div className="container px-4 md:px-8 max-w-screen-2xl relative z-10 text-center">
+        <div className="container px-4 md:px-8 max-w-5xl mx-auto relative z-10 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -89,7 +89,7 @@ export default function Tracks() {
         </div>
       </div>
 
-      <div className="container px-4 md:px-8 max-w-screen-2xl py-20">
+      <div className="container px-4 md:px-8 max-w-5xl mx-auto py-20">
         {!userPlans || userPlans.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}

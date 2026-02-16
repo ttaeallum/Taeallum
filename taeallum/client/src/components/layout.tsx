@@ -70,8 +70,8 @@ export function Navbar() {
   const isActive = (path: string) => location === path;
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background">
-      <div className="container flex h-16 max-w-screen-2xl items-center justify-between px-4 md:px-8">
+    <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-md">
+      <div className="max-w-5xl mx-auto flex h-16 items-center justify-between px-4 md:px-8">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
           <Logo />
@@ -289,7 +289,7 @@ export function Footer() {
 
   return (
     <footer className="border-t border-border/40 bg-muted/20" dir="rtl">
-      <div className="container max-w-screen-2xl py-12 px-4 md:px-8">
+      <div className="max-w-5xl mx-auto py-12 px-4 md:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="flex flex-col gap-4 text-right">
             <Link

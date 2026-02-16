@@ -83,7 +83,7 @@ export default function Home() {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--background))_80%)]"></div>
         </div>
 
-        <div className="container relative z-10 px-4 md:px-8 max-w-screen-2xl">
+        <div className="container relative z-10 px-4 md:px-8 max-w-5xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-10 md:gap-16 items-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -163,7 +163,7 @@ export default function Home() {
 
       {/* Features Section */}
       <section className="py-16 md:py-24 bg-background relative overflow-hidden">
-        <div className="container px-4 md:px-8 max-w-screen-2xl">
+        <div className="container px-4 md:px-8 max-w-5xl mx-auto">
           <div className="text-center max-w-3xl mx-auto mb-16 md:mb-20">
             <h2 className="text-3xl md:text-5xl font-heading font-black mb-4 md:mb-6">لماذا منصة تعلّم؟</h2>
             <p className="text-lg md:text-xl text-muted-foreground font-medium">نبتكر تجربة تعليمية فريدة تمزج بين تطوير المهارات وجودة المحتوى وقوة التقنية</p>
@@ -208,7 +208,7 @@ export default function Home() {
 
       {/* Free Courses Highlight */}
       <section className="py-12 md:py-16 bg-muted/20 border-y border-border/40">
-        <div className="container px-4 md:px-8 max-w-screen-2xl">
+        <div className="container px-4 md:px-8 max-w-5xl mx-auto">
           <div className="bg-gradient-to-r from-primary/10 to-emerald-400/10 rounded-3xl border border-primary/20 p-8 md:p-12 text-center">
             <Badge className="mb-4 px-4 py-1.5 bg-primary/10 text-primary border-primary/20 gap-2 justify-center">
               <BookOpen className="w-4 h-4" />
@@ -230,7 +230,7 @@ export default function Home() {
 
       {/* Dynamic Courses Section */}
       <section className="py-12 md:py-20 bg-muted/20">
-        <div className="container px-4 md:px-8 max-w-screen-2xl">
+        <div className="container px-4 md:px-8 max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-right gap-4 mb-10 md:mb-12">
             <div>
               <h2 className="text-2xl md:text-3xl font-heading font-bold mb-2">أحدث الكورسات</h2>
@@ -273,7 +273,7 @@ export default function Home() {
 
       {/* CTA Section - Updated */}
       <section className="py-16 md:py-24 relative overflow-hidden">
-        <div className="container px-4 md:px-8 max-w-screen-2xl relative z-10">
+        <div className="container px-4 md:px-8 max-w-5xl mx-auto relative z-10">
           <div className="bg-primary rounded-[2rem] md:rounded-[3rem] p-8 md:p-20 text-center relative overflow-hidden shadow-[0_40px_100px_-20px_rgba(var(--primary),0.4)]">
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
             <div className="absolute top-0 left-0 w-64 h-64 bg-white/5 rounded-full blur-[80px] -translate-x-1/2 -translate-y-1/2"></div>

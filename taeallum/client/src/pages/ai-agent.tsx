@@ -206,7 +206,7 @@ export default function AIAgent() {
 
       if (data.step) {
         setCurrentStep(data.step);
-        if (data.step === 4) setShowConfetti(true);
+        if (data.step === 5) setShowConfetti(true);
       }
 
       setMessages(prev => [...prev, {
@@ -257,7 +257,7 @@ export default function AIAgent() {
     <Layout>
       {showConfetti && <ConfettiCelebration onComplete={() => setShowConfetti(false)} />}
       <div className="min-h-screen bg-background text-foreground overflow-hidden font-sans">
-        <div className="container max-w-full px-4 md:px-6 py-6 h-[100dvh] flex flex-col gap-4">
+        <div className="container max-w-7xl mx-auto px-4 md:px-6 py-6 h-[100dvh] flex flex-col gap-4">
 
           {/* Top Integrated Bar */}
           <header className="flex items-center justify-between p-4 bg-card border border-border rounded-3xl shadow-2xl">

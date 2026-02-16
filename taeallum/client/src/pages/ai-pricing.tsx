@@ -65,8 +65,8 @@ export default function AIPricing() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-background py-20" dir="rtl">
-        <div className="container max-w-7xl px-4 md:px-8">
+      <div className="min-h-screen py-16 md:py-24" dir="rtl">
+        <div className="max-w-5xl mx-auto px-4 md:px-8">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}

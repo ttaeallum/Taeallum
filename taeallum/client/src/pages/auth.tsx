@@ -211,11 +211,11 @@ export default function Auth() {
 
   return (
     <Layout>
-      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4 bg-muted/20" dir="rtl">
-        <Card className="w-full max-w-md shadow-xl border-border/50">
-          <CardHeader className="text-center space-y-2">
-            <CardTitle className="text-3xl font-heading font-bold text-primary">تعلّم</CardTitle>
-            <CardDescription>مرحباً بك في بوابتك نحو المستقبل</CardDescription>
+      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4" dir="rtl">
+        <Card className="w-full max-w-md shadow-xl border-border/30 rounded-2xl">
+          <CardHeader className="text-center space-y-2 pb-4">
+            <CardTitle className="text-2xl font-heading font-bold text-primary">تعلّم</CardTitle>
+            <CardDescription className="text-sm">مرحباً بك في بوابتك نحو المستقبل</CardDescription>
           </CardHeader>
           <CardContent>
             {step === "auth" ? (
