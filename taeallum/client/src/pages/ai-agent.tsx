@@ -66,6 +66,8 @@ export default function AIAgent() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeLogs, setActiveLogs] = useState<string[]>([]);
   const [sessionLoaded, setSessionLoaded] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [showConfetti, setShowConfetti] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -117,6 +119,14 @@ export default function AIAgent() {
         timestamp: new Date(m.timestamp),
         logs: m.logs
       })));
+
+      // Attempt to derive current step from last assistant message
+      const lastAssistantMsg = [...sessionData.messages].reverse().find(m => m.role === "assistant");
+      if (lastAssistantMsg) {
+        if (lastAssistantMsg.content.includes("REDIRECT:")) setCurrentStep(4);
+        else if (lastAssistantMsg.content.includes("كم ساعة يومياً")) setCurrentStep(3);
+        else if (lastAssistantMsg.content.includes("التخصص الذي تريد احترافه")) setCurrentStep(2);
+      }
     } else {
       // No existing session — show welcome message
       setMessages([{
@@ -147,6 +157,7 @@ export default function AIAgent() {
         timestamp: new Date()
       }]);
       setActiveLogs([]);
+      setCurrentStep(1);
       queryClient.invalidateQueries({ queryKey: ["chatbot-session"] });
     } catch (err) {
       console.error("Failed to reset session", err);
@@ -190,10 +201,15 @@ export default function AIAgent() {
         }
       }
 
+      if (data.step) {
+        setCurrentStep(data.step);
+        if (data.step === 4) setShowConfetti(true);
+      }
+
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.reply,
+        content: data.reply || data.message,
         timestamp: new Date(),
         logs: data.logs
       }]);
@@ -236,8 +252,9 @@ export default function AIAgent() {
 
   return (
     <Layout>
+      {showConfetti && <ConfettiCelebration onComplete={() => setShowConfetti(false)} />}
       <div className="min-h-screen bg-background text-foreground overflow-hidden font-sans">
-        <div className="container max-w-full px-4 md:px-6 py-6 h-screen flex flex-col gap-4">
+        <div className="container max-w-full px-4 md:px-6 py-6 h-[100dvh] flex flex-col gap-4">
 
           {/* Top Integrated Bar */}
           <header className="flex items-center justify-between p-4 bg-card border border-border rounded-3xl shadow-2xl">
@@ -285,6 +302,11 @@ export default function AIAgent() {
               </div>
             </div>
           </header>
+
+          {/* Progress Stepper */}
+          <div className="px-2">
+            <ProgressStepper currentStep={currentStep} isRtl={isRtl} />
+          </div>
 
           <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-hidden relative">
 
@@ -375,47 +397,56 @@ export default function AIAgent() {
                             : "bg-muted border border-border/50 rounded-tl-none backdrop-blur-md"
                             }`}>
                             <div className="text-sm leading-relaxed">
-                              {cleanContent}
-                            </div>
+                              {msg.role === "user" ? (
+                                <div className="text-sm leading-relaxed">
+                                  {cleanContent}
+                                </div>
+                              ) : (
+                                <div className="prose prose-sm dark:prose-invert max-w-none text-right font-medium leading-relaxed">
+                                  {/* Parse content to separate text from suggestions */}
+                                  {msg.content.split("[SUGGESTIONS:")[0]}
 
-                            {/* Suggestions UI — Option Buttons */}
-                            {msg.role === "assistant" && suggestions.length > 0 && i === messages.length - 1 && (
-                              <div className="mt-6 flex flex-col gap-4 pt-4 border-t border-border/30">
-                                <p className="text-[11px] font-bold text-primary flex items-center gap-2">
-                                  <Sparkles className="w-3.5 h-3.5" />
-                                  {isRtl ? "اختر أحد الخيارات التالية:" : "Choose one of the following:"}
-                                </p>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                  {suggestions.map((option, idx) => (
-                                    <Button
-                                      key={idx}
-                                      variant="outline"
-                                      onClick={() => handleSendMessage(option)}
-                                      className="rounded-2xl bg-background/60 border-primary/20 hover:bg-primary hover:text-primary-foreground text-sm font-bold h-14 px-6 transition-all shadow-lg hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] text-right justify-start"
-                                    >
-                                      {option}
-                                    </Button>
+                                  {/* Render Suggestions with Animation */}
+                                  {msg.content.includes("[SUGGESTIONS:") && (
+                                    <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      {msg.content.split("[SUGGESTIONS:")[1].replace("]", "").split("|").map((suggestion, idx) => (
+                                        <motion.button
+                                          key={idx}
+                                          initial={{ opacity: 0, y: 10 }}
+                                          animate={{ opacity: 1, y: 0 }}
+                                          transition={{ delay: idx * 0.1 }}
+                                          onClick={() => handleSendMessage(suggestion.trim())}
+                                          disabled={isLoading || i < messages.length - 1}
+                                          className="relative group flex items-center gap-3 p-4 rounded-2xl bg-card border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all text-right w-full"
+                                        >
+                                          <div className="w-10 h-10 rounded-xl bg-background border border-border/50 flex items-center justify-center text-xl shadow-sm group-hover:scale-110 transition-transform">
+                                            {suggestion.trim().split(" ")[0]} {/* Emoji */}
+                                          </div>
+                                          <span className="text-sm font-bold text-foreground/80 group-hover:text-primary transition-colors">
+                                            {suggestion.trim().substring(suggestion.trim().indexOf(" ") + 1)}
+                                          </span>
+                                          {/* Ripple Effect Container */}
+                                          <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+                                            <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                          </div>
+                                        </motion.button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              {/* Act Indicators (Tools) */}
+                              {msg.logs && msg.logs.length > 0 && (
+                                <div className="mt-6 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  {msg.logs.map((log, idx) => (
+                                    <div key={idx} className="flex items-center gap-2 p-2 bg-background/50 rounded-xl border border-primary/20">
+                                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                      <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-tighter truncate">{log}</span>
+                                    </div>
                                   ))}
                                 </div>
-                              </div>
-                            )}
-
-                            {/* Act Indicators (Tools) */}
-                            {msg.logs && msg.logs.length > 0 && (
-                              <div className="mt-6 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {msg.logs.map((log, idx) => (
-                                  <div key={idx} className="flex items-center gap-2 p-2 bg-background/50 rounded-xl border border-primary/20">
-                                    <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                                    <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-tighter truncate">{log}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-3 mt-3 px-4">
-                            <span className="text-[8px] text-muted-foreground font-mono">
-                              {msg.timestamp.toLocaleTimeString([], { hour12: false })}
-                            </span>
+                              )}
+                            </div>
                           </div>
                         </motion.div>
                       );
@@ -573,4 +604,110 @@ export default function AIAgent() {
     </Layout>
   );
 }
+
+// --- Components for UX Improvements ---
+
+function ProgressStepper({ currentStep, isRtl }: { currentStep: number, isRtl: boolean }) {
+  const stepsAr = ["المجال", "التخصص", "الالتزام", "المسار"];
+  const stepsEn = ["Field", "Specialty", "Commitment", "Path"];
+  const steps = isRtl ? stepsAr : stepsEn;
+
+  return (
+    <div className="flex items-center justify-between w-full max-w-2xl mx-auto mb-2 relative px-4" dir={isRtl ? "rtl" : "ltr"}>
+      {/* Connector Line */}
+      <div className="absolute top-1/2 left-8 right-8 h-0.5 bg-border -translate-y-1/2 z-0">
+        <motion.div
+          className="h-full bg-primary"
+          initial={{ width: "0%" }}
+          animate={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
+          transition={{ duration: 0.5 }}
+        />
+      </div>
+
+      {steps.map((label, i) => {
+        const stepNum = i + 1;
+        const isActive = stepNum === currentStep;
+        const isCompleted = stepNum < currentStep;
+
+        return (
+          <div key={i} className="relative z-10 flex flex-col items-center gap-2">
+            <motion.div
+              animate={{
+                scale: isActive ? 1.2 : 1,
+                backgroundColor: isActive || isCompleted ? "var(--primary)" : "var(--card)",
+                borderColor: isActive || isCompleted ? "var(--primary)" : "var(--border)"
+              }}
+              className={cn(
+                "w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] font-black transition-colors",
+                isActive || isCompleted ? "text-primary-foreground" : "text-muted-foreground"
+              )}
+            >
+              {isCompleted ? <CheckCircle2 className="w-4 h-4" /> : stepNum}
+              {isActive && (
+                <motion.div
+                  layoutId="step-glow"
+                  className="absolute inset-0 rounded-full bg-primary/30 blur-md -z-10"
+                />
+              )}
+            </motion.div>
+            <span className={cn(
+              "text-[9px] font-bold uppercase tracking-widest",
+              isActive ? "text-primary" : "text-muted-foreground opacity-60"
+            )}>
+              {label}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ConfettiCelebration({ onComplete }: { onComplete: () => void }) {
+  useEffect(() => {
+    // Dynamically load canvas-confetti from CDN since npm install failed
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js";
+    script.async = true;
+    document.body.appendChild(script);
+
+    script.onload = () => {
+      const duration = 3 * 1000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+
+      const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+      const interval: any = setInterval(function () {
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+          clearInterval(interval);
+          onComplete();
+          return;
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+        // @ts-ignore
+        if (window.confetti) {
+          // @ts-ignore
+          window.confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+          // @ts-ignore
+          window.confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+        }
+      }, 250);
+
+      return () => clearInterval(interval);
+    };
+
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, [onComplete]);
+
+  return null;
+}
+
 

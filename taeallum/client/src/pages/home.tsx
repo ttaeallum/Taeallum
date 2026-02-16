@@ -94,12 +94,12 @@ export default function Home() {
               <h1 className="font-black text-4xl sm:text-6xl md:text-8xl lg:text-9xl leading-tight md:leading-[0.9] text-foreground mb-4 md:mb-10 tracking-tighter">
                 بوابتك نحو <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary via-emerald-500 to-primary animate-gradient-x">
-                  دورات مجانية
+                  إتقان المستقبل
                 </span>
               </h1>
 
               <p className="text-base md:text-2xl text-muted-foreground mb-6 md:mb-12 max-w-2xl ml-auto leading-relaxed font-medium opacity-80">
-                استثمر في مستقبلك وتعلم مهارات المستقبل والتقنيات الحديثة مجاناً عبر محتوى عربي احترافي، متاح الآن للجميع دون استثناء.
+                استثمر في مستقبلك وتعلم مهارات وتقنيات العصر من خلال <span className="text-primary font-bold">دورات مجانية</span> بالكامل ومحتوى عربي احترافي متاح للجميع.
               </p>
 
               <div className="flex flex-col sm:flex-row-reverse gap-4 md:gap-6 justify-center sm:justify-start">

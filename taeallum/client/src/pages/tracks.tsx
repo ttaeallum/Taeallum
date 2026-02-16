@@ -187,7 +187,29 @@ export default function Tracks() {
                                     {milestone.title}
                                     {i === 0 && <Badge variant="secondary" className="text-[10px] bg-green-500/10 text-green-600 border-green-500/20">نقطة البداية</Badge>}
                                   </h4>
-                                  <p className="text-muted-foreground text-sm">{milestone.description}</p>
+                                  <p className="text-muted-foreground text-sm mb-4">{milestone.description}</p>
+
+                                  {milestone.courses && milestone.courses.length > 0 && (
+                                    <div className="mt-4 pt-4 border-t border-border/20">
+                                      <p className="text-xs font-bold text-primary uppercase tracking-widest mb-3">الدورات المرشحة من المنصة:</p>
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {milestone.courses.map((course: any) => (
+                                          <Link key={course.id} href={`/courses/${course.slug}`}>
+                                            <div className="flex items-center gap-3 p-3 bg-background border border-border/50 rounded-xl hover:border-primary/40 transition-all group/course cursor-pointer">
+                                              <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-border/50">
+                                                <img src={course.thumbnail || "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=200&q=80"} alt={course.title} className="w-full h-full object-cover group-hover/course:scale-110 transition-transform" />
+                                              </div>
+                                              <div className="min-w-0">
+                                                <h5 className="text-xs font-bold truncate group-hover/course:text-primary transition-colors">{course.title}</h5>
+                                                <Badge variant="outline" className="text-[9px] py-0 h-4 border-primary/20 text-muted-foreground mt-1 uppercase">{course.level}</Badge>
+                                              </div>
+                                              <ArrowLeft className="w-3 h-3 text-muted-foreground mr-auto group-hover/course:text-primary transition-all -translate-x-1 group-hover/course:translate-x-0" />
+                                            </div>
+                                          </Link>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               </motion.div>
                             ))}

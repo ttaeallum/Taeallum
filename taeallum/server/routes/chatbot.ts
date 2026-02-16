@@ -528,12 +528,32 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                 updatedAt: new Date()
             })
             .where(eq(aiSessions.id, session.id));
+        // 8. Finalize Response and determine step
+        let step = 1;
+        if (finalResponse.includes("REDIRECT: /tracks")) {
+            step = 4;
+        } else if (finalResponse.includes("كم ساعة يومياً")) {
+            step = 3;
+        } else if (finalResponse.includes("الخيارات المقابلة حصراً")) {
+            // This is a bit tricky, let's look at the actual prompt/response
+            step = 2;
+        } else if (finalResponse.includes("التخصص الذي تريد احترافه")) {
+            step = 2;
+        } else if (finalResponse.includes("أي من هذه المجالات يثير اهتمامك")) {
+            step = 1;
+        } else {
+            // Fallback: detect step based on keywords in finalResponse
+            if (finalResponse.includes("SUGGESTIONS:") && (finalResponse.includes("تطوير الويب") || finalResponse.includes("التسويق الرقمي") || finalResponse.includes("البيانات"))) {
+                step = 2;
+            } else if (finalResponse.includes("SUGGESTIONS:") && finalResponse.includes("ساعة واحدة")) {
+                step = 3;
+            }
+        }
 
         res.json({
-            reply: finalResponse,
+            message: finalResponse,
             logs: toolLogs,
-            sessionId: session.id,
-            status: "success"
+            step: step
         });
 
     } catch (error: any) {
