@@ -193,8 +193,10 @@ export default function AIAgent() {
         setActiveLogs(prev => [...prev, ...data.logs]);
       }
 
-      if (data.reply.includes("[REDIRECT:")) {
-        const match = data.reply.match(/\[REDIRECT:\s*(.*?)\]/);
+      const botReply = data.reply || data.message || "";
+
+      if (botReply.includes("[REDIRECT:")) {
+        const match = botReply.match(/\[REDIRECT:\s*(.*?)\]/);
         if (match) {
           const path = match[1];
           setTimeout(() => window.location.href = path, 2000); // Redirect after 2s
@@ -209,7 +211,7 @@ export default function AIAgent() {
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.reply || data.message,
+        content: botReply,
         timestamp: new Date(),
         logs: data.logs
       }]);
@@ -608,8 +610,8 @@ export default function AIAgent() {
 // --- Components for UX Improvements ---
 
 function ProgressStepper({ currentStep, isRtl }: { currentStep: number, isRtl: boolean }) {
-  const stepsAr = ["المجال", "التخصص", "الالتزام", "المسار"];
-  const stepsEn = ["Field", "Specialty", "Commitment", "Path"];
+  const stepsAr = ["الاكتشاف", "النفسية", "الوقت", "المستوى", "المسار"];
+  const stepsEn = ["Discovery", "Psychology", "Routine", "Level", "Path"];
   const steps = isRtl ? stepsAr : stepsEn;
 
   return (
