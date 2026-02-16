@@ -544,17 +544,23 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
         // Log detailed error for admin
         const errorLog = {
             message: error.message,
-            stack: error.stack,
+            status: error.status,
+            type: error.type,
+            code: error.code,
             time: new Date().toISOString(),
             userId
         };
         console.error("[CHATBOT_LOG]", JSON.stringify(errorLog));
 
-        // Return a professional user-facing error
-        res.status(500).json({
-            message: "عذراً، المساعد الذكي يواجه تقلبات في الاتصال حالياً. يرجى المحاولة بعد لحظات. (The Smart Assistant is experiencing connection issues, please try again.)",
+        // Detect specific OpenAI errors
+        let userMessage = "عذراً، المساعد الذكي يواجه تقلبات في الاتصال حالياً. يرجى المحاولة بعد لحظات.";
+        if (error.status === 401) userMessage = "خطأ في المصادقة: لم يتم تهيئة مفتاح الذكاء الاصطناعي بشكل صحيح.";
+        if (error.status === 429) userMessage = "تم تجاوز حد الطلبات للذكاء الاصطناعي. يرجى الانتظار قليلاً.";
+
+        res.status(error.status || 500).json({
+            message: userMessage,
             detail: error.message,
-            code: "ERR_AGENT_FLOW"
+            code: error.code || "ERR_AGENT_FLOW"
         });
     }
 });
