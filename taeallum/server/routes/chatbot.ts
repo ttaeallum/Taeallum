@@ -276,14 +276,15 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 عرض الخطة الدراسية الكاملة التي تربط الكورسات المكتشفة بالمسار.
 
 [قواعد صارمة لتدفق الحوار]:
-1. التسلسل الخطي الصارم (One-Way Flow): يجب التحرك للأمام فقط. بمجرد انتهاء "اكتشاف الشغف"، انتقل فوراً لـ "النمط التحليلي". لا تقم أبداً بالعودة للسؤال عن الشغف أو التخصص مجدداً.
-2. الانتقال الواضح: ابدأ الرسالة عند الانتقال لمرحلة جديدة بذكر اسمها (مثلاً: ننتقل الآن إلى النمط التحليلي).
-3. منع عرض الكورسات المبكر: لا تعرض التسجيل في كورسات فردية أثناء التشخيص. اكتفِ بالتأكيد أنه "تم وضع المسار [الاسم] كقاعدة لخارطة طريقك".
-4. الكمية والإنجاز: من 2 إلى 3 أسئلة مركزة لكل مرحلة. المجموع الكلي 10-12 سؤالاً.
-5. منع المعرفات (CRITICAL): يمنع منعاً باتاً كتابة أي UUID أو ID تقني في نص الرسالة.
-6. عدم استخدام الرموز التعبيرية (No Emojis): يمنع استخدام أي رمز تعبيري نهائياً.
-7. أسلوب التخاطب: خطاب رسمي، مهني، ومختصر وبسطر واحد للسؤال.
-8. الخيارات الإلزامية: استمر في تقديم خيارات محددة كأزرار [SUGGESTIONS: ...].
+1. الإلزام الكامل بالخيارات (MANDATORY SUGGESTIONS): يجب، وبشكل قطعي، أن تنتهي كل رسالة من المساعد بخيارات محددة كأزرار بتنسيق [SUGGESTIONS: خيار 1|خيار 2]. يمنع منعاً باتاً إرسال أي سؤال أو جملة بدون خيارات.
+2. التسلسل الخطي الصارم (One-Way Flow): يجب التحرك للأمام فقط. بمجرد انتهاء "اكتشاف الشغف"، انتقل فوراً لـ "النمط التحليلي". لا تقم أبداً بالعودة للسؤال عن الشغف أو التخصص مجدداً.
+3. الانتقال الواضح: ابدأ الرسالة عند الانتقال لمرحلة جديدة بذكر اسمها (مثلاً: ننتقل الآن إلى النمط التحليلي).
+4. منع عرض الكورسات المبكر: لا تعرض التسجيل في كورسات فردية أثناء التشخيص. اكتفِ بالتأكيد أنه "تم وضع المسار [الاسم] كقاعدة لخارطة طريقك".
+5. الكمية والإنجاز: من 2 إلى 3 أسئلة مركزة لكل مرحلة. المجموع الكلي 10-12 سؤالاً.
+6. منع المعرفات (CRITICAL): يمنع منعاً باتاً كتابة أي UUID أو ID تقني في نص الرسالة.
+7. عدم استخدام الرموز التعبيرية (No Emojis): يمنع استخدام أي رمز تعبيري نهائياً.
+8. أسلوب التخاطب: خطاب رسمي، مهني، ومختصر وبسطر واحد للسؤال.
+
 
 
 
@@ -513,13 +514,34 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
             break;
         }
 
-        // 8. Save the assistant's response in the database
+        // --- 9. SAFETY GUARDS: CLEAN RESPONSE & ENSURE SUGGESTIONS ---
+
+        // A. Remove any technical UUIDs (8-4-4-4-12 hex pattern) to ensure clean UI
+        const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+        finalResponse = finalResponse.replace(uuidRegex, "").replace(/\(ID:\s*\)/gi, "").replace(/ID:\s*/gi, "");
+
+        // B. Ensure suggestions exist. If AI missed them, provide defaults as a safety net
+        if (!finalResponse.includes("[SUGGESTIONS:")) {
+            if (finalResponse.includes("؟") || finalResponse.endsWith("?")) {
+                // Determine sensible defaults based on Arabic keywords if possible
+                if (finalResponse.includes("نعم") || finalResponse.includes("ترغب")) {
+                    finalResponse += "\n[SUGGESTIONS: نعم|لا]";
+                } else if (finalResponse.includes("الوقت") || finalResponse.includes("ساعة")) {
+                    finalResponse += "\n[SUGGESTIONS: ساعة إلى ساعتين|3 إلى 5 ساعات|أكثر من 5 ساعات]";
+                } else {
+                    finalResponse += "\n[SUGGESTIONS: موافق|توضيح أكثر]";
+                }
+            }
+        }
+
+        // 10. Save the assistant's response in the database
         await db.insert(aiMessages).values({
             sessionId: session.id,
             role: "assistant",
             content: finalResponse,
             metadata: toolLogs.length > 0 ? { logs: toolLogs } : null
         });
+
 
         // Update message count
         await db.update(aiSessions)
