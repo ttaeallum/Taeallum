@@ -260,29 +260,29 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 
 [بروتوكول التشخيص العميق — مراحل العمل]:
 
-المرحلة 1: تحديد الشغف والقطاع (سؤال واحد):
-تحديد المجال المهني والتخصص الدقيق.
+المرحلة 1: اكتشاف الشغف (2-3 أسئلة):
+تحديد القطاع المهني، الاهتمامات التقنية، والهدف النهائي من التعلم.
 
-المرحلة 2: النمط التعليمي والمنهجية (سؤال واحد):
-تحديد الميل للتطبيق العملي أم التأسيس النظري.
+المرحلة 2: النمط التحليلي (2-3 أسئلة):
+تحليل أسلوب التعلم (نظري/تطبيقي)، تحديات الاستمرار السابقة، وتفضيلات المحتوى.
 
-المرحلة 3: إدارة الوقت والالتزام (سؤال واحد):
-تحديد الساعات الأسبوعية (مثلاً: 1-3 ساعات، 3-5 ساعات) وتفضيل التوقيت.
+المرحلة 3: جدولة المسار (2-3 أسئلة):
+تحديد الساعات الأسبوعية، الأيام المفضلة، ونوع الالتزام (صباحي/مسائي).
 
-المرحلة 4: المستوى المعرفي الحالي (سؤال واحد):
-تحديد نقطة البداية الفعلية.
+المرحلة 4: تأكيد المهارة (2-3 أسئلة):
+اختبار سريع للمستوى الحالي وتحديد الأدوات التي يتقنها الطالب فعلياً.
 
-المرحلة 5: هندسة خارطة الطريق (النتيجة النهائية):
-بناء المسار وربطه بالكورسات.
+المرحلة 5: وضع التنفيذ (النتيجة النهائية):
+عرض الخطة الدراسية الكاملة.
 
 [قواعد صارمة]:
-1. الطول والكمية: سؤال واحد فقط لكل مرحلة لإنجاز التشخيص بسرعة. إجمالي الأسئلة حتى الوصول للخريطة يجب ألا يتجاوز 5-6 أسئلة.
-2. أسلوب التخاطب: خطاب رسمي، مهني، ومختصر جداً (سطر واحد للسؤال).
-3. منع المعرفات (CRITICAL): يمنع منعاً باتاً كتابة أي UUID أو ID تقني في نص الرسالة الموجهة للمستخدم. استخدم أسماء الكورسات فقط.
+1. الكفاءة والكمية: يجب أن يتم التشخيص كاملاً خلال 10 إلى 12 سؤالاً قصيراً فقط. لا تنتقل للمرحلة التالية قبل استكمال أسئلة المرحلة الحالية.
+2. أساليب التشخيص: اجعل الأسئلة دقيقة وحرفية، وتجنب الكلام الإنشائي.
+3. منع المعرفات (CRITICAL): يمنع منعاً باتاً كتابة أي UUID أو ID تقني في نص الرسالة. استخدم أسماء الكورسات فقط.
 4. عدم استخدام الرموز التعبيرية (No Emojis): يمنع استخدام أي رمز تعبيري نهائياً.
-5. الخيارات الإلزامية: يجب أن تنتهي كل رسالة بخيارات (أزرار) ذات صلة بالسؤال بتنسيق [SUGGESTIONS: خيار 1|خيار 2].
-6. التسلسل المنطقي: لا تنتقل للمرحلة التالية إلا بعد استيفاء معلومة المرحلة الحالية.
-7. الاختصار: الرسالة يجب ألا تتجاوز سطرين شاملة السؤال.
+5. أسلوب التخاطب: خطاب رسمي، مهني، ومختصر جداً (سطر واحد للسؤال).
+6. الخيارات الإلزامية: استمر في تقديم خيارات محددة كأزرار [SUGGESTIONS: ...].
+
 
 
 
@@ -527,22 +527,23 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
         // 8. Finalize Response and determine step
         let step = 1;
 
-        if (finalResponse.includes("REDIRECT: /tracks")) {
+        if (finalResponse.includes("REDIRECT: /tracks") || finalResponse.includes("وضع التنفيذ")) {
             step = 5; // Path Creation
-        } else if (finalResponse.includes("المستوى المعرفي الحالي") || finalResponse.includes("نقطة البداية الفعلية")) {
+        } else if (finalResponse.includes("تأكيد المهارة") || finalResponse.includes("المستوى الحالي")) {
             step = 4; // Baseline
-        } else if (finalResponse.includes("إدارة الوقت") || finalResponse.includes("ساعات") || finalResponse.includes("أسبوعياً")) {
+        } else if (finalResponse.includes("جدولة المسار") || finalResponse.includes("الساعات الأسبوعية")) {
             step = 3; // Habits/Time
-        } else if (finalResponse.includes("النمط التعليمي والمنهجية") || finalResponse.includes("التأسيس النظري")) {
+        } else if (finalResponse.includes("النمط التحليلي") || finalResponse.includes("أسلوب التعلم")) {
             step = 2; // Psychology
-        } else if (finalResponse.includes("تحديد الشغف والقطاع") || finalResponse.includes("المجال المهني العام")) {
+        } else if (finalResponse.includes("اكتشاف الشغف") || finalResponse.includes("القطاع المهني")) {
             step = 1; // Discovery
         } else if (finalResponse.includes("SUGGESTIONS:")) {
             // Context-based fallback for steps
-            if (finalResponse.includes("دراسة صباحية") || finalResponse.includes("دراسة ليلية")) step = 3;
-            else if (finalResponse.includes("تطبيق عملي") || finalResponse.includes("تأسيس نظري")) step = 2;
-            else if (finalResponse.includes("تطوير الويب") || finalResponse.includes("بيانات") || finalResponse.includes("ذكاء")) step = 1;
+            if (finalResponse.includes("ساعات") || finalResponse.includes("أسبوعياً")) step = 3;
+            else if (finalResponse.includes("تطبيق") || finalResponse.includes("نظري")) step = 2;
+            else if (finalResponse.includes("تطوير") || finalResponse.includes("بيانات")) step = 1;
         }
+
 
 
         res.json({
