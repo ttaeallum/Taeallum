@@ -24,9 +24,11 @@ const getOpenAI = () => {
 router.get("/session", requireAuth, async (req: Request, res: Response) => {
     try {
         const userId = req.session.userId;
+        console.log(`[CHATBOT] GET /session for user ${userId}`);
 
         // Find the latest active chatbot session
         const [session] = await db.select()
+
             .from(aiSessions)
             .where(and(
                 eq(aiSessions.userId, userId!),
@@ -94,6 +96,8 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
     try {
         const { message: userMessage } = req.body;
         const userId = req.session.userId;
+        console.log(`[CHATBOT] POST / for user ${userId}: "${userMessage?.slice(0, 50)}..."`);
+
 
         const openai = getOpenAI();
         if (!openai) {
@@ -548,8 +552,9 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
             type: error.type,
             code: error.code,
             time: new Date().toISOString(),
-            userId
+            userId: req.session.userId
         };
+
         console.error("[CHATBOT_LOG]", JSON.stringify(errorLog));
 
         // Detect specific OpenAI errors

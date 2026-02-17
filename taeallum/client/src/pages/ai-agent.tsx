@@ -230,6 +230,8 @@ export default function AIAgent() {
     );
   }
 
+
+
   return (
     <Layout>
       {showConfetti && <ConfettiCelebration onComplete={() => setShowConfetti(false)} />}

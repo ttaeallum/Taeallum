@@ -350,6 +350,8 @@ router.get("/me", async (req: Request, res: Response) => {
             return res.status(404).json({ message: "المستخدم غير موجود" });
         }
 
+
+
         // Fetch Subscription
         const [subscription] = await db.select()
             .from(subscriptions)

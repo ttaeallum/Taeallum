@@ -294,6 +294,27 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
     await registerRoutes(httpServer, app);
 
+    // --- 4. ERROR HANDLING ---
+    // Handle 404 for API routes specifically
+    app.use("/api/*", (req, res) => {
+      res.status(404).json({
+        message: "API Route Not Found",
+        path: req.originalUrl,
+        code: "ERR_API_NOT_FOUND"
+      });
+    });
+
+    // Global Error Handler (must have 4 arguments for Express)
+    app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+      console.error("[GLOBAL ERROR]:", err);
+      const status = err.status || err.statusCode || 500;
+      res.status(status).json({
+        message: "حدث خطأ داخلي في الخادم",
+        detail: process.env.NODE_ENV === "production" ? "Internal Server Error" : err.message,
+        code: err.code || "ERR_INTERNAL_SERVER"
+      });
+    });
+
     if (process.env.NODE_ENV === "production") {
       serveStatic(app);
     } else {
@@ -307,3 +328,4 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 })();
 
 export default app;
+
