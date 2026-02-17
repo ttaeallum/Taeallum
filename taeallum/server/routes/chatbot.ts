@@ -25,8 +25,12 @@ const getOpenAI = () => {
 };
 
 
+// GET: Test route to verify router mounting
+router.get("/ping", (req, res) => res.json({ status: "alive", path: "/api/chatbot/ping" }));
+
 // GET: Load active session + messages for the current user
 router.get("/session", requireAuth, async (req: Request, res: Response) => {
+
     try {
         const userId = req.session.userId;
         console.log(`[CHATBOT] GET /session for user ${userId}`);
