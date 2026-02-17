@@ -297,12 +297,14 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
     // --- 4. ERROR HANDLING ---
     // Handle 404 for API routes specifically
     app.use("/api/*", (req, res) => {
+      console.warn(`[404] API Route Not Found: ${req.method} ${req.originalUrl}`);
       res.status(404).json({
         message: "API Route Not Found",
         path: req.originalUrl,
         code: "ERR_API_NOT_FOUND"
       });
     });
+
 
     // Global Error Handler (must have 4 arguments for Express)
     app.use((err: any, req: Request, res: Response, _next: NextFunction) => {

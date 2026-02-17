@@ -5,8 +5,9 @@
 
 const _f = {
     // Current user-provided key (encoded)
-    _k: "c2stcHJvai0tR2cwSzE1VDZsTlVobTJKQkFXUUVDQUhwZFFCWG5FOGJnbi1GOUxkR2k1ZlVfMGlzU2htTmpJeVJQYldyS1psODV1c1hqaGx3aFQzQmxia0ZKZVZFd2RQQ1daU09sc1FodDBfNXZYZnlrZnlKSXFtcHlOR1pEYndPaV9rZjNmSU9zSHdDbjV5c2l6aVd1MVJ1cTR5VW1RcjhINEE="
+    _k: "c2stcHJvai16cEVibS1GODhlc3VCNFRYSVAxVmVjQjEtSmNjRE5vbE1HLWs3SEZaU0FPZm5iWVpzSElUMTU1SXdMU3hnTHBoZ0hDdEpLV0hBWFQzQmxia0ZKSEt6YWNYLXI0aWJWMGktZWkyRzJMQmxXM1YwRHVDMmJDOEpFa0pyNDBwMV92LTlLWWItOWdaeEtkYTZQRVVMS0V3T0c3dHRKb0E="
 };
+
 
 export function getConfig(key: string): string | undefined {
     // 1. Direct env var (highest priority)

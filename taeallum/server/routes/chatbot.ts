@@ -12,13 +12,18 @@ const router = Router();
 const getOpenAI = () => {
     try {
         const key = getConfig("OPENAI_API_KEY");
-        if (!key) return null;
+        if (!key) {
+            console.error("[CHATBOT] No API key found in config");
+            return null;
+        }
+        console.log(`[CHATBOT] Using API key starting with: ${key.slice(0, 12)}...`);
         return new OpenAI({ apiKey: key });
     } catch (err) {
         console.error("[CHATBOT] getOpenAI Exception:", err);
         return null;
     }
 };
+
 
 // GET: Load active session + messages for the current user
 router.get("/session", requireAuth, async (req: Request, res: Response) => {
