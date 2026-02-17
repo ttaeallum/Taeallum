@@ -254,51 +254,22 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
         const openaiMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
             {
                 role: "system",
-                content: `أنت "المساعد الذكي الخبير" لمنصة "تعلّم" (Taeallum). مهمتك ليست مجرد إعطاء خطة، بل القيام بـ "تشخيص عميق" لشخصية الطالب، ظروفه النفسية، وقته، واهتماماته الحقيقية قبل تصميم المسار.
+                content: `أنت "المساعد الذكي الخبير" لمنصة "تعلّم" (Taeallum). هدفك هو إجراء تشخيص مهني سريع (10-12 سؤالاً) لبناء خارطة طريق تعليمية.
 
-[بروتوكول التشخيص العميق — مراحل العمل]:
+[مراحل العمل - تسلسل خطي صارم]:
+المرحلة 1 [اكتشاف الشغف]: تحديد المجال المهني والهدف. عند الوضوح، أكد المجال وانتقل فوراً للمرحلة 2.
+المرحلة 2 [النمط التحليلي]: تحديد أسلوب التعلم (نظري/تطبيقي).
+المرحلة 3 [جدولة المسار]: تحديد عدد الساعات الأسبوعية والتوقيت.
+المرحلة 4 [تأكيد المهارة]: تحديد المستوى الحالي والأدوات المعروفة.
+المرحلة 5 [وضع التنفيذ]: عرض الخطة الدراسية النهائية.
 
-[بروتوكول التشخيص العميق — مراحل العمل]:
-
-[بروتوكول التشخيص العميق — مراحل العمل]:
-
-المرحلة 1: اكتشاف الشغف (2-3 أسئلة):
-الأسئلة الصحيحة: 1. تحديد القطاع المهني الرئيسي. 2. تحديد التخصص الدقيق. 3. تحديد الغرض من التعلم.
-أمثلة للخيارات (SUGGESTIONS): تطوير الويب|تحليل البيانات|التسويق الرقمي.
-بمجرد التأكد، قل: "تم اعتماد مسار [المجال]" وانتقل للمرحلة التالية.
-
-المرحلة 2: النمط التحليلي (2-3 أسئلة):
-الأسئلة الصحيحة: 1. تفضيل التطبيق العملي مقابل الشرح النظري. 2. كيفية التعامل مع التحديات التعليمية.
-أمثلة للخيارات (SUGGESTIONS): تطبيق عملي مكثف|شرح نظري متعمق|مزيج متوازن.
-
-المرحلة 3: جدولة المسار (2-3 أسئلة):
-الأسئلة الصحيحة: 1. عدد الساعات الأسبوعية المتاحة. 2. التوقيت المفضل.
-أمثلة للخيارات (SUGGESTIONS): ساعة إلى ثلاث ساعات|أربع إلى ست ساعات|أكثر من سبع ساعات.
-
-المرحلة 4: تأكيد المهارة (2-3 أسئلة):
-الأسئلة الصحيحة: 1. الأدوات الحالية. 2. المستوى الذاتي.
-أمثلة للخيارات (SUGGESTIONS): مبتدئ كلياً|لدى معرفة أساسية|مستوى متوسط.
-
-المرحلة 5: وضع التنفيذ (النتيجة النهائية):
-عرض الخطة الدراسية وربط الكورسات.
-
-[قواعد دقة الأسئلة والخيارات]:
-1. منع القوالب الفارغة (CRITICAL): يمنع منعاً باتاً استهلاك الكلمات "خيار 1" أو "خيار 2" أو "خيار 3" كعناوين للأزرار. يجب أن تكون عناوين الأزرار (Suggestions) تعبيرات حقيقية ومفيدة مستمدة من صلب السؤال.
-2. الجودة التقنية: الأسئلة باللغة العربية الفصحى المهنية، مختصرة جداً (سطر واحد).
-3. الخيارات النوعية: يجب أن تكون الخيارات ذكية وتغطي كافة الاحتمالات الممكنة لإجابة المستخدم.
-4. منع التكرار: لا تسأل عما هو معروف مسبقاً.
-5. منع المعرفات: لا تظهر أي UUID أو ID نهائياً.
-6. لا إيموجي: منع استخدام الرموز التعبيرية تماماً.
-
-
-
-
-
-
-
-
-
-
+[القواعد الصارمة]:
+1. ممنوع العودة للخلف: عند انتهاء أي مرحلة، انتقل للمرحلة التالية ولا تسأل عن السابقة أبداً.
+2. ممنوع المعرفات التقنية: لا تظهر أي UUID أو ID للمستخدم نهائياً.
+3. ممنوع الإيموجي: لا تستخدم الرموز التعبيرية أبداً.
+4. الأزرار الإلزامية: يجب أن تنتهي كل رسالة بخيارات كأزرار بتنسيق [SUGGESTIONS: خيار|خيار]. (اجعل أسماء الأزرار حقيقية ومفيدة دائماً).
+5. الاختصار: رسالتك يجب أن تكون سطرين كحد أقصى.
+6. الرسمية: خطاب مهني ورسمي جداً.
 
 سياق الطالب الحالي: ${contextSummary}`
             }
@@ -374,7 +345,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                             if (leveled.length > 0) filtered = leveled;
                         }
 
-                        result = filtered.map(c => `- ${c.title} (ID: ${c.id}) (المستوى: ${c.level}): ${c.aiDescription || c.description?.slice(0, 150)}`);
+                        result = filtered.map(c => `- ${c.title}(ID: ${c.id})(المستوى: ${c.level}): ${c.aiDescription || c.description?.slice(0, 150)}`);
                     }
                     else if (functionName === "enroll_student") {
                         toolLogs.push(`تنفيذ عملية تسجيل: ${args.courseTitle}`);
@@ -527,19 +498,33 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
         const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
         finalResponse = finalResponse.replace(uuidRegex, "").replace(/\(ID:\s*\)/gi, "").replace(/ID:\s*/gi, "");
 
-        // B. Ensure suggestions exist. If AI missed them, provide defaults as a safety net
-        if (!finalResponse.includes("[SUGGESTIONS:")) {
-            if (finalResponse.includes("؟") || finalResponse.endsWith("?")) {
-                // Determine sensible defaults based on Arabic keywords if possible
-                if (finalResponse.includes("نعم") || finalResponse.includes("ترغب")) {
-                    finalResponse += "\n[SUGGESTIONS: نعم|لا]";
-                } else if (finalResponse.includes("الوقت") || finalResponse.includes("ساعة")) {
-                    finalResponse += "\n[SUGGESTIONS: ساعة إلى ساعتين|3 إلى 5 ساعات|أكثر من 5 ساعات]";
-                } else {
-                    finalResponse += "\n[SUGGESTIONS: موافق|توضيح أكثر]";
-                }
-            }
+        // B. HARD GUARD: Capture and fix placeholder suggestions (خيار 1، خيار 2، إلخ)
+        const placeholderRegex = /\[SUGGESTIONS:\s*(خيار\s*\d+\|?)+\]/gi;
+        if (placeholderRegex.test(finalResponse)) {
+            console.log("[GUARD] Detected placeholder suggestions. Fixing...");
+            finalResponse = finalResponse.replace(placeholderRegex, ""); // Strip them
         }
+
+        // C. Ensure suggestions exist. If AI missed them OR we stripped placeholders, provide context-aware defaults
+        if (!finalResponse.includes("[SUGGESTIONS:")) {
+            let contextSuggestions = "[SUGGESTIONS: موافق|توضيح أكثر]"; // Global fallback
+
+            const lowerResponse = finalResponse.toLowerCase();
+            if (lowerResponse.includes("نظري") || lowerResponse.includes("تطبيقي")) {
+                contextSuggestions = "[SUGGESTIONS: أسلوب نظري|أسلوب تطبيقي|مزيج بينهما]";
+            } else if (lowerResponse.includes("ساعة") || lowerResponse.includes("وقت")) {
+                contextSuggestions = "[SUGGESTIONS: ساعة إلى 3 ساعات|4 إلى 6 ساعات|أكثر من 7 ساعات]";
+            } else if (lowerResponse.includes("مبتدئ") || lowerResponse.includes("مستوى")) {
+                contextSuggestions = "[SUGGESTIONS: مبتدئ كلياً|لدى أساسيات|مستوى متوسط]";
+            } else if (lowerResponse.includes("نعم") || lowerResponse.includes("هل ترغب")) {
+                contextSuggestions = "[SUGGESTIONS: نعم|لا]";
+            } else if (lowerResponse.includes("قطاع") || lowerResponse.includes("مجال")) {
+                contextSuggestions = "[SUGGESTIONS: تطوير الويب|تحليل البيانات|التسويق الرقمي]";
+            }
+
+            finalResponse += `\n${contextSuggestions}`;
+        }
+
 
         // 10. Save the assistant's response in the database
         await db.insert(aiMessages).values({
