@@ -259,9 +259,10 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 
 [بروتوكول التعامل]:
 1. ممنوع الارتجال: اتبع المسار حصراً (القطاع -> التخصص -> المستوى -> الجدولة).
-2. الخيارات فقط: لا تطلب نصاً طويلاً، بل اطلب دائماً "الاختيار من القائمة" عبر أزرار [SUGGESTIONS].
-3. رسالتك سطر واحد: مهني، مباشر، ومشجع.
-4. اللغة: عربية مهنية ودودة.
+2. منع القوائم النصية: لا تكتب خيارات مرقمة (مثل 1، 2، 3) داخل نص الرسالة.
+3. الخيارات فقط: ضع جميع الاختيارات حصراً داخل كتلة [SUGGESTIONS: خيار|خيار].
+4. الرسالة سطر واحد: مهنية، مباشرة، وبدون تعداد نقطي أو رقمي في النص.
+5. اللغة: عربية مهنية ودودة.
 
 [خريطة التخصصات (26 تخصص)]:
 - صناعة البرمجيات -> [تطوير الويب|تطوير تطبيقات الموبايل|هندسة البرمجيات|تطوير الألعاب|DevOps والبنية التحتية|اختيار البرمجيات وضمان الجودة]
@@ -507,37 +508,34 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 
         // --- 9. SAFETY GUARDS: CLEAN RESPONSE & ENSURE SUGGESTIONS ---
 
-        // A. Remove any technical UUIDs (8-4-4-4-12 hex pattern) to ensure clean UI
-        const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
-        finalResponse = finalResponse.replace(uuidRegex, "").replace(/\(ID:\s*\)/gi, "").replace(/ID:\s*/gi, "");
+        // A. Strip technical markers
+        const techMarkers = [/\[SYSTEM_ACT:[^\]]+\]/gi, /\[REDIRECT:[^\]]+\]/gi, /\[SUGGESTIONS\]/gi];
+        techMarkers.forEach(m => finalResponse = finalResponse.replace(m, ""));
 
-        // B. HARD GUARD: Capture and fix placeholder suggestions (خيار 1، خيار 2، إلخ)
-        const placeholderRegex = /\[SUGGESTIONS:\s*(خيار\s*\d+\|?)+\]/gi;
-        if (placeholderRegex.test(finalResponse)) {
-            console.log("[GUARD] Detected placeholder suggestions. Fixing...");
-            finalResponse = finalResponse.replace(placeholderRegex, ""); // Strip them
+        // B. DETECT NUMBERED LISTS (1. X 2. Y) and convert to SUGGESTIONS if no pipe-suggestions exist
+        const listRegex = /\d+[\.\)]\s*([^\d\n\r|\[]+)/g;
+        const potentialOptions: string[] = [];
+        let listMatch;
+        while ((listMatch = listRegex.exec(finalResponse)) !== null) {
+            potentialOptions.push(listMatch[1].trim());
         }
 
-        // C. HARD GUARD: Capture and normalize suggestions (handle [A|B] or [SUGGESTIONS: A|B])
+        // C. HARD GUARD: Capture and normalize pipe-based [A|B] suggestions
         const flexibleSuggestionRegex = /\[(?:SUGGESTIONS:\s*)?([^\]]+\|[^\]\d][^\]]*)\]/gi;
-
-        // Find all matches first to avoid regex state issues
         const suggestionsMatches = Array.from(finalResponse.matchAll(flexibleSuggestionRegex));
 
         if (suggestionsMatches.length > 0) {
-            // Keep only the LAST unique set of suggestions to avoid AI repeating itself
             const lastMatch = suggestionsMatches[suggestionsMatches.length - 1];
             const suggestionsContent = lastMatch[1].trim();
-
-            // Strip ALL bracketed blocks from the message text
             finalResponse = finalResponse.replace(/\[[^\]]+\]/g, "").trim();
-
-            // Re-append the normalized version at the end
             finalResponse += `\n[SUGGESTIONS: ${suggestionsContent}]`;
+        } else if (potentialOptions.length > 1) {
+            // If we found a numbered list but NO bracketed suggestions, convert the list to buttons
+            finalResponse = finalResponse.replace(/\d+[\.\)][^\d\n\r|\[]+/g, "").replace(/\s+/g, " ").trim();
+            finalResponse += `\n[SUGGESTIONS: ${potentialOptions.join("|")}]`;
         } else {
-            // Ensure suggestions exist if totally missing
-            let contextSuggestions = "[SUGGESTIONS: صناعة البرمجيات|الذكاء الاصطناعي|التصميم الإبداعي|ريادة الأعمال الرقمية|اللغات والمهارات العامة]"; // Global fallback
-
+            // Fallback suggestions
+            let contextSuggestions = "[SUGGESTIONS: صناعة البرمجيات|الذكاء الاصطناعي|التصميم الإبداعي|ريادة الأعمال الرقمية|اللغات والمهارات العامة]";
             const lowerResponse = finalResponse.toLowerCase();
             if (lowerResponse.includes("مبتدئ") || lowerResponse.includes("مستوى")) {
                 contextSuggestions = "[SUGGESTIONS: مبتدئ كلياً|لديه أساسيات|مستوى متوسط]";
@@ -546,6 +544,10 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
             }
             finalResponse += `\n${contextSuggestions}`;
         }
+
+        finalResponse = finalResponse.replace(/\s+/g, " ").trim();
+        const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+        finalResponse = finalResponse.replace(uuidRegex, "").replace(/\(ID:\s*\)/gi, "").replace(/ID:\s*/gi, "");
 
 
         // 10. Save the assistant's response in the database
