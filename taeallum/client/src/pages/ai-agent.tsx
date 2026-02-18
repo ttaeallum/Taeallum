@@ -311,9 +311,9 @@ export default function AIAgent() {
               >
                 <AnimatePresence initial={false}>
                   {messages.map((msg, i) => {
-                    const isRaw = msg.content.includes("[SUGGESTIONS:");
-                    const suggestionMatch = msg.content.match(/\[SUGGESTIONS:\s*(.*?)\]/);
-                    const cleanContent = msg.content.replace(/\[SUGGESTIONS:.*?\]/, "").trim();
+                    const flexibleRegex = /\[(?:SUGGESTIONS:\s*)?([^\]]+\|[^\]]+)\]/i;
+                    const suggestionMatch = msg.content.match(flexibleRegex);
+                    const cleanContent = msg.content.replace(flexibleRegex, "").trim();
 
                     return (
                       <motion.div

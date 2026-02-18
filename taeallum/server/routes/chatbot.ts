@@ -518,23 +518,26 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
             finalResponse = finalResponse.replace(placeholderRegex, ""); // Strip them
         }
 
-        // C. Ensure suggestions exist. If AI missed them OR we stripped placeholders, provide context-aware defaults
-        if (!finalResponse.includes("[SUGGESTIONS:")) {
+        // C. HARD GUARD: Capture and normalize suggestions (handle [A|B] or [SUGGESTIONS: A|B])
+        const flexibleSuggestionRegex = /\[(SUGGESTIONS:\s*)?([^\]]+\|[^\]]+)\]/gi;
+
+        if (flexibleSuggestionRegex.test(finalResponse)) {
+            // Normalize to [SUGGESTIONS: option|option]
+            finalResponse = finalResponse.replace(flexibleSuggestionRegex, (match, p1, p2) => {
+                return `[SUGGESTIONS: ${p2.trim()}]`;
+            });
+        } else {
+            // Ensure suggestions exist if totally missing
             let contextSuggestions = "[SUGGESTIONS: موافق|توضيح أكثر]"; // Global fallback
 
             const lowerResponse = finalResponse.toLowerCase();
-            if (lowerResponse.includes("نظري") || lowerResponse.includes("تطبيقي")) {
-                contextSuggestions = "[SUGGESTIONS: أسلوب نظري|أسلوب تطبيقي|مزيج بينهما]";
-            } else if (lowerResponse.includes("ساعة") || lowerResponse.includes("وقت")) {
-                contextSuggestions = "[SUGGESTIONS: ساعة إلى 3 ساعات|4 إلى 6 ساعات|أكثر من 7 ساعات]";
+            if (lowerResponse.includes("قطاع") || lowerResponse.includes("مجال")) {
+                contextSuggestions = "[SUGGESTIONS: صناعة البرمجيات|الذكاء الاصطناعي|التصميم الإبداعي|ريادة الأعمال الرقمية|اللغات والمهارات العامة]";
             } else if (lowerResponse.includes("مبتدئ") || lowerResponse.includes("مستوى")) {
-                contextSuggestions = "[SUGGESTIONS: مبتدئ كلياً|لدى أساسيات|مستوى متوسط]";
-            } else if (lowerResponse.includes("نعم") || lowerResponse.includes("هل ترغب")) {
-                contextSuggestions = "[SUGGESTIONS: نعم|لا]";
-            } else if (lowerResponse.includes("قطاع") || lowerResponse.includes("مجال")) {
-                contextSuggestions = "[SUGGESTIONS: تطوير الويب|تحليل البيانات|التسويق الرقمي]";
+                contextSuggestions = "[SUGGESTIONS: مبتدئ كلياً|لديه أساسيات|مستوى متوسط]";
+            } else if (lowerResponse.includes("ساعة") || lowerResponse.includes("وقت")) {
+                contextSuggestions = "[SUGGESTIONS: مكثف (+20 ساعة)|متوسط (10-20 ساعة)|هادئ (-10 ساعات)]";
             }
-
             finalResponse += `\n${contextSuggestions}`;
         }
 
