@@ -175,10 +175,10 @@ export default function AIAgent() {
       if (data.logs) setActiveLogs(prev => [...prev.slice(-5), ...data.logs]);
 
       const reply = data.reply || data.message || "";
-      if (reply.includes("[REDIRECT:")) {
-        const path = reply.match(/\[REDIRECT:\s*(.*?)\]/)?.[1];
-        if (path) setTimeout(() => setLocation(path), 1500);
-      }
+
+      // Look for [REDIRECT: ...] in both current and final response
+      const redirectMatch = reply.match(/\[REDIRECT:\s*(.*?)\]/);
+      const isFinalRedirect = reply.includes("/tracks") || text.trim() === "ابدأ الآن";
 
       if (data.step) setCurrentStep(data.step);
 
@@ -189,6 +189,10 @@ export default function AIAgent() {
         timestamp: new Date(),
         logs: data.logs
       }]);
+
+      if (redirectMatch?.[1]) {
+        setTimeout(() => setLocation(redirectMatch[1]), 2000);
+      }
     } catch (error: any) {
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
@@ -311,9 +315,20 @@ export default function AIAgent() {
               >
                 <AnimatePresence initial={false}>
                   {messages.map((msg, i) => {
-                    const flexibleRegex = /\[(?:SUGGESTIONS:\s*)?([^\]]+\|[^\]]+)\]/i;
+                    const flexibleRegex = /\[(?:SUGGESTIONS:\s*)?([^\]]+)\]/i;
                     const suggestionMatch = msg.content.match(flexibleRegex);
-                    const cleanContent = msg.content.replace(flexibleRegex, "").trim();
+
+                    // Filter out non-suggestion tags from content
+                    let cleanContent = msg.content
+                      .replace(/\[(?:SUGGESTIONS:\s*)?[^\]]+\]/gi, "")
+                      .replace(/\[REDIRECT:[^\]]+\]/gi, "")
+                      .replace(/\[SYSTEM_ACT:[^\]]+\]/gi, "")
+                      .trim();
+
+                    // If it's a redirection button, we handle it specifically
+                    const suggestionsList = suggestionMatch?.[1]?.includes("|")
+                      ? suggestionMatch[1].split("|")
+                      : suggestionMatch?.[1] ? [suggestionMatch[1]] : [];
 
                     return (
                       <motion.div
@@ -333,14 +348,20 @@ export default function AIAgent() {
                             {cleanContent}
                           </div>
 
-                          {msg.role === "assistant" && suggestionMatch && (
+                          {msg.role === "assistant" && suggestionsList.length > 0 && (
                             <div className="mt-8 flex flex-wrap gap-2.5 justify-end">
-                              {suggestionMatch[1].split("|").map((suggestion, idx) => (
+                              {suggestionsList.map((suggestion, idx) => (
                                 <motion.button
                                   key={idx}
                                   whileHover={{ y: -3, scale: 1.02, backgroundColor: "rgb(var(--primary))", color: "#fff" }}
                                   whileTap={{ scale: 0.98 }}
-                                  onClick={() => handleSendMessage(suggestion.trim())}
+                                  onClick={() => {
+                                    if (suggestion.trim() === "ابدأ الآن") {
+                                      setLocation("/tracks");
+                                    } else {
+                                      handleSendMessage(suggestion.trim());
+                                    }
+                                  }}
                                   disabled={isLoading || i < messages.length - 1}
                                   className="px-5 py-2.5 rounded-xl bg-primary/10 dark:bg-primary/20 border border-primary/20 text-primary transition-all text-[12px] font-black shadow-sm"
                                 >

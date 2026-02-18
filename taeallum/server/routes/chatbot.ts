@@ -523,31 +523,32 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
             potentialOptions.push(listMatch[1].trim());
         }
 
-        // C. HARD GUARD: Capture and normalize pipe-based [SUGGESTIONS: A|B]
-        const flexibleSuggestionRegex = /\[(?:SUGGESTIONS:\s*)?([^\]]+\|[^\]\d][^\]]*|ابدأ الآن)\]/gi;
+        // C. HARD GUARD: Capture and normalize pipe-based [SUGGESTIONS: A|B] OR single [ابدأ الآن]
+        const flexibleSuggestionRegex = /\[(?:SUGGESTIONS:\s*)?([^\]\|]+\|[^\]\d][^\]]*|ابدأ الآن)\]/gi;
         const suggestionsMatches = Array.from(finalResponse.matchAll(flexibleSuggestionRegex));
+
+        let finalSuggestions = "";
 
         if (suggestionsMatches.length > 0) {
             const lastMatch = suggestionsMatches[suggestionsMatches.length - 1];
-            const suggestionsContent = lastMatch[1].trim();
-            finalResponse = finalResponse.replace(/\[[^\]]+\]/g, "").trim();
-            finalResponse += `\n[SUGGESTIONS: ${suggestionsContent}]`;
-        } else if (potentialOptions.length > 1) {
-            finalResponse = finalResponse.replace(/\d+[\.\)][^\d\n\r|\[]+/g, "").replace(/\s+/g, " ").trim();
-            finalResponse += `\n[SUGGESTIONS: ${potentialOptions.join("|")}]`;
+            finalSuggestions = `\n[SUGGESTIONS: ${lastMatch[1].trim()}]`;
         } else {
             // Fallback
-            let contextSuggestions = "[SUGGESTIONS: صناعة البرمجيات|الذكاء الاصطناعي|التصميم الإبداعي|ريادة الأعمال الرقمية|اللغات والمهارات العامة]";
+            let contextSuggestions = "صناعة البرمجيات|الذكاء الاصطناعي|التصميم الإبداعي|ريادة الأعمال الرقمية|اللغات والمهارات العامة";
             const lowerResponse = finalResponse.toLowerCase();
             if (lowerResponse.includes("مستوى") || lowerResponse.includes("مبتدئ")) {
-                contextSuggestions = "[SUGGESTIONS: مبتدئ كلياً|لديه أساسيات|مستوى متوسط]";
+                contextSuggestions = "مبتدئ كلياً|لديه أساسيات|مستوى متوسط";
             } else if (lowerResponse.includes("ساعة") || lowerResponse.includes("وقت")) {
-                contextSuggestions = "[SUGGESTIONS: مكثف (+20 ساعة)|متوسط (10-20 ساعة)|هادئ (-10 ساعات)]";
+                contextSuggestions = "مكثف (+20 ساعة)|متوسط (10-20 ساعة)|هادئ (-10 ساعات)";
             } else if (lowerResponse.includes("تعلّم") || lowerResponse.includes("جاهز") || lowerResponse.includes("ابدأ")) {
-                contextSuggestions = "[SUGGESTIONS: ابدأ الآن]";
+                contextSuggestions = "ابدأ الآن";
             }
-            finalResponse += `\n${contextSuggestions}`;
+            finalSuggestions = `\n[SUGGESTIONS: ${contextSuggestions}]`;
         }
+
+        // ALWAYS strip ALL brackets from the main message to prevent leaks
+        finalResponse = finalResponse.replace(/\[[^\]]*\]/g, "").trim();
+        finalResponse += finalSuggestions;
 
         finalResponse = finalResponse.replace(/\s+/g, " ").trim();
         const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
