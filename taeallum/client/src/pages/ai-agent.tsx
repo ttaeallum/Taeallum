@@ -239,30 +239,30 @@ export default function AIAgent() {
       {/* APP-LIKE FIXED VIEWPORT (No Page Scroll) */}
       <div className="fixed inset-x-0 top-16 bottom-0 bg-[#fafafa] dark:bg-[#050505] flex flex-col font-sans overflow-hidden z-[5]">
 
-        <div className="flex-1 container max-w-[1700px] w-full mx-auto px-4 lg:px-10 py-4 flex gap-6 h-full min-h-0 overflow-hidden relative">
+        <div className="flex-1 container max-w-6xl w-full mx-auto px-4 lg:px-6 py-4 flex gap-6 h-full min-h-0 overflow-hidden relative">
 
 
 
           {/* CHAT INTERFACE (INTERNAL SCROLL ONLY) */}
           <main className="flex-1 flex flex-col h-full min-w-0 overflow-hidden relative">
-            <Card className="flex-1 bg-white dark:bg-[#0c0c0c] border border-white/20 dark:border-white/5 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] rounded-[3.5rem] flex flex-col overflow-hidden relative backdrop-blur-3xl h-full">
+            <Card className="flex-1 bg-white dark:bg-[#0c0c0c] border border-white/20 dark:border-white/5 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] rounded-3xl lg:rounded-[2.5rem] flex flex-col overflow-hidden relative backdrop-blur-3xl h-full">
 
               {/* Intelligent Header */}
-              <header className="px-12 py-8 flex items-center justify-between border-b border-border/5 bg-white/20 dark:bg-black/20 shrink-0">
-                <div className="flex items-center gap-6">
-                  <div className="w-16 h-16 bg-zinc-900 dark:bg-white rounded-[1.5rem] flex items-center justify-center rotate-3 shadow-2xl overflow-hidden group">
-                    <Bot className="w-8 h-8 text-white dark:text-black group-hover:scale-110 transition-transform" />
+              <header className="px-6 lg:px-10 py-4 lg:py-6 flex items-center justify-between border-b border-border/5 bg-white/20 dark:bg-black/20 shrink-0">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-zinc-900 dark:bg-white rounded-xl flex items-center justify-center rotate-3 shadow-2xl overflow-hidden group">
+                    <Bot className="w-6 h-6 text-white dark:text-black group-hover:scale-110 transition-transform" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black tracking-tighter">{isRtl ? "المساعد الذكي" : "Neural Assistant"}</h2>
-                    <div className="flex items-center gap-3">
-                      <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping" />
-                      <span className="text-[10px] font-mono text-muted-foreground uppercase opacity-40">System Node: Secure_4o_Mini</span>
+                    <h2 className="text-xl font-black tracking-tighter">{isRtl ? "المساعد الذكي" : "Neural Assistant"}</h2>
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
+                      <span className="text-[9px] font-mono text-muted-foreground uppercase opacity-40">System Node: Secure_4o_Mini</span>
                     </div>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={handleNewChat} className="h-14 w-14 rounded-3xl hover:bg-primary/5 text-muted-foreground">
-                  <RotateCcw className="w-6 h-6" />
+                <Button variant="ghost" size="icon" onClick={handleNewChat} className="h-12 w-12 rounded-2xl hover:bg-primary/5 text-muted-foreground">
+                  <RotateCcw className="w-5 h-5" />
                 </Button>
               </header>
 
@@ -286,12 +286,12 @@ export default function AIAgent() {
                         className={cn("flex flex-col gap-4", msg.role === "user" ? "items-end" : "items-start")}
                       >
                         <div className={cn(
-                          "relative px-10 py-7 shadow-sm transition-all duration-500",
+                          "relative px-6 py-4 lg:px-8 lg:py-6 shadow-sm transition-all duration-500",
                           msg.role === "user"
-                            ? "bg-primary text-primary-foreground font-black rounded-[3rem] rounded-tr-md shadow-2xl shadow-primary/10"
-                            : "bg-white dark:bg-zinc-900/80 border border-border/40 text-foreground font-bold rounded-[3.5rem] rounded-tl-md shadow-3xl shadow-black/5 dark:shadow-none"
+                            ? "bg-primary text-primary-foreground font-black rounded-3xl rounded-tr-md shadow-2xl shadow-primary/10"
+                            : "bg-white dark:bg-zinc-900/80 border border-border/40 text-foreground font-bold rounded-3xl rounded-tl-md shadow-3xl shadow-black/5 dark:shadow-none"
                         )}>
-                          <div className={cn("text-[17px] leading-[1.7]", isRtl ? "text-right" : "text-left")}>
+                          <div className={cn("text-base lg:text-[16px] leading-[1.6]", isRtl ? "text-right" : "text-left")}>
                             {cleanContent}
                           </div>
 
@@ -348,10 +348,10 @@ export default function AIAgent() {
               </AnimatePresence>
 
               {/* PROMPT CONSOLE (FIXED AT BOTTOM) */}
-              <div className="p-10 lg:p-14 bg-gradient-to-t from-white dark:from-black to-transparent shrink-0">
+              <div className="p-6 lg:p-8 bg-gradient-to-t from-white dark:from-black to-transparent shrink-0">
                 <div className="relative group max-w-4xl mx-auto">
-                  <div className="absolute -inset-2 bg-primary/20 rounded-[3rem] blur-xl opacity-20 group-focus-within:opacity-100 transition duration-700" />
-                  <div className="relative flex items-center bg-white/95 dark:bg-zinc-900 border border-border/80 dark:border-white/10 rounded-[2.5rem] lg:rounded-[3.2rem] overflow-hidden shadow-2xl px-8 lg:px-12 py-4 focus-within:ring-4 focus-within:ring-primary/5 transition-all">
+                  <div className="absolute -inset-2 bg-primary/20 rounded-3xl blur-xl opacity-20 group-focus-within:opacity-100 transition duration-700" />
+                  <div className="relative flex items-center bg-white/95 dark:bg-zinc-900 border border-border/80 dark:border-white/10 rounded-[2rem] lg:rounded-[2.5rem] overflow-hidden shadow-2xl px-6 lg:px-10 py-3 focus-within:ring-4 focus-within:ring-primary/5 transition-all">
                     <Textarea
                       ref={textareaRef}
                       value={inputValue}
@@ -363,16 +363,16 @@ export default function AIAgent() {
                         }
                       }}
                       placeholder={isRtl ? "اهمس بأهدافك للمساعد..." : "Dictate your goals to the assistant..."}
-                      className="flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 resize-none min-h-[50px] max-h-[160px] text-xl py-4 px-0 font-medium placeholder:text-muted-foreground/10"
+                      className="flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 resize-none min-h-[40px] max-h-[140px] text-lg py-3 px-0 font-medium placeholder:text-muted-foreground/10"
                       disabled={isLoading}
                     />
                     <Button
                       onClick={() => handleSendMessage()}
                       disabled={!inputValue.trim() || isLoading}
                       size="icon"
-                      className="h-16 w-16 lg:h-20 lg:w-20 rounded-full shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex-shrink-0"
+                      className="h-14 w-14 lg:h-16 lg:w-16 rounded-full shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex-shrink-0"
                     >
-                      <Send className={cn("w-7 h-7 lg:w-10 lg:h-10", isRtl && "rotate-180")} />
+                      <Send className={cn("w-6 h-6 lg:w-8 h-8", isRtl && "rotate-180")} />
                     </Button>
                   </div>
                 </div>

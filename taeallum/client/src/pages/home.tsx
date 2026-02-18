@@ -74,7 +74,7 @@ export default function Home() {
         </script>
       )}
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] md:min-h-screen flex items-center overflow-hidden pt-12 pb-16 md:pt-20 md:pb-20">
+      <section className="relative min-h-[70vh] md:min-h-[85vh] flex items-center overflow-hidden pt-8 pb-12 md:pt-16 md:pb-16">
         {/* Futuristic Background Elements */}
         <div className="absolute inset-0 z-0">
           <div className="absolute top-0 right-[-10%] w-[300px] md:w-[800px] h-[300px] md:h-[800px] bg-primary/20 rounded-full blur-[80px] md:blur-[160px] animate-pulse-slow"></div>
@@ -83,7 +83,7 @@ export default function Home() {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--background))_80%)]"></div>
         </div>
 
-        <div className="container relative z-10 px-4 md:px-8 max-w-5xl mx-auto">
+        <div className="container relative z-10 px-4 md:px-8 max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-10 md:gap-16 items-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -91,25 +91,25 @@ export default function Home() {
               transition={{ duration: 0.8, ease: "easeOut" }}
               className="text-right"
             >
-              <h1 className="font-black text-4xl sm:text-6xl md:text-8xl lg:text-9xl leading-tight md:leading-[0.9] text-foreground mb-4 md:mb-10 tracking-tighter">
+              <h1 className="font-black text-4xl sm:text-6xl md:text-7xl lg:text-8xl leading-tight md:leading-[1.1] text-foreground mb-4 md:mb-8 tracking-tighter">
                 بوابتك نحو <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary via-emerald-500 to-primary animate-gradient-x">
                   إتقان المستقبل
                 </span>
               </h1>
 
-              <p className="text-base md:text-2xl text-muted-foreground mb-6 md:mb-12 max-w-2xl ml-auto leading-relaxed font-medium opacity-80">
+              <p className="text-base md:text-xl text-muted-foreground mb-6 md:mb-10 max-w-2xl ml-auto leading-relaxed font-medium opacity-80">
                 استثمر في مستقبلك وتعلم مهارات وتقنيات العصر من خلال <span className="text-primary font-bold">دورات مجانية</span> بالكامل ومحتوى عربي احترافي متاح للجميع.
               </p>
 
               <div className="flex flex-col sm:flex-row-reverse gap-4 md:gap-6 justify-center sm:justify-start">
                 <Link href="/ai-pricing" className="w-full sm:w-auto">
-                  <Button size="lg" className="h-14 md:h-20 px-6 md:px-12 text-lg md:text-2xl font-black shadow-[0_15px_40px_rgba(var(--primary),0.25)] gap-3 rounded-2xl md:rounded-[2rem] hover:scale-105 active:scale-95 transition-all bg-primary hover:bg-primary/90 w-full sm:w-auto">
+                  <Button size="lg" className="h-14 md:h-16 px-6 md:px-10 text-lg md:text-xl font-black shadow-[0_15px_40px_rgba(var(--primary),0.25)] gap-3 rounded-2xl md:rounded-3xl hover:scale-105 active:scale-95 transition-all bg-primary hover:bg-primary/90 w-full sm:w-auto">
                     اشترك مع المساعد الذكي
                   </Button>
                 </Link>
                 <Link href="/courses" className="w-full sm:w-auto">
-                  <Button size="lg" variant="outline" className="h-14 md:h-20 px-6 md:px-12 text-lg md:text-2xl font-black rounded-2xl md:rounded-[2rem] border-2 backdrop-blur-md hover:bg-primary/5 transition-all w-full sm:w-auto">
+                  <Button size="lg" variant="outline" className="h-14 md:h-16 px-6 md:px-10 text-lg md:text-xl font-black rounded-2xl md:rounded-3xl border-2 backdrop-blur-md hover:bg-primary/5 transition-all w-full sm:w-auto">
                     تصفح الدورات
                   </Button>
                 </Link>
@@ -163,7 +163,7 @@ export default function Home() {
 
       {/* Features Section */}
       <section className="py-16 md:py-24 bg-background relative overflow-hidden">
-        <div className="container px-4 md:px-8 max-w-5xl mx-auto">
+        <div className="container px-4 md:px-8 max-w-7xl mx-auto">
           <div className="text-center max-w-3xl mx-auto mb-16 md:mb-20">
             <h2 className="text-3xl md:text-5xl font-heading font-black mb-4 md:mb-6">لماذا منصة تعلّم؟</h2>
             <p className="text-lg md:text-xl text-muted-foreground font-medium">نبتكر تجربة تعليمية فريدة تمزج بين تطوير المهارات وجودة المحتوى وقوة التقنية</p>
@@ -208,7 +208,7 @@ export default function Home() {
 
       {/* Free Courses Highlight */}
       <section className="py-12 md:py-16 bg-muted/20 border-y border-border/40">
-        <div className="container px-4 md:px-8 max-w-5xl mx-auto">
+        <div className="container px-4 md:px-8 max-w-7xl mx-auto">
           <div className="bg-gradient-to-r from-primary/10 to-emerald-400/10 rounded-3xl border border-primary/20 p-8 md:p-12 text-center">
             <Badge className="mb-4 px-4 py-1.5 bg-primary/10 text-primary border-primary/20 gap-2 justify-center">
               <BookOpen className="w-4 h-4" />
@@ -230,7 +230,7 @@ export default function Home() {
 
       {/* Dynamic Courses Section */}
       <section className="py-12 md:py-20 bg-muted/20">
-        <div className="container px-4 md:px-8 max-w-5xl mx-auto">
+        <div className="container px-4 md:px-8 max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-right gap-4 mb-10 md:mb-12">
             <div>
               <h2 className="text-2xl md:text-3xl font-heading font-bold mb-2">أحدث الكورسات</h2>
@@ -273,7 +273,7 @@ export default function Home() {
 
       {/* CTA Section - Updated */}
       <section className="py-16 md:py-24 relative overflow-hidden">
-        <div className="container px-4 md:px-8 max-w-5xl mx-auto relative z-10">
+        <div className="container px-4 md:px-8 max-w-7xl mx-auto relative z-10">
           <div className="bg-primary rounded-[2rem] md:rounded-[3rem] p-8 md:p-20 text-center relative overflow-hidden shadow-[0_40px_100px_-20px_rgba(var(--primary),0.4)]">
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
             <div className="absolute top-0 left-0 w-64 h-64 bg-white/5 rounded-full blur-[80px] -translate-x-1/2 -translate-y-1/2"></div>
@@ -283,8 +283,8 @@ export default function Home() {
               whileInView={{ opacity: 1, scale: 1 }}
               className="relative z-10"
             >
-              <h2 className="text-3xl md:text-7xl font-heading font-black mb-6 md:mb-8 text-white">ابدأ تطوير مهاراتك اليوم</h2>
-              <p className="text-lg md:text-3xl text-primary-foreground/80 mb-10 md:mb-12 max-w-3xl mx-auto leading-relaxed font-medium">
+              <h2 className="text-3xl md:text-5xl font-heading font-black mb-6 md:mb-8 text-white">ابدأ تطوير مهاراتك اليوم</h2>
+              <p className="text-lg md:text-2xl text-primary-foreground/80 mb-10 md:mb-12 max-w-3xl mx-auto leading-relaxed font-medium">
                 انضم إلى أكبر تجمع للمبرمجين والمبدعين العرب واستفد من خبرات المدرب الذكي والمسارات الاحترافية.
               </p>
               <div className="flex flex-col sm:flex-row gap-6 justify-center">
@@ -292,7 +292,7 @@ export default function Home() {
                   <Button
                     size="lg"
                     variant="secondary"
-                    className="h-14 md:h-18 px-8 md:px-12 text-lg md:text-2xl font-black text-primary hover:bg-white rounded-[1rem] md:rounded-[1.5rem] shadow-2xl gap-3 transition-all hover:scale-105"
+                    className="h-14 md:h-16 px-8 md:px-10 text-lg md:text-xl font-black text-primary hover:bg-white rounded-2xl shadow-2xl gap-3 transition-all hover:scale-105"
                   >
                     اشترك بالمساعد الذكي
                   </Button>
