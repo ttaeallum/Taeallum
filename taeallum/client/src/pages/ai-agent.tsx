@@ -241,59 +241,7 @@ export default function AIAgent() {
 
         <div className="flex-1 container max-w-[1700px] w-full mx-auto px-4 lg:px-10 py-4 flex gap-6 h-full min-h-0 overflow-hidden relative">
 
-          {/* Progress Tracker (Sticky Style Sidebar) */}
-          <aside className="hidden xl:flex flex-col w-[380px] shrink-0 h-full overflow-hidden">
-            <Card className="flex-1 bg-white/80 dark:bg-zinc-900/50 border-none shadow-2xl rounded-[3rem] p-10 flex flex-col backdrop-blur-3xl overflow-hidden">
-              <div className="flex items-center gap-4 mb-12">
-                <div className="w-12 h-12 bg-primary/10 rounded-3xl flex items-center justify-center">
-                  <Target className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">{isRtl ? "خارطة التفكير" : "Neural Progress"}</h3>
-              </div>
 
-              <div className="space-y-12 relative flex-1">
-                <div className="absolute top-2 bottom-2 left-[21px] w-[1.5px] bg-muted/20" />
-                {[
-                  { label: isRtl ? "اكتشاف الشغف" : "Discovery", step: 1 },
-                  { label: isRtl ? "النمط التحليلي" : "Analysis", step: 2 },
-                  { label: isRtl ? "جدولة المسار" : "Timeline", step: 3 },
-                  { label: isRtl ? "تأكيد المهارة" : "Validation", step: 4 },
-                  { label: isRtl ? "وضع التنفيذ" : "Execution", step: 5 },
-                ].map((s, idx) => {
-                  const isDone = currentStep > s.step;
-                  const isActive = currentStep === s.step;
-                  return (
-                    <div key={idx} className="flex items-center gap-8 group">
-                      <div className={cn(
-                        "w-11 h-11 rounded-[1.2rem] flex items-center justify-center text-[11px] font-black transition-all duration-700 z-10",
-                        isDone ? "bg-primary text-white shadow-xl rotate-12" :
-                          isActive ? "bg-white dark:bg-zinc-800 border-2 border-primary text-primary scale-110 shadow-primary/10 shadow-2xl" : "bg-muted/40 text-muted-foreground/30"
-                      )}>
-                        {isDone ? <CheckCircle2 className="w-6 h-6" /> : s.step}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className={cn(
-                          "text-[15px] font-black tracking-tight transition-colors",
-                          isActive ? "text-foreground" : isDone ? "text-foreground/60" : "text-muted-foreground/30"
-                        )}>{s.label}</span>
-                        {isActive && <span className="text-[9px] text-emerald-500 font-black uppercase animate-pulse">Sync Active</span>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="mt-auto pt-10 space-y-6">
-                <div className="p-8 bg-zinc-50 dark:bg-zinc-800/40 rounded-[2.5rem] border border-border/5 relative overflow-hidden">
-                  <Zap className="absolute top-[-10px] right-[-10px] w-20 h-20 text-primary opacity-5 rotate-12" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-primary/50 mb-3 block">{isRtl ? "المهمة القائمة" : "Current Mission"}</span>
-                  <p className="text-sm font-black leading-relaxed tracking-tight">
-                    {user?.preferences?.main_goal || (isRtl ? "في انتظار تزويدنا بهدفك..." : "Waiting for mission objective...")}
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </aside>
 
           {/* CHAT INTERFACE (INTERNAL SCROLL ONLY) */}
           <main className="flex-1 flex flex-col h-full min-w-0 overflow-hidden relative">
