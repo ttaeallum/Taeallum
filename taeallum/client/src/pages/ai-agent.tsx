@@ -432,45 +432,7 @@ export default function AIAgent() {
             </Card>
           </main>
 
-          {/* Neural Logs (Tactical Sidebar) */}
-          <aside className="hidden 2xl:flex flex-col w-[380px] shrink-0 h-full overflow-hidden">
-            <Card className="flex-1 bg-white/80 dark:bg-zinc-900/50 border-none shadow-2xl rounded-[3rem] p-10 flex flex-col backdrop-blur-3xl overflow-hidden">
-              <div className="flex items-center justify-between mb-12">
-                <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">{isRtl ? "سجل التشغيل" : "Brain Stream"}</h3>
-                <Activity className="w-5 h-5 text-emerald-500 animate-pulse" />
-              </div>
 
-              <div className="space-y-8 overflow-y-auto pr-2 scrollbar-none">
-                {activeLogs.slice(-7).map((log, i) => (
-                  <div key={i} className="flex gap-6 group animate-in slide-in-from-right-4 duration-700">
-                    <div className="w-[1px] h-12 bg-primary/20 group-hover:bg-primary transition-all" />
-                    <div className="flex flex-col justify-center">
-                      <span className="text-[8px] font-mono text-muted-foreground opacity-30 uppercase mb-1">EXEC_BLOCK_{i}</span>
-                      <span className="text-[14px] font-black text-foreground/80 uppercase tracking-tighter leading-none">{log}</span>
-                    </div>
-                  </div>
-                ))}
-                {activeLogs.length === 0 && (
-                  <div className="text-center py-20 opacity-5">
-                    <Fingerprint className="w-20 h-20 mx-auto mb-6" />
-                    <p className="text-[10px] font-black uppercase tracking-[0.4em]">{isRtl ? "في انتظار التشغيل" : "Awaiting Data"}</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-auto space-y-6 pt-10">
-                <div className="p-8 bg-primary/5 rounded-[2.5rem] border border-primary/5">
-                  <div className="flex items-center gap-3 mb-4">
-                    <ShieldCheck className="w-5 h-5 text-emerald-500" />
-                    <span className="text-[11px] font-black uppercase tracking-widest text-primary">{isRtl ? "نظام مشفر" : "AES Encrypted"}</span>
-                  </div>
-                  <p className="text-[12px] font-bold text-muted-foreground leading-relaxed italic">
-                    {isRtl ? "تشفير كامل للبيانات لضمان عدم مشاركتها مع أي جهة خارجية." : "Full encryption ensured for total privacy within your workspace."}
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </aside>
 
         </div>
       </div>
