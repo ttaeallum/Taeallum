@@ -277,13 +277,9 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 3. المرحلة 3 (الجدولة): [SUGGESTIONS: مكثف (+20 ساعة)|متوسط (10-20 ساعة)|هادئ (-10 ساعات)].
 4. المرحلة 4 (التنفيذ): استدعاء tools (البحث عن الكورسات وبناء الخطة) ثم عرض التقرير النهائي.
 
-[المرحلة النهائية (التقرير)]:
-عند انتهاء الجدولة، قم فوراً باستدعاء 'search_platform_courses' و 'create_study_plan' ثم أظهر التقرير التالي حرفياً:
-- [المرحلة: التقرير - Reporting]
-- المسار المعتمد: [اسم التخصص]
-- الخطة الزمنية: [بناءً على جدولة الطالب]
-- الحالة: [SYSTEM_ACT: ENROLLMENT_SUCCESS]
-- الرسالة الختامية: "تم تجهيز مسارك التعليمي بنجاح في taallm.com. اضغط على زر 'ابدأ الآن' للتحول لصفحة المسارات." [REDIRECT: /tracks]
+[المرحلة النهائية (الخطة جاهزة)]:
+عند انتهاء الجدولة، قم فوراً باستدعاء 'search_platform_courses' و 'create_study_plan' ثم أظهر الرسالة التالية فقط (بدون أي عناوين تقنية أو قوائم):
+"لقد قمت بتصميم مسار [اسم التخصص] خصيصاً لك. خطتك جاهزة الآن للبدء بناءً على وقتك المتاح. اضغط على الزر أدناه للانتقال للمسارات والبدء فوراً." [SUGGESTIONS: ابدأ الآن] [REDIRECT: /tracks] [SYSTEM_ACT: ENROLLMENT_SUCCESS]
 
 سياق الطالب الحالي: ${contextSummary}`
             }
@@ -508,9 +504,16 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 
         // --- 9. SAFETY GUARDS: CLEAN RESPONSE & ENSURE SUGGESTIONS ---
 
-        // A. Strip technical markers
-        const techMarkers = [/\[SYSTEM_ACT:[^\]]+\]/gi, /\[REDIRECT:[^\]]+\]/gi, /\[SUGGESTIONS\]/gi];
-        techMarkers.forEach(m => finalResponse = finalResponse.replace(m, ""));
+        // A. Clean EVERYTHING technical from the user view
+        const techPatterns = [
+            /\[SYSTEM_ACT:[^\]]+\]/gi,
+            /\[REDIRECT:[^\]]+\]/gi,
+            /\[(?:المرحلة|Reporting|المسار|الخطة|الحالة|الرسالة|التقرير)[^\]]*\]/gi, // Strip user-seen headers
+            /^-?\s*\[[^\]]+\]/gm, // Strip bullet points starting with brackets
+            /ID:\s*[a-z0-9-]+/gi, // Strip any leaked IDs
+            /\d+[\.\)]\s*\[[^\]]+\]/g // Strip numbered tech blocks
+        ];
+        techPatterns.forEach(p => finalResponse = finalResponse.replace(p, ""));
 
         // B. DETECT NUMBERED LISTS (1. X 2. Y) and convert to SUGGESTIONS if no pipe-suggestions exist
         const listRegex = /\d+[\.\)]\s*([^\d\n\r|\[]+)/g;
@@ -520,8 +523,8 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
             potentialOptions.push(listMatch[1].trim());
         }
 
-        // C. HARD GUARD: Capture and normalize pipe-based [A|B] suggestions
-        const flexibleSuggestionRegex = /\[(?:SUGGESTIONS:\s*)?([^\]]+\|[^\]\d][^\]]*)\]/gi;
+        // C. HARD GUARD: Capture and normalize pipe-based [SUGGESTIONS: A|B]
+        const flexibleSuggestionRegex = /\[(?:SUGGESTIONS:\s*)?([^\]]+\|[^\]\d][^\]]*|ابدأ الآن)\]/gi;
         const suggestionsMatches = Array.from(finalResponse.matchAll(flexibleSuggestionRegex));
 
         if (suggestionsMatches.length > 0) {
@@ -530,17 +533,18 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
             finalResponse = finalResponse.replace(/\[[^\]]+\]/g, "").trim();
             finalResponse += `\n[SUGGESTIONS: ${suggestionsContent}]`;
         } else if (potentialOptions.length > 1) {
-            // If we found a numbered list but NO bracketed suggestions, convert the list to buttons
             finalResponse = finalResponse.replace(/\d+[\.\)][^\d\n\r|\[]+/g, "").replace(/\s+/g, " ").trim();
             finalResponse += `\n[SUGGESTIONS: ${potentialOptions.join("|")}]`;
         } else {
-            // Fallback suggestions
+            // Fallback
             let contextSuggestions = "[SUGGESTIONS: صناعة البرمجيات|الذكاء الاصطناعي|التصميم الإبداعي|ريادة الأعمال الرقمية|اللغات والمهارات العامة]";
             const lowerResponse = finalResponse.toLowerCase();
-            if (lowerResponse.includes("مبتدئ") || lowerResponse.includes("مستوى")) {
+            if (lowerResponse.includes("مستوى") || lowerResponse.includes("مبتدئ")) {
                 contextSuggestions = "[SUGGESTIONS: مبتدئ كلياً|لديه أساسيات|مستوى متوسط]";
             } else if (lowerResponse.includes("ساعة") || lowerResponse.includes("وقت")) {
                 contextSuggestions = "[SUGGESTIONS: مكثف (+20 ساعة)|متوسط (10-20 ساعة)|هادئ (-10 ساعات)]";
+            } else if (lowerResponse.includes("تعلّم") || lowerResponse.includes("جاهز") || lowerResponse.includes("ابدأ")) {
+                contextSuggestions = "[SUGGESTIONS: ابدأ الآن]";
             }
             finalResponse += `\n${contextSuggestions}`;
         }
