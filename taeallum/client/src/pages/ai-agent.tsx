@@ -118,8 +118,8 @@ export default function AIAgent() {
         id: "init",
         role: "assistant",
         content: isRtl
-          ? "مرحباً بك في عصر التعلم الذكي. بصفتي مساعدك الخاص، سأقوم بتحليل مهاراتك ورسم مسار احترافي يناسب طموحاتك. لنبدأ بالخطوة الأولى: أي تخصص تعليمي ترغب في احترافه؟ [SUGGESTIONS: صناعة البرمجيات|الذكاء الاصطناعي|التصميم الإبداعي|ريادة الأعمال الرقمية|اللغات والمهارات العامة]"
-          : "Welcome to the era of intelligent learning. As your specialized assistant, I will analyze your skills and draft a professional path tailored to your ambitions. Step one: Which educational discipline do you want to master? [SUGGESTIONS: Software Engineering|AI & Data|Creative Design|Digital Entrepreneurship|Languages & Skills]",
+          ? "مرحباً بك في منصة تعلّم. أنا مساعدك التنفيذي، سأقودك لاختيار مسارك المهني في 4 خطوات. لنبدأ بالقطاع العام الذي تهتم به: [SUGGESTIONS: صناعة البرمجيات|الذكاء الاصطناعي|التصميم الإبداعي|ريادة الأعمال الرقمية|اللغات والمهارات العامة]"
+          : "Welcome to Taallm. I am your Executive Agent, I will lead you to choose your career path in 4 steps. Let's start with the sector you're interested in: [SUGGESTIONS: Software Industry|Artificial Intelligence|Creative Design|Digital Entrepreneurship|Languages & General Skills]",
         timestamp: new Date()
       }]);
     }
@@ -133,8 +133,8 @@ export default function AIAgent() {
         id: "init",
         role: "assistant",
         content: isRtl
-          ? "أهلاً بك مجدداً. لنبدأ من جديد بتحديد شغفك. أي مجال تفضل؟ [SUGGESTIONS: البرمجة وتطوير الأنظمة|علم البيانات والذكاء الاصطناعي|التصميم الإبداعي|الأعمال والتجارة الرقمية|اللغات والمهارات الشخصية]"
-          : "Welcome back. Let's start fresh by identifying your passion. Which field do you prefer? [SUGGESTIONS: Programming & Systems|Data Science & AI|Creative Design|Business & Digital Commerce|Languages & Soft Skills]",
+          ? "أهلاً بك مجدداً. لنبدأ من جديد بتحديد مسارك. أي قطاع تفضل؟ [SUGGESTIONS: صناعة البرمجيات|الذكاء الاصطناعي|التصميم الإبداعي|ريادة الأعمال الرقمية|اللغات والمهارات العامة]"
+          : "Welcome back. Let's start fresh by identifying your path. Which sector do you prefer? [SUGGESTIONS: Software Industry|Artificial Intelligence|Creative Design|Digital Entrepreneurship|Languages & General Skills]",
         timestamp: new Date()
       }]);
       setActiveLogs([]);
@@ -247,22 +247,59 @@ export default function AIAgent() {
           <main className="flex-1 flex flex-col h-full min-w-0 overflow-hidden relative">
             <Card className="flex-1 bg-white dark:bg-[#0c0c0c] border border-white/20 dark:border-white/5 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] rounded-3xl lg:rounded-[2.5rem] flex flex-col overflow-hidden relative backdrop-blur-3xl h-full">
 
+              {/* Predictive Progress Header */}
+              <div className="px-6 lg:px-10 pt-6 pb-2 border-b border-border/5 bg-zinc-50/50 dark:bg-zinc-900/20 shrink-0">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                      <Target className="w-5 h-5 text-primary" />
+                    </div>
+                    <span className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/60">{isRtl ? "مراحل بناء الخطة" : "Progress Pathway"}</span>
+                  </div>
+                  <span className="text-[11px] font-black text-primary bg-primary/10 px-3 py-1 rounded-full">{isRtl ? `المرحلة ${currentStep} من 5` : `Step ${currentStep} of 5`}</span>
+                </div>
+                <div className="flex gap-2 h-1.5 w-full bg-muted/20 rounded-full overflow-hidden mb-2">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <div
+                      key={s}
+                      className={cn(
+                        "flex-1 transition-all duration-700 rounded-full",
+                        currentStep >= s ? "bg-primary shadow-[0_0_10px_rgba(var(--primary),0.5)]" : "bg-muted/40"
+                      )}
+                    />
+                  ))}
+                </div>
+                <div className="flex justify-between px-1">
+                  {[
+                    isRtl ? "قطاع" : "Sector",
+                    isRtl ? "تخصص" : "Special",
+                    isRtl ? "مستوى" : "Level",
+                    isRtl ? "وقت" : "Time",
+                    isRtl ? "خارطة" : "Plan"
+                  ].map((label, idx) => (
+                    <span key={idx} className={cn("text-[8px] font-black uppercase tracking-tighter transition-colors", currentStep === idx + 1 ? "text-primary" : "text-muted-foreground/20")}>
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
               {/* Intelligent Header */}
-              <header className="px-6 lg:px-10 py-4 lg:py-6 flex items-center justify-between border-b border-border/5 bg-white/20 dark:bg-black/20 shrink-0">
+              <header className="px-6 lg:px-10 py-4 flex items-center justify-between border-b border-border/5 bg-white/50 dark:bg-black/20 shrink-0 backdrop-blur-md sticky top-0 z-20">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-zinc-900 dark:bg-white rounded-xl flex items-center justify-center rotate-3 shadow-2xl overflow-hidden group">
-                    <Bot className="w-6 h-6 text-white dark:text-black group-hover:scale-110 transition-transform" />
+                  <div className="w-10 h-10 bg-zinc-900 dark:bg-white rounded-xl flex items-center justify-center rotate-3 shadow-xl overflow-hidden group">
+                    <Bot className="w-5 h-5 text-white dark:text-black group-hover:scale-110 transition-transform" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-black tracking-tighter">{isRtl ? "المساعد الذكي" : "Neural Assistant"}</h2>
+                    <h2 className="text-lg font-black tracking-tighter">{isRtl ? "المساعد الذكي" : "Neural Assistant"}</h2>
                     <div className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
-                      <span className="text-[9px] font-mono text-muted-foreground uppercase opacity-40">System Node: Secure_4o_Mini</span>
+                      <span className="text-[9px] font-mono text-muted-foreground uppercase opacity-40">Active_Node_4o_Mini</span>
                     </div>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={handleNewChat} className="h-12 w-12 rounded-2xl hover:bg-primary/5 text-muted-foreground">
-                  <RotateCcw className="w-5 h-5" />
+                <Button variant="ghost" size="icon" onClick={handleNewChat} className="h-10 w-10 rounded-xl hover:bg-primary/5 text-muted-foreground">
+                  <RotateCcw className="w-4 h-4" />
                 </Button>
               </header>
 
@@ -270,7 +307,7 @@ export default function AIAgent() {
               <div
                 ref={scrollRef}
                 onScroll={handleScroll}
-                className="flex-1 overflow-y-auto px-6 lg:px-20 py-12 space-y-12 scrollbar-none relative"
+                className="flex-1 overflow-y-auto px-4 lg:px-12 py-8 space-y-8 scrollbar-none relative"
               >
                 <AnimatePresence initial={false}>
                   {messages.map((msg, i) => {
@@ -286,25 +323,25 @@ export default function AIAgent() {
                         className={cn("flex flex-col gap-4", msg.role === "user" ? "items-end" : "items-start")}
                       >
                         <div className={cn(
-                          "relative px-6 py-4 lg:px-8 lg:py-6 shadow-sm transition-all duration-500",
+                          "relative px-5 py-3 lg:px-7 lg:py-4 shadow-sm transition-all duration-500",
                           msg.role === "user"
-                            ? "bg-primary text-primary-foreground font-black rounded-3xl rounded-tr-md shadow-2xl shadow-primary/10"
-                            : "bg-white dark:bg-zinc-900/80 border border-border/40 text-foreground font-bold rounded-3xl rounded-tl-md shadow-3xl shadow-black/5 dark:shadow-none"
+                            ? "bg-primary text-primary-foreground font-black rounded-2xl rounded-tr-sm shadow-xl shadow-primary/5"
+                            : "bg-white dark:bg-zinc-900/90 border border-border/40 text-foreground font-bold rounded-2xl rounded-tl-sm shadow-lg shadow-black/5 dark:shadow-none"
                         )}>
-                          <div className={cn("text-base lg:text-[16px] leading-[1.6]", isRtl ? "text-right" : "text-left")}>
+                          <div className={cn("text-base leading-[1.5]", isRtl ? "text-right" : "text-left")}>
                             {cleanContent}
                           </div>
 
                           {msg.role === "assistant" && suggestionMatch && (
-                            <div className="mt-12 flex flex-wrap gap-4 justify-end">
+                            <div className="mt-8 flex flex-wrap gap-3 justify-end">
                               {suggestionMatch[1].split("|").map((suggestion, idx) => (
                                 <motion.button
                                   key={idx}
-                                  whileHover={{ y: -5, scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
+                                  whileHover={{ y: -3, scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
                                   onClick={() => handleSendMessage(suggestion.trim())}
                                   disabled={isLoading || i < messages.length - 1}
-                                  className="px-8 py-4 rounded-[1.5rem] bg-primary/10 dark:bg-primary/20 border border-primary/20 text-primary hover:bg-primary hover:text-white transition-all text-[13px] font-black shadow-xl"
+                                  className="px-5 py-2.5 rounded-xl bg-primary/5 dark:bg-primary/10 border border-primary/10 text-primary hover:bg-primary hover:text-white transition-all text-[12px] font-black"
                                 >
                                   {suggestion.trim()}
                                 </motion.button>
@@ -312,9 +349,9 @@ export default function AIAgent() {
                             </div>
                           )}
                         </div>
-                        <div className="px-8">
-                          <span className="text-[10px] font-black uppercase text-muted-foreground/30 tracking-[0.2em] italic">
-                            {msg.role === "assistant" ? "Neural Reply" : "Authenticated Input"}
+                        <div className="px-4">
+                          <span className="text-[9px] font-black uppercase text-muted-foreground/30 tracking-[0.1em]">
+                            {msg.role === "assistant" ? (isRtl ? "رد المساعد" : "Assistant") : (isRtl ? "طلبك" : "Your Input")}
                           </span>
                         </div>
                       </motion.div>
@@ -348,10 +385,10 @@ export default function AIAgent() {
               </AnimatePresence>
 
               {/* PROMPT CONSOLE (FIXED AT BOTTOM) */}
-              <div className="p-6 lg:p-8 bg-gradient-to-t from-white dark:from-black to-transparent shrink-0">
-                <div className="relative group max-w-4xl mx-auto">
-                  <div className="absolute -inset-2 bg-primary/20 rounded-3xl blur-xl opacity-20 group-focus-within:opacity-100 transition duration-700" />
-                  <div className="relative flex items-center bg-white/95 dark:bg-zinc-900 border border-border/80 dark:border-white/10 rounded-[2rem] lg:rounded-[2.5rem] overflow-hidden shadow-2xl px-6 lg:px-10 py-3 focus-within:ring-4 focus-within:ring-primary/5 transition-all">
+              <div className="p-4 lg:p-6 bg-gradient-to-t from-white dark:from-black to-white/0 shrink-0 relative z-30">
+                <div className="relative group max-w-3xl mx-auto">
+                  <div className="absolute -inset-2 bg-primary/10 rounded-2xl blur-lg opacity-20 group-focus-within:opacity-100 transition duration-700" />
+                  <div className="relative flex items-center bg-white/95 dark:bg-zinc-900/90 border border-border/50 dark:border-white/5 rounded-2xl overflow-hidden shadow-xl px-5 py-2 focus-within:shadow-primary/5 transition-all">
                     <Textarea
                       ref={textareaRef}
                       value={inputValue}
@@ -362,17 +399,17 @@ export default function AIAgent() {
                           handleSendMessage();
                         }
                       }}
-                      placeholder={isRtl ? "اهمس بأهدافك للمساعد..." : "Dictate your goals to the assistant..."}
-                      className="flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 resize-none min-h-[40px] max-h-[140px] text-lg py-3 px-0 font-medium placeholder:text-muted-foreground/10"
+                      placeholder={isRtl ? "اكتب ردك هنا..." : "Type your response..."}
+                      className="flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 resize-none min-h-[40px] max-h-[120px] text-base py-2 px-0 font-medium placeholder:text-muted-foreground/30"
                       disabled={isLoading}
                     />
                     <Button
                       onClick={() => handleSendMessage()}
                       disabled={!inputValue.trim() || isLoading}
                       size="icon"
-                      className="h-14 w-14 lg:h-16 lg:w-16 rounded-full shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex-shrink-0"
+                      className="h-10 w-10 rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all flex-shrink-0"
                     >
-                      <Send className={cn("w-6 h-6 lg:w-8 h-8", isRtl && "rotate-180")} />
+                      <Send className={cn("w-5 h-5", isRtl && "rotate-180")} />
                     </Button>
                   </div>
                 </div>

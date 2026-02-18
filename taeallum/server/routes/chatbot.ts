@@ -254,33 +254,35 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
         const openaiMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
             {
                 role: "system",
-                content: `أنت "المساعد الذكي الخبير" لمنصة "تعلّم" (Taeallum). هدفك هو إجراء تشخيص مهني سريع ودقيق لبناء خارطة طريق تعليمية.
+                content: `[System Instruction: Taallm Executive Agent]
+أنت "العميل التنفيذي" لمنصة Taallm التعليمية. مهمتك هي قيادة الطالب عبر "شجرة المنطق" المكونة من 4 مراحل للوصول إلى واحد من الـ 26 تخصصاً المتاحة.
 
-[التدفق الهرمي لاكتشاف التخصص]:
-يجب أن يمر المستخدم بالمسار التالي في "المرحلة 1" قبل الانتقال لأي سؤال آخر:
-1. اختيار القطاع العام (أحد الخمسة الكبار).
-2. عند اختيار قطاع، اعرض فوراً التخصصات الدقيقة التابعة له كأزرار [SUGGESTIONS].
-3. لا يسمح بالانتقال للمرحلة 2 (النمط التحليلي) إلا بعد أن يختار المستخدم "التخصص المستهدف" الدقيق.
+[بروتوكول التعامل]:
+1. ممنوع الارتجال: اتبع المسار حصراً (القطاع -> التخصص -> المستوى -> الجدولة).
+2. الخيارات فقط: لا تطلب نصاً طويلاً، بل اطلب دائماً "الاختيار من القائمة" عبر أزرار [SUGGESTIONS].
+3. رسالتك سطر واحد: مهني، مباشر، ومشجع.
+4. اللغة: عربية مهنية ودودة.
 
-[خريطة التخصصات الإلزامية]:
+[خريطة التخصصات (26 تخصص)]:
 - صناعة البرمجيات -> [تطوير الويب|تطوير تطبيقات الموبايل|هندسة البرمجيات|تطوير الألعاب|DevOps والبنية التحتية|اختيار البرمجيات وضمان الجودة]
 - الذكاء الاصطناعي -> [تحليل البيانات وذكاء الأعمال|تعلم الآلة والذكاء الاصطناعي|الحوسبة السحابية|الأمن السيبراني]
 - التصميم الإبداعي -> [تصميم الواجهات UI/UX|التصميم الجرافيكي|الموشن جرافيك|المونتاج وصناعة المحتوى]
-- ريادة الأعمال الرقمية -> [التجارة الإلكترونية|التسويق الرقمي|التسويق بالمحتوى وSEO|إدارة المنتجات|إدارة المشاريع|التداول والاستثمار]
+- ريادة الأعمال الرقمية -> [التجارة الإلكترونية|التسويق الرقمي|التسويق بالمحتوى وSEO|إدارة المنتجات|إدارة المشاريع|التداول والاستثمار|دروب شوبينج]
 - اللغات والمهارات العامة -> [اللغة الإنجليزية|برامج أوفيس|مهارات القيادة والتواصل|العمل الحر Freelancing]
 
-[مراحل العمل - تسلسل خطي صارم]:
-المرحلة 1 [اكتشاف الشغف]: تحديد (القطاع -> التخصص الدقيق). 
-المرحلة 2 [النمط التحليلي]: تحديد أسلوب التعلم (نظري/تطبيقي).
-المرحلة 3 [جدولة المسار]: تحديد عدد الساعات الأسبوعية.
-المرحلة 4 [تأكيد المهارة]: تحديد المستوى الحالي (مبتدئ/متوسط).
-المرحلة 5 [وضع التنفيذ]: عرض الخطة النهائية.
+[مراحل العمل]:
+1. المرحلة 1 (القطاع والتخصص): عرض القطاعات الخمسة، ثم عند الاختيار عرض التخصصات الدقيقة فوراً.
+2. المرحلة 2 (المستوى): [SUGGESTIONS: مبتدئ كلياً|لديه أساسيات|مستوى متوسط].
+3. المرحلة 3 (الجدولة): [SUGGESTIONS: مكثف (+20 ساعة)|متوسط (10-20 ساعة)|هادئ (-10 ساعات)].
+4. المرحلة 4 (التنفيذ): استدعاء tools (البحث عن الكورسات وبناء الخطة) ثم عرض التقرير النهائي.
 
-[القواعد الصارمة]:
-1. ممنوع العودة للخلف أو السؤال عن أشياء تم تحديدها.
-2. يجب أن تنتهي كل رسالة بخيارات كأزرار بتنسيق [SUGGESTIONS: خيار|خيار].
-3. رسالتك يجب أن تكون سطر واحد فقط: مهني، مباشر، ومشجع.
-4. لا تظهر أي رموز تقنية أو UUIDs.
+[المرحلة النهائية (التقرير)]:
+عند انتهاء الجدولة، قم فوراً باستدعاء 'search_platform_courses' و 'create_study_plan' ثم أظهر التقرير التالي حرفياً:
+- [المرحلة: التقرير - Reporting]
+- المسار المعتمد: [اسم التخصص]
+- الخطة الزمنية: [بناءً على جدولة الطالب]
+- الحالة: [SYSTEM_ACT: ENROLLMENT_SUCCESS]
+- الرسالة الختامية: "تم تجهيز مسارك التعليمي بنجاح في taallm.com. اضغط على زر 'ابدأ الآن' للتحول لصفحة المسارات." [REDIRECT: /tracks]
 
 سياق الطالب الحالي: ${contextSummary}`
             }
@@ -556,21 +558,17 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
         // 8. Finalize Response and determine step
         let step = 1;
 
-        if (finalResponse.includes("REDIRECT: /tracks") || finalResponse.includes("وضع التنفيذ")) {
-            step = 5; // Path Creation
-        } else if (finalResponse.includes("تأكيد المهارة") || finalResponse.includes("المستوى الحالي")) {
-            step = 4; // Baseline
-        } else if (finalResponse.includes("جدولة المسار") || finalResponse.includes("الساعات الأسبوعية")) {
-            step = 3; // Habits/Time
-        } else if (finalResponse.includes("النمط التحليلي") || finalResponse.includes("أسلوب التعلم")) {
-            step = 2; // Psychology
-        } else if (finalResponse.includes("اكتشاف الشغف") || finalResponse.includes("القطاع المهني")) {
-            step = 1; // Discovery
-        } else if (finalResponse.includes("SUGGESTIONS:")) {
-            // Context-based fallback for steps
-            if (finalResponse.includes("ساعات") || finalResponse.includes("أسبوعياً")) step = 3;
-            else if (finalResponse.includes("تطبيق") || finalResponse.includes("نظري")) step = 2;
-            else if (finalResponse.includes("تطوير") || finalResponse.includes("بيانات")) step = 1;
+        if (finalResponse.includes("REDIRECT: /tracks") || finalResponse.includes("التقرير")) {
+            step = 5; // Final Plan
+        } else if (finalResponse.includes("جدولة") || finalResponse.includes("ساعة")) {
+            step = 4; // Schedule
+        } else if (finalResponse.includes("المستوى") || finalResponse.includes("مبتدئ")) {
+            step = 3; // Level
+        } else if (finalResponse.includes("تطوير الويب") || finalResponse.includes("الذكاء الاصطناعي") || finalResponse.includes("تخصص")) {
+            // If it lists specialties or asks for one
+            step = 2; // Specialty
+        } else if (finalResponse.includes("مرحباً") || finalResponse.includes("القطاعات") || finalResponse.includes("مجال")) {
+            step = 1; // Sector/Discovery
         }
 
 
