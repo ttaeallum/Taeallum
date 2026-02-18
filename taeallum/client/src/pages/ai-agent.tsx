@@ -281,7 +281,10 @@ export default function AIAgent() {
                     isRtl ? "وقت" : "Time",
                     isRtl ? "خارطة" : "Plan"
                   ].map((label, idx) => (
-                    <span key={idx} className={cn("text-[8px] font-black uppercase tracking-tighter transition-colors", currentStep === idx + 1 ? "text-primary" : "text-muted-foreground/20")}>
+                    <span key={idx} className={cn(
+                      "text-[8px] font-black uppercase tracking-tighter transition-colors hidden sm:inline-block",
+                      currentStep === idx + 1 ? "text-primary" : "text-muted-foreground/20"
+                    )}>
                       {label}
                     </span>
                   ))}
@@ -332,19 +335,18 @@ export default function AIAgent() {
 
                     return (
                       <motion.div
-                        key={i}
-                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                        key={msg.id}
+                        initial={{ opacity: 0, y: 10, scale: 0.98 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        transition={{ duration: 0.4, delay: i * 0.05 }}
-                        className={cn("flex flex-col gap-4", msg.role === "user" ? "items-end" : "items-start")}
+                        className={cn("flex flex-col gap-3 max-w-[92%] sm:max-w-[85%]", msg.role === "user" ? "self-start" : "self-end items-end")}
                       >
                         <div className={cn(
-                          "relative px-5 py-4 lg:px-7 lg:py-5 transition-all duration-500 group",
+                          "p-4 md:p-6 lg:p-7 rounded-[1.8rem] relative shadow-lg group",
                           msg.role === "user"
-                            ? "bg-primary text-primary-foreground font-black rounded-2xl rounded-tr-sm shadow-xl shadow-primary/10"
-                            : "bg-white/80 dark:bg-zinc-900/90 backdrop-blur-md border border-border/40 text-foreground font-bold rounded-2xl rounded-tl-sm shadow-lg shadow-black/5 dark:shadow-none ring-1 ring-black/[0.02] dark:ring-white/[0.02]"
+                            ? "bg-zinc-100 dark:bg-zinc-800 text-foreground rounded-tr-none"
+                            : "bg-primary text-primary-foreground rounded-tl-none font-bold"
                         )}>
-                          <div className={cn("text-base leading-[1.6] selection:bg-primary/30", isRtl ? "text-right" : "text-left")}>
+                          <div className="text-[14px] md:text-base leading-relaxed break-words">
                             {cleanContent}
                           </div>
 
@@ -408,7 +410,7 @@ export default function AIAgent() {
               </AnimatePresence>
 
               {/* INPUT AREA (FIXED AT BOTTOM) */}
-              <footer className="px-6 lg:px-10 py-6 border-t border-border/5 bg-white/80 dark:bg-black/40 backdrop-blur-xl shrink-0 z-20">
+              <footer className="px-4 md:px-10 py-5 lg:py-6 border-t border-border/5 bg-white/80 dark:bg-black/40 backdrop-blur-xl shrink-0 z-20">
                 <div className="max-w-4xl mx-auto w-full relative">
                   {currentStep === 5 ? (
                     <motion.div

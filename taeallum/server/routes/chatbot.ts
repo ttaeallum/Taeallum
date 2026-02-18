@@ -237,12 +237,10 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                                 items: {
                                     type: "object",
                                     properties: {
-                                        title: { type: "string", description: "Milestone name (Arabic)" },
-                                        description: { type: "string", description: "Broad activities (Arabic)" },
-                                        courseIds: { type: "array", items: { type: "string" }, description: "Array of course UUIDs from search_platform_courses results to link to this milestone" }
                                     }
                                 }
-                            }
+                            },
+                            categoryHint: { type: "string", description: "Optional category slug or keyword to strictly filter courses (e.g. 'coding', 'languages')" }
                         },
                         required: ["title", "description", "duration", "totalHours", "milestones"]
                     }
@@ -270,6 +268,13 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 - التصميم الإبداعي -> [تصميم الواجهات UI/UX|التصميم الجرافيكي|الموشن جرافيك|المونتاج وصناعة المحتوى]
 - ريادة الأعمال الرقمية -> [التجارة الإلكترونية|التسويق الرقمي|التسويق بالمحتوى وSEO|إدارة المنتجات|إدارة المشاريع|التداول والاستثمار|دروب شوبينج]
 - اللغات والمهارات العامة -> [اللغة الإنجليزية|برامج أوفيس|مهارات القيادة والتواصل|العمل الحر Freelancing]
+
+[قواعد العزل الصارمة - هام جداً]:
+- ممنوع خلط التخصصات: مسار "تطوير الويب" يجب أن يحتوي حصراً على دورات ويب.
+- ممنوع جلب دورات الأمن السيبراني لمسار الويب، أو دورات البرمجة لمسار اللغات.
+- استخدم 'categoryHint' (مثل: coding, web, ai, design, business, marketing, english) في 'create_study_plan' لقفص النتائج داخل التخصص.
+- إذا لم تجد دورة مطابقة تماماً في 'search_platform_courses'، اجعل المرحلة وصفية ولكن لا تربطها بكورسات عشوائية من تخصصات أخرى.
+- ابحث عن الكورسات أولاً باستخدام 'search_platform_courses' قبل إنشاء الخطة.
 
 [مراحل العمل]:
 1. المرحلة 1 (القطاع والتخصص): عرض القطاعات الخمسة، ثم عند الاختيار عرض التخصصات الدقيقة فوراً.
@@ -396,13 +401,33 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                         toolLogs.push(`هندسة مسار تعليمي: ${args.title}`);
 
                         // Fetch all platform courses to match with milestones
-                        const allCourses = await db.query.courses.findMany({
-                            where: eq(courses.isPublished, true)
+                        let courseQuery = db.query.courses.findMany({
+                            where: eq(courses.isPublished, true),
+                            with: { category: true }
                         });
+                        const allCoursesRaw = await courseQuery;
+
+                        // Strict filter if categoryHint provided
+                        let allCourses = allCoursesRaw;
+                        if (args.categoryHint) {
+                            const hint = args.categoryHint.toLowerCase();
+                            allCourses = allCoursesRaw.filter(c =>
+                                (c.category?.slug || "").toLowerCase().includes(hint) ||
+                                (c.category?.name || "").toLowerCase().includes(hint) ||
+                                (c.category?.description || "").toLowerCase().includes(hint)
+                            );
+
+                            // NO FALLBACK. If no courses in this category, allCourses remains filtered (empty)
+                            // This forces strict isolation as requested.
+                            if (allCourses.length === 0) {
+                                console.log(`🔒 Isolation Enforced: No courses match categoryHint '${hint}'.`);
+                            }
+                        }
 
                         // Build enriched milestones with course details
                         const enrichedMilestones = (args.milestones || []).map((m: any) => {
                             const milestoneCoursIds = m.courseIds || [];
+                            // Match ONLY against already filtered 'allCourses' (which respects categoryHint)
                             const matchedCourses = allCourses.filter(c => milestoneCoursIds.includes(c.id));
 
                             return {
@@ -418,15 +443,15 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                             };
                         });
 
-                        // If no courses were matched via AI, auto-match by keyword
+                        // If no courses were matched via AI, auto-match by keyword within the ISOLATED subset
                         const totalMatched = enrichedMilestones.reduce((sum: number, m: any) => sum + m.courses.length, 0);
                         if (totalMatched === 0 && allCourses.length > 0) {
                             for (const milestone of enrichedMilestones) {
                                 const keywords = milestone.title.toLowerCase().split(/\s+/);
                                 const matched = allCourses.filter(c =>
                                     keywords.some((kw: string) => kw.length > 2 && (
-                                        c.title.toLowerCase().includes(kw) ||
-                                        c.description.toLowerCase().includes(kw)
+                                        (c.title && c.title.toLowerCase().includes(kw)) ||
+                                        (c.description && c.description.toLowerCase().includes(kw))
                                     ))
                                 ).slice(0, 3);
                                 milestone.courses = matched.map(c => ({

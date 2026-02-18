@@ -65,8 +65,8 @@ export default function Home() {
   return (
     <Layout>
       <Seo
-        title="الرئيسية"
-        description="منصة تعلّم هي بوابتك لاحتراف البرمجة، تطوير الويب، تطبيقات الموبايل والذكاء الاصطناعي باللغة العربية."
+        title="تعلّم (Taallm) | دورات مجانية ومهارات مجانية"
+        description="منصة تعلّم (Taallm) هي وجهتك الأولى لاحتراف البرمجة والطلوب في سوق العمل من خلال دورات مجانية ومهارات مجانية باللغة العربية."
       />
       {coursesSchema && (
         <script type="application/ld+json">
@@ -122,12 +122,12 @@ export default function Home() {
               transition={{ duration: 1, ease: "easeOut" }}
               className="relative mt-12 lg:mt-0"
             >
-              <div className="relative z-10 rounded-[2.5rem] md:rounded-[3.5rem] overflow-hidden shadow-[0_0_100px_-20px_rgba(0,0,0,0.5)] border-4 md:border-[12px] border-background/30 backdrop-blur-xl group">
+              <div className="relative z-10 rounded-[2rem] md:rounded-[3.5rem] overflow-hidden shadow-[0_0_100px_-20px_rgba(0,0,0,0.5)] border-2 md:border-[12px] border-background/30 backdrop-blur-xl group">
                 <div className="absolute inset-0 bg-primary/10 group-hover:bg-transparent transition-colors duration-700 z-10" />
                 <img
                   src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1200&q=80"
                   alt="Modern Learning"
-                  className="w-full h-auto aspect-[4/5] object-cover transition-transform duration-1000 group-hover:scale-110"
+                  className="w-full h-auto aspect-video sm:aspect-[4/5] object-cover transition-transform duration-1000 group-hover:scale-110"
                 />
               </div>
 

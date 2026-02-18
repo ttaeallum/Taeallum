@@ -27,6 +27,8 @@ export default function LearnCourse() {
     const { courseId } = useParams();
     const [, setLocation] = useLocation();
     const [activeLesson, setActiveLesson] = useState<any>(null);
+    const { i18n } = useTranslation();
+    const isRtl = i18n.language === "ar";
 
     const { data: user } = useQuery({
         queryKey: ["auth-me"],
@@ -203,8 +205,8 @@ export default function LearnCourse() {
                             <ChevronRight className="w-5 h-5" />
                         </Button>
                     </Link>
-                    <div className="flex flex-col">
-                        <h1 className="font-bold text-base md:text-lg leading-none tracking-tight text-white/90 truncate max-w-[200px] md:max-w-md">
+                    <div className="flex flex-col min-w-0">
+                        <h1 className="font-bold text-sm md:text-lg leading-tight tracking-tight text-white/90 truncate max-w-[140px] xs:max-w-[200px] md:max-w-md">
                             {course?.title || "تحميل..."}
                         </h1>
                         <div className="flex items-center gap-3 mt-1.5">
@@ -305,7 +307,7 @@ export default function LearnCourse() {
                 <main className="flex-1 overflow-y-auto bg-black flex flex-col items-center custom-scrollbar">
                     {/* Cinematic Video Area (Large) - Full Width for Mobile & Desktop */}
                     <div className="w-full bg-zinc-950 border-b border-white/5 shadow-2xl relative z-10 group/player">
-                        <div className="w-full aspect-video relative max-h-[45vh] min-h-[200px] md:max-h-none">
+                        <div className="w-full aspect-video relative max-h-[50vh] min-h-[180px] md:max-h-none">
                             {/* Player Wrapper with refined shadows */}
                             <div className="w-full h-full relative z-20">
                                 {renderVideoPlayer()}
@@ -364,22 +366,22 @@ export default function LearnCourse() {
                                         </h2>
                                     </div>
 
-                                    <div className="flex items-center gap-3 shrink-0">
+                                    <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full sm:w-auto">
                                         <Button
                                             variant="outline"
-                                            className="bg-white/5 border-white/10 text-white hover:bg-white/10 gap-2 px-8 h-12 rounded-2xl font-bold transition-all"
+                                            className="bg-white/5 border-white/10 text-white hover:bg-white/10 gap-2 px-6 h-12 rounded-2xl font-bold transition-all w-full sm:w-auto order-2 sm:order-1"
                                             disabled={!prevLesson}
                                             onClick={() => prevLesson && setActiveLesson(prevLesson)}
                                         >
                                             <ChevronRight className="w-5 h-5" />
-                                            السابق
+                                            {isRtl ? "السابق" : "Prev"}
                                         </Button>
                                         <Button
-                                            className="bg-primary hover:bg-primary/90 text-white gap-2 px-8 h-12 rounded-2xl font-black shadow-xl shadow-primary/20 transition-all active:scale-95"
+                                            className="bg-primary hover:bg-primary/90 text-white gap-2 px-6 h-12 rounded-2xl font-black shadow-xl shadow-primary/20 transition-all active:scale-95 w-full sm:w-auto order-1 sm:order-2"
                                             disabled={!nextLesson}
                                             onClick={() => nextLesson && setActiveLesson(nextLesson)}
                                         >
-                                            التالي
+                                            {isRtl ? "التالي" : "Next"}
                                             <ChevronLeft className="w-5 h-5" />
                                         </Button>
                                     </div>
