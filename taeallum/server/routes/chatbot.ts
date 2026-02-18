@@ -519,21 +519,27 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
         }
 
         // C. HARD GUARD: Capture and normalize suggestions (handle [A|B] or [SUGGESTIONS: A|B])
-        const flexibleSuggestionRegex = /\[(SUGGESTIONS:\s*)?([^\]]+\|[^\]]+)\]/gi;
+        const flexibleSuggestionRegex = /\[(?:SUGGESTIONS:\s*)?([^\]]+\|[^\]\d][^\]]*)\]/gi;
 
-        if (flexibleSuggestionRegex.test(finalResponse)) {
-            // Normalize to [SUGGESTIONS: option|option]
-            finalResponse = finalResponse.replace(flexibleSuggestionRegex, (match, p1, p2) => {
-                return `[SUGGESTIONS: ${p2.trim()}]`;
-            });
+        // Find all matches first to avoid regex state issues
+        const suggestionsMatches = Array.from(finalResponse.matchAll(flexibleSuggestionRegex));
+
+        if (suggestionsMatches.length > 0) {
+            // Keep only the LAST unique set of suggestions to avoid AI repeating itself
+            const lastMatch = suggestionsMatches[suggestionsMatches.length - 1];
+            const suggestionsContent = lastMatch[1].trim();
+
+            // Strip ALL bracketed blocks from the message text
+            finalResponse = finalResponse.replace(/\[[^\]]+\]/g, "").trim();
+
+            // Re-append the normalized version at the end
+            finalResponse += `\n[SUGGESTIONS: ${suggestionsContent}]`;
         } else {
             // Ensure suggestions exist if totally missing
-            let contextSuggestions = "[SUGGESTIONS: موافق|توضيح أكثر]"; // Global fallback
+            let contextSuggestions = "[SUGGESTIONS: صناعة البرمجيات|الذكاء الاصطناعي|التصميم الإبداعي|ريادة الأعمال الرقمية|اللغات والمهارات العامة]"; // Global fallback
 
             const lowerResponse = finalResponse.toLowerCase();
-            if (lowerResponse.includes("قطاع") || lowerResponse.includes("مجال")) {
-                contextSuggestions = "[SUGGESTIONS: صناعة البرمجيات|الذكاء الاصطناعي|التصميم الإبداعي|ريادة الأعمال الرقمية|اللغات والمهارات العامة]";
-            } else if (lowerResponse.includes("مبتدئ") || lowerResponse.includes("مستوى")) {
+            if (lowerResponse.includes("مبتدئ") || lowerResponse.includes("مستوى")) {
                 contextSuggestions = "[SUGGESTIONS: مبتدئ كلياً|لديه أساسيات|مستوى متوسط]";
             } else if (lowerResponse.includes("ساعة") || lowerResponse.includes("وقت")) {
                 contextSuggestions = "[SUGGESTIONS: مكثف (+20 ساعة)|متوسط (10-20 ساعة)|هادئ (-10 ساعات)]";

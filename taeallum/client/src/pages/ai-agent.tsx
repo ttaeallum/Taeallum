@@ -317,31 +317,32 @@ export default function AIAgent() {
 
                     return (
                       <motion.div
-                        key={msg.id}
-                        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                        key={i}
+                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ duration: 0.4, delay: i * 0.05 }}
                         className={cn("flex flex-col gap-4", msg.role === "user" ? "items-end" : "items-start")}
                       >
                         <div className={cn(
-                          "relative px-5 py-3 lg:px-7 lg:py-4 shadow-sm transition-all duration-500",
+                          "relative px-5 py-4 lg:px-7 lg:py-5 transition-all duration-500 group",
                           msg.role === "user"
-                            ? "bg-primary text-primary-foreground font-black rounded-2xl rounded-tr-sm shadow-xl shadow-primary/5"
-                            : "bg-white dark:bg-zinc-900/90 border border-border/40 text-foreground font-bold rounded-2xl rounded-tl-sm shadow-lg shadow-black/5 dark:shadow-none"
+                            ? "bg-primary text-primary-foreground font-black rounded-2xl rounded-tr-sm shadow-xl shadow-primary/10"
+                            : "bg-white/80 dark:bg-zinc-900/90 backdrop-blur-md border border-border/40 text-foreground font-bold rounded-2xl rounded-tl-sm shadow-lg shadow-black/5 dark:shadow-none ring-1 ring-black/[0.02] dark:ring-white/[0.02]"
                         )}>
-                          <div className={cn("text-base leading-[1.5]", isRtl ? "text-right" : "text-left")}>
+                          <div className={cn("text-base leading-[1.6] selection:bg-primary/30", isRtl ? "text-right" : "text-left")}>
                             {cleanContent}
                           </div>
 
                           {msg.role === "assistant" && suggestionMatch && (
-                            <div className="mt-8 flex flex-wrap gap-3 justify-end">
+                            <div className="mt-8 flex flex-wrap gap-2.5 justify-end">
                               {suggestionMatch[1].split("|").map((suggestion, idx) => (
                                 <motion.button
                                   key={idx}
-                                  whileHover={{ y: -3, scale: 1.02 }}
+                                  whileHover={{ y: -3, scale: 1.02, backgroundColor: "rgb(var(--primary))", color: "#fff" }}
                                   whileTap={{ scale: 0.98 }}
                                   onClick={() => handleSendMessage(suggestion.trim())}
                                   disabled={isLoading || i < messages.length - 1}
-                                  className="px-5 py-2.5 rounded-xl bg-primary/5 dark:bg-primary/10 border border-primary/10 text-primary hover:bg-primary hover:text-white transition-all text-[12px] font-black"
+                                  className="px-5 py-2.5 rounded-xl bg-primary/10 dark:bg-primary/20 border border-primary/20 text-primary transition-all text-[12px] font-black shadow-sm"
                                 >
                                   {suggestion.trim()}
                                 </motion.button>
@@ -349,9 +350,10 @@ export default function AIAgent() {
                             </div>
                           )}
                         </div>
-                        <div className="px-4">
-                          <span className="text-[9px] font-black uppercase text-muted-foreground/30 tracking-[0.1em]">
-                            {msg.role === "assistant" ? (isRtl ? "رد المساعد" : "Assistant") : (isRtl ? "طلبك" : "Your Input")}
+                        <div className="px-5 flex items-center gap-2">
+                          <span className="w-1 h-1 rounded-full bg-primary/30" />
+                          <span className="text-[9px] font-black uppercase text-muted-foreground/40 tracking-[0.15em]">
+                            {msg.role === "assistant" ? (isRtl ? "استجابة عصبية" : "Neural Response") : (isRtl ? "مدخلات الطالب" : "Student Input")}
                           </span>
                         </div>
                       </motion.div>
