@@ -523,25 +523,31 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
             potentialOptions.push(listMatch[1].trim());
         }
 
-        // C. HARD GUARD: Capture and normalize pipe-based [SUGGESTIONS: A|B] OR single [ابدأ الآن]
+        // C. HARD GUARD: Capture and normalize suggestions
         const flexibleSuggestionRegex = /\[(?:SUGGESTIONS:\s*)?([^\]\|]+\|[^\]\d][^\]]*|ابدأ الآن)\]/gi;
         const suggestionsMatches = Array.from(finalResponse.matchAll(flexibleSuggestionRegex));
 
         let finalSuggestions = "";
+        const lowerResponse = finalResponse.toLowerCase();
+
+        // Smarter phase detection for fallback
+        const isFinalPhase = lowerResponse.includes("جاهز") || lowerResponse.includes("ابدأ") ||
+            lowerResponse.includes("مسار") || lowerResponse.includes("تم تجهيز") ||
+            finalResponse.includes("REDIRECT: /tracks");
 
         if (suggestionsMatches.length > 0) {
             const lastMatch = suggestionsMatches[suggestionsMatches.length - 1];
             finalSuggestions = `\n[SUGGESTIONS: ${lastMatch[1].trim()}]`;
         } else {
-            // Fallback
+            // Fallback logic
             let contextSuggestions = "صناعة البرمجيات|الذكاء الاصطناعي|التصميم الإبداعي|ريادة الأعمال الرقمية|اللغات والمهارات العامة";
-            const lowerResponse = finalResponse.toLowerCase();
-            if (lowerResponse.includes("مستوى") || lowerResponse.includes("مبتدئ")) {
-                contextSuggestions = "مبتدئ كلياً|لديه أساسيات|مستوى متوسط";
-            } else if (lowerResponse.includes("ساعة") || lowerResponse.includes("وقت")) {
-                contextSuggestions = "مكثف (+20 ساعة)|متوسط (10-20 ساعة)|هادئ (-10 ساعات)";
-            } else if (lowerResponse.includes("تعلّم") || lowerResponse.includes("جاهز") || lowerResponse.includes("ابدأ")) {
+
+            if (isFinalPhase) {
                 contextSuggestions = "ابدأ الآن";
+            } else if (lowerResponse.includes("مستوى") || lowerResponse.includes("مبتدئ")) {
+                contextSuggestions = "مبتدئ كلياً|لديه أساسيات|مستوى متوسط";
+            } else if (lowerResponse.includes("ساعة") || lowerResponse.includes("وقت") || lowerResponse.includes("جدولة")) {
+                contextSuggestions = "مكثف (+20 ساعة)|متوسط (10-20 ساعة)|هادئ (-10 ساعات)";
             }
             finalSuggestions = `\n[SUGGESTIONS: ${contextSuggestions}]`;
         }

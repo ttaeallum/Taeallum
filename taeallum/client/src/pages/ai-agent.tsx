@@ -407,36 +407,50 @@ export default function AIAgent() {
                 )}
               </AnimatePresence>
 
-              {/* PROMPT CONSOLE (FIXED AT BOTTOM) */}
-              <div className="p-4 lg:p-6 bg-gradient-to-t from-white dark:from-black to-white/0 shrink-0 relative z-30">
-                <div className="relative group max-w-3xl mx-auto">
-                  <div className="absolute -inset-2 bg-primary/10 rounded-2xl blur-lg opacity-20 group-focus-within:opacity-100 transition duration-700" />
-                  <div className="relative flex items-center bg-white/95 dark:bg-zinc-900/90 border border-border/50 dark:border-white/5 rounded-2xl overflow-hidden shadow-xl px-5 py-2 focus-within:shadow-primary/5 transition-all">
-                    <Textarea
-                      ref={textareaRef}
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendMessage();
-                        }
-                      }}
-                      placeholder={isRtl ? "اكتب ردك هنا..." : "Type your response..."}
-                      className="flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 resize-none min-h-[40px] max-h-[120px] text-base py-2 px-0 font-medium placeholder:text-muted-foreground/30"
-                      disabled={isLoading}
-                    />
-                    <Button
-                      onClick={() => handleSendMessage()}
-                      disabled={!inputValue.trim() || isLoading}
-                      size="icon"
-                      className="h-10 w-10 rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all flex-shrink-0"
+              {/* INPUT AREA (FIXED AT BOTTOM) */}
+              <footer className="px-6 lg:px-10 py-6 border-t border-border/5 bg-white/80 dark:bg-black/40 backdrop-blur-xl shrink-0 z-20">
+                <div className="max-w-4xl mx-auto w-full relative">
+                  {currentStep === 5 ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="w-full"
                     >
-                      <Send className={cn("w-5 h-5", isRtl && "rotate-180")} />
-                    </Button>
-                  </div>
+                      <Button
+                        onClick={() => setLocation("/tracks")}
+                        className="w-full h-16 rounded-2xl text-lg font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-2xl shadow-emerald-500/20 flex items-center justify-center gap-3 transition-all hover:scale-[1.01]"
+                      >
+                        <Target className="w-6 h-6" />
+                        {isRtl ? "ابدأ دراستك الآن" : "Start Your Journey Now"}
+                      </Button>
+                    </motion.div>
+                  ) : (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSendMessage(inputValue);
+                      }}
+                      className="relative group"
+                    >
+                      <input
+                        type="text"
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        placeholder={isRtl ? "اختر من الخيارات أعلاه..." : "Pick from the options above..."}
+                        disabled={isLoading}
+                        className="w-full h-16 pl-6 pr-16 rounded-2xl bg-zinc-100/50 dark:bg-zinc-800/50 border border-border/10 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all font-bold text-base outline-none disabled:opacity-50"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!inputValue.trim() || isLoading}
+                        className="absolute right-3 top-2.5 w-11 h-11 bg-primary text-primary-foreground rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-0"
+                      >
+                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                      </button>
+                    </form>
+                  )}
                 </div>
-              </div>
+              </footer>
             </Card>
           </main>
 
