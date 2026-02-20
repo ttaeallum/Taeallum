@@ -12,36 +12,17 @@ function extractPlaylistId(url: string): string | null {
         const match = url.match(pattern);
         if (match) return match[1];
     }
-    // Maybe it's just the ID itself
     if (/^[a-zA-Z0-9_-]{10,}$/.test(url.trim())) return url.trim();
     return null;
 }
 
-// Helper: Convert ISO 8601 duration (PT1H2M3S) to minutes
-function parseDuration(iso: string): number {
-    if (!iso) return 0;
-    const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-    if (!match) return 0;
-    const hours = parseInt(match[1] || "0", 10);
-    const minutes = parseInt(match[2] || "0", 10);
-    const seconds = parseInt(match[3] || "0", 10);
-    return hours * 60 + minutes + (seconds >= 30 ? 1 : 0);
-}
-
-// POST /api/youtube/playlist - Fetch all videos from a YouTube playlist
+// POST /api/youtube/playlist - Fetch all videos from a YouTube playlist (NO API KEY NEEDED)
 router.post("/playlist", async (req: Request, res: Response) => {
     try {
         const { url } = req.body;
 
         if (!url) {
             return res.status(400).json({ message: "رابط البلاي ليست مطلوب" });
-        }
-
-        const apiKey = process.env.YOUTUBE_API_KEY;
-        if (!apiKey) {
-            return res.status(500).json({
-                message: "YouTube API Key غير مُعد. أضف YOUTUBE_API_KEY في ملف .env"
-            });
         }
 
         const playlistId = extractPlaylistId(url);
@@ -53,88 +34,104 @@ router.post("/playlist", async (req: Request, res: Response) => {
 
         console.log(`[YOUTUBE] Fetching playlist: ${playlistId}`);
 
-        // Step 1: Fetch all playlist items (handles pagination)
-        const allItems: any[] = [];
-        let nextPageToken = "";
-
-        do {
-            const playlistUrl = `https://www.googleapis.com/youtube/v3/playlistItems?` +
-                `part=snippet&maxResults=50&playlistId=${playlistId}&key=${apiKey}` +
-                (nextPageToken ? `&pageToken=${nextPageToken}` : "");
-
-            const playlistRes = await fetch(playlistUrl);
-            const playlistData = await playlistRes.json();
-
-            if (playlistData.error) {
-                console.error("[YOUTUBE] API Error:", playlistData.error);
-                return res.status(400).json({
-                    message: `خطأ من يوتيوب: ${playlistData.error.message}`
-                });
+        // Fetch the playlist page HTML from YouTube
+        const pageUrl = `https://www.youtube.com/playlist?list=${playlistId}`;
+        const response = await fetch(pageUrl, {
+            headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept-Language": "en-US,en;q=0.9",
             }
+        });
 
-            if (playlistData.items) {
-                allItems.push(...playlistData.items);
-            }
+        if (!response.ok) {
+            return res.status(400).json({ message: "فشل الوصول لصفحة البلاي ليست" });
+        }
 
-            nextPageToken = playlistData.nextPageToken || "";
-        } while (nextPageToken);
+        const html = await response.text();
 
-        if (allItems.length === 0) {
+        // Extract the ytInitialData JSON from the page
+        const dataMatch = html.match(/var\s+ytInitialData\s*=\s*({.+?});\s*<\/script>/s);
+        if (!dataMatch) {
+            return res.status(400).json({
+                message: "البلاي ليست خاصة أو غير موجودة"
+            });
+        }
+
+        let ytData: any;
+        try {
+            ytData = JSON.parse(dataMatch[1]);
+        } catch {
+            return res.status(400).json({ message: "فشل قراءة بيانات البلاي ليست" });
+        }
+
+        // Navigate the YouTube data structure to find playlist videos
+        const contents = ytData
+            ?.contents
+            ?.twoColumnBrowseResultsRenderer
+            ?.tabs?.[0]
+            ?.tabRenderer
+            ?.content
+            ?.sectionListRenderer
+            ?.contents?.[0]
+            ?.itemSectionRenderer
+            ?.contents?.[0]
+            ?.playlistVideoListRenderer
+            ?.contents;
+
+        if (!contents || contents.length === 0) {
             return res.status(404).json({ message: "البلاي ليست فارغة أو خاصة" });
         }
 
-        // Step 2: Get video durations (batch by 50)
-        const videoIds = allItems
-            .map(item => item.snippet?.resourceId?.videoId)
-            .filter(Boolean);
+        // Extract video data
+        const lessons = contents
+            .filter((item: any) => item.playlistVideoRenderer)
+            .map((item: any, index: number) => {
+                const video = item.playlistVideoRenderer;
+                const videoId = video.videoId;
+                const title = video.title?.runs?.[0]?.text || `درس ${index + 1}`;
 
-        const durationMap: Record<string, number> = {};
-
-        for (let i = 0; i < videoIds.length; i += 50) {
-            const batch = videoIds.slice(i, i + 50);
-            const detailsUrl = `https://www.googleapis.com/youtube/v3/videos?` +
-                `part=contentDetails&id=${batch.join(",")}&key=${apiKey}`;
-
-            const detailsRes = await fetch(detailsUrl);
-            const detailsData = await detailsRes.json();
-
-            if (detailsData.items) {
-                for (const video of detailsData.items) {
-                    durationMap[video.id] = parseDuration(video.contentDetails?.duration || "");
+                // Duration: "12:34" format
+                const durationText = video.lengthText?.simpleText || "0:00";
+                const durationParts = durationText.split(":").map(Number);
+                let minutes = 0;
+                if (durationParts.length === 3) {
+                    minutes = durationParts[0] * 60 + durationParts[1];
+                } else if (durationParts.length === 2) {
+                    minutes = durationParts[0];
                 }
-            }
-        }
 
-        // Step 3: Build lessons array
-        const lessons = allItems
-            .filter(item => item.snippet?.resourceId?.videoId) // Skip deleted videos
-            .map((item, index) => {
-                const videoId = item.snippet.resourceId.videoId;
-                const channelId = item.snippet.videoOwnerChannelId;
+                // Channel info
+                const channelName = video.shortBylineText?.runs?.[0]?.text || "";
+                const channelUrl = video.shortBylineText?.runs?.[0]?.navigationEndpoint?.browseEndpoint?.canonicalBaseUrl || "";
+
                 return {
-                    title: item.snippet.title || `درس ${index + 1}`,
+                    title,
                     videoUrl: `https://www.youtube.com/embed/${videoId}`,
-                    videoOwnerUrl: channelId
-                        ? `https://www.youtube.com/channel/${channelId}`
-                        : "",
-                    duration: durationMap[videoId] || 0,
+                    videoOwnerUrl: channelUrl ? `https://www.youtube.com${channelUrl}` : "",
+                    duration: minutes,
                     order: index + 1,
-                    originalYoutubeUrl: `https://www.youtube.com/watch?v=${videoId}`,
+                    channelName,
                 };
             });
 
-        // Get playlist title from first item
-        const playlistTitle = allItems[0]?.snippet?.title
-            ? `بلاي ليست: ${allItems.length} فيديو`
-            : "بلاي ليست يوتيوب";
+        if (lessons.length === 0) {
+            return res.status(404).json({ message: "لم يتم العثور على فيديوهات" });
+        }
 
-        console.log(`[YOUTUBE] ✅ Fetched ${lessons.length} videos from playlist ${playlistId}`);
+        // Get playlist title
+        const playlistTitle = ytData
+            ?.metadata
+            ?.playlistMetadataRenderer
+            ?.title || `بلاي ليست (${lessons.length} فيديو)`;
+
+        console.log(`[YOUTUBE] ✅ Fetched ${lessons.length} videos from playlist "${playlistTitle}"`);
 
         res.json({
             playlistId,
             playlistTitle,
             totalVideos: lessons.length,
-            lessons
+            lessons,
+            channelName: lessons[0]?.channelName || ""
         });
 
     } catch (error: any) {
