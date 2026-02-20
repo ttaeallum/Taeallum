@@ -17,7 +17,18 @@ export default function Dashboard() {
     }
   });
 
-  if (userLoading) {
+
+  const { data: enrolledCourses, isLoading: coursesLoading } = useQuery({
+    queryKey: ["my-courses"],
+    enabled: !!user,
+    queryFn: async () => {
+      const res = await fetch("/api/access/my-courses", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch courses");
+      return res.json();
+    }
+  });
+
+  if (userLoading || coursesLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -59,7 +70,7 @@ export default function Dashboard() {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3 md:gap-4">
             {[
-              { icon: BookOpen, label: "كورسات مسجلة", value: "0", color: "text-blue-500 bg-blue-500/10" },
+              { icon: BookOpen, label: "كورسات مسجلة", value: enrolledCourses?.length || "0", color: "text-blue-500 bg-blue-500/10" },
               { icon: Clock, label: "ساعات تعلم", value: "0", color: "text-amber-500 bg-amber-500/10" },
               { icon: Trophy, label: "شهادات", value: "0", color: "text-emerald-500 bg-emerald-500/10" }
             ].map((stat, i) => (
@@ -83,12 +94,57 @@ export default function Dashboard() {
           </TabsList>
 
           <TabsContent value="learning" className="space-y-4">
-            <div className="text-center py-16 bg-card border border-border/30 rounded-2xl text-muted-foreground">
-              <p className="mb-4">لا توجد كورسات قيد التعلم حالياً</p>
-              <Link href="/courses">
-                <Button variant="outline" className="rounded-xl">تصفح المكتبة</Button>
-              </Link>
-            </div>
+            {enrolledCourses && enrolledCourses.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {enrolledCourses.map((course: any) => (
+                  <Link key={course.id} href={`/learn/${course.id}`}>
+                    <Card className="overflow-hidden hover:shadow-lg transition-all cursor-pointer border-border/40 group">
+                      <div className="relative aspect-video">
+                        <img
+                          src={course.thumbnail || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80"}
+                          alt={course.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="w-12 h-12 rounded-full bg-primary/90 flex items-center justify-center text-white">
+                            <BookOpen className="w-6 h-6" />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-5 text-right space-y-3">
+                        <div className="flex justify-between items-start">
+                          <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-md font-bold">
+                            {course.level === 'beginner' ? 'مبتدئ' : course.level === 'advanced' ? 'متقدم' : 'متوسط'}
+                          </span>
+                        </div>
+                        <h3 className="font-bold text-lg line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+                          {course.title}
+                        </h3>
+                        <div className="space-y-2 pt-2">
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>التقدم</span>
+                            <span>{course.progress || 0}%</span>
+                          </div>
+                          <div className="h-1.5 w-full bg-secondary/50 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-primary transition-all duration-500"
+                              style={{ width: `${course.progress || 0}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16 bg-card border border-border/30 rounded-2xl text-muted-foreground">
+                <p className="mb-4">لا توجد كورسات قيد التعلم حالياً</p>
+                <Link href="/courses">
+                  <Button variant="outline" className="rounded-xl">تصفح المكتبة</Button>
+                </Link>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="completed">

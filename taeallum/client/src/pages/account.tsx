@@ -31,6 +31,16 @@ export default function AccountPage() {
         }
     });
 
+    const { data: enrolledCourses } = useQuery({
+        queryKey: ["my-courses"],
+        enabled: !!user,
+        queryFn: async () => {
+            const res = await fetch("/api/access/my-courses", { credentials: "include" });
+            if (!res.ok) return [];
+            return res.json();
+        }
+    });
+
     const logoutMutation = useMutation({
         mutationFn: async () => {
             const res = await fetch("/api/auth/logout", {
@@ -163,7 +173,7 @@ export default function AccountPage() {
                                     </div>
                                     <div>
                                         <p className="text-sm text-muted-foreground">الكورسات</p>
-                                        <p className="text-2xl font-bold">0</p>
+                                        <p className="text-2xl font-bold">{enrolledCourses?.length || 0}</p>
                                     </div>
                                 </div>
 
