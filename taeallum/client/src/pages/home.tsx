@@ -8,7 +8,7 @@ import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-
+import { useTranslation } from "react-i18next";
 import { Seo } from "@/components/seo";
 
 export default function Home() {

@@ -49,7 +49,7 @@ export default function CheckoutPage() {
             const res = await fetch("/api/courses");
             if (!res.ok) throw new Error("Failed to fetch courses");
             const courses = await res.json();
-            return courses.find((c: any) => c.id === courseId) || null;
+            return courses.find((c: any) => c.id === courseId);
         }
     });
 

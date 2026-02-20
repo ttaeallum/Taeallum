@@ -6,7 +6,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useTranslation } from "react-i18next";
 import {
     Sheet,
     SheetContent,
@@ -61,11 +60,10 @@ export default function LearnCourse() {
         queryKey: ["course-learn", courseId],
         enabled: !!courseId,
         queryFn: async () => {
-            // Try fetching all courses and find by ID
             const res = await fetch(`/api/courses`);
             if (!res.ok) throw new Error("Failed to fetch courses");
             const courses = await res.json();
-            return courses.find((c: any) => c.id === courseId) || null;
+            return courses.find((c: any) => c.id === courseId);
         }
     });
 

@@ -3,7 +3,7 @@ import { BookOpen, Clock, ArrowLeft, Target, Map, Trophy, Sparkles, LayoutDashbo
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
@@ -47,13 +47,8 @@ export default function Tracks() {
 
   const isSubscribed = user?.isSubscribed || user?.role === "admin";
 
-  useEffect(() => {
-    if (!authLoading && user && !isSubscribed) {
-      setLocation("/ai-pricing");
-    }
-  }, [authLoading, user, isSubscribed, setLocation]);
-
   if (!isSubscribed) {
+    setLocation("/ai-pricing");
     return null;
   }
 
