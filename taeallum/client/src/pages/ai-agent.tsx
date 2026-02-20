@@ -118,8 +118,8 @@ export default function AIAgent() {
         id: "init",
         role: "assistant",
         content: isRtl
-          ? "مرحباً بك في منصة تعلّم. أنا مساعدك التنفيذي، سأقودك لاختيار مسارك المهني في 4 خطوات. لنبدأ بالقطاع العام الذي تهتم به: [SUGGESTIONS: صناعة البرمجيات|الذكاء الاصطناعي|التصميم الإبداعي|ريادة الأعمال الرقمية|اللغات والمهارات العامة]"
-          : "Welcome to Taallm. I am your Executive Agent, I will lead you to choose your career path in 4 steps. Let's start with the sector you're interested in: [SUGGESTIONS: Software Industry|Artificial Intelligence|Creative Design|Digital Entrepreneurship|Languages & General Skills]",
+          ? "مرحباً بك في منصة تعلّم. أنا مساعدك التنفيذي، سأقودك لاختيار مسارك المهني في 4 خطوات. لنبدأ بالقطاع العام الذي تهتم به: [SUGGESTIONS: البرمجة والتطوير 💻|البيانات والذكاء الاصطناعي 🤖|التصميم الإبداعي 🎨|الأعمال والتسويق 📈|اللغات 🌍]"
+          : "Welcome to Taallm. I am your Executive Agent, I will lead you to choose your career path in 4 steps. Let's start with the sector you're interested in: [SUGGESTIONS: Programming & Development 💻|Data & AI 🤖|Creative Design 🎨|Business & Marketing 📈|Languages 🌍]",
         timestamp: new Date()
       }]);
     }
@@ -133,8 +133,8 @@ export default function AIAgent() {
         id: "init",
         role: "assistant",
         content: isRtl
-          ? "أهلاً بك مجدداً. لنبدأ من جديد بتحديد مسارك. أي قطاع تفضل؟ [SUGGESTIONS: صناعة البرمجيات|الذكاء الاصطناعي|التصميم الإبداعي|ريادة الأعمال الرقمية|اللغات والمهارات العامة]"
-          : "Welcome back. Let's start fresh by identifying your path. Which sector do you prefer? [SUGGESTIONS: Software Industry|Artificial Intelligence|Creative Design|Digital Entrepreneurship|Languages & General Skills]",
+          ? "أهلاً بك مجدداً. لنبدأ من جديد بتحديد مسارك. أي قطاع تفضل؟ [SUGGESTIONS: البرمجة والتطوير 💻|البيانات والذكاء الاصطناعي 🤖|التصميم الإبداعي 🎨|الأعمال والتسويق 📈|اللغات 🌍]"
+          : "Welcome back. Let's start fresh by identifying your path. Which sector do you prefer? [SUGGESTIONS: Programming & Development 💻|Data & AI 🤖|Creative Design 🎨|Business & Marketing 📈|Languages 🌍]",
         timestamp: new Date()
       }]);
       setActiveLogs([]);
@@ -351,21 +351,21 @@ export default function AIAgent() {
                           </div>
 
                           {msg.role === "assistant" && suggestionsList.length > 0 && (
-                            <div className="mt-8 flex flex-wrap gap-2.5 justify-end">
+                            <div className="mt-8 flex flex-wrap gap-3 justify-end">
                               {suggestionsList.map((suggestion, idx) => (
                                 <motion.button
                                   key={idx}
-                                  whileHover={{ y: -3, scale: 1.02, backgroundColor: "rgb(var(--primary))", color: "#fff" }}
-                                  whileTap={{ scale: 0.98 }}
+                                  whileHover={{ y: -3, scale: 1.03 }}
+                                  whileTap={{ scale: 0.97 }}
                                   onClick={() => {
-                                    if (suggestion.trim() === "ابدأ الآن") {
+                                    if (suggestion.trim().includes("ابدأ الآن")) {
                                       setLocation("/tracks");
                                     } else {
                                       handleSendMessage(suggestion.trim());
                                     }
                                   }}
                                   disabled={isLoading || i < messages.length - 1}
-                                  className="px-5 py-2.5 rounded-xl bg-primary/10 dark:bg-primary/20 border border-primary/20 text-primary transition-all text-[12px] font-black shadow-sm"
+                                  className="px-5 py-3 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 transition-all text-[13px] font-bold shadow-md hover:shadow-lg border border-zinc-200 dark:border-zinc-700 disabled:opacity-40"
                                 >
                                   {suggestion.trim()}
                                 </motion.button>
