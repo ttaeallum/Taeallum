@@ -324,6 +324,7 @@ export function Footer() {
               <Link href="/contact" className="hover:text-primary transition-colors">اتصل بنا</Link>
               <Link href="/terms" className="hover:text-primary transition-colors">الشروط والأحكام</Link>
               <Link href="/privacy" className="hover:text-primary transition-colors">سياسة الخصوصية</Link>
+              <Link href="/refund" className="hover:text-primary transition-colors">سياسة الاسترجاع والالغاء</Link>
             </div>
           </div>
 

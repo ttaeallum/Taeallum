@@ -32,8 +32,10 @@ import FAQ from "@/pages/faq";
 import Contact from "@/pages/contact";
 import Terms from "@/pages/terms";
 import Privacy from "@/pages/privacy";
+import Refund from "@/pages/refund";
 import Support from "@/pages/support";
 import ForgotPassword from "@/pages/forgot-password";
+import PayTabsReturn from "@/pages/paytabs-return";
 
 function Router() {
   return (
@@ -83,8 +85,10 @@ function Router() {
       <Route path="/contact" component={Contact} />
       <Route path="/terms" component={Terms} />
       <Route path="/privacy" component={Privacy} />
+      <Route path="/refund" component={Refund} />
       <Route path="/support" component={Support} />
       <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/paytabs/return" component={PayTabsReturn} />
       <Route component={NotFound} />
     </Switch>
   );

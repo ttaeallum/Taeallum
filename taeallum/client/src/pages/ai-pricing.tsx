@@ -26,19 +26,27 @@ export default function AIPricing() {
 
   const checkoutMutation = useMutation({
     mutationFn: async (planId: string) => {
-      const res = await fetch("/api/payments/create-checkout-session", {
+      const res = await fetch("/api/paytabs/initiate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planId }),
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.message || "Failed to create checkout session");
+        throw new Error(err.message || "Failed to initiate payment");
       }
       return res.json();
     },
     onSuccess: (data) => {
-      window.location.href = data.url;
+      if (data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+      } else {
+        toast({
+          title: "خطأ",
+          description: "لم يتم استلام رابط الدفع",
+          variant: "destructive",
+        });
+      }
     },
     onError: (error: any) => {
       toast({

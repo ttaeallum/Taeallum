@@ -21,6 +21,8 @@ import bunnyRouter from "./routes/bunny";
 import chatbotRouter from "./routes/chatbot";
 import aiEngineRouter from "./routes/ai-engine";
 import adsRouter from "./routes/ads";
+import payTabsRouter from "./routes/paytabs";
+
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { serveStatic } from "./static";
@@ -230,6 +232,7 @@ app.use("/api/course-content", courseContentRouter);
 app.use("/api/bunny", bunnyRouter);
 app.use("/api/chatbot", chatbotRouter);
 app.use("/api/ai-engine", aiEngineRouter);
+app.use("/api/paytabs", payTabsRouter);
 
 app.get("/api/debug/env-check", (req, res) => {
   const allKeys = Object.keys(process.env);
