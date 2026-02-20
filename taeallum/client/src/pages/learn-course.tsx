@@ -27,8 +27,7 @@ export default function LearnCourse() {
     const { courseId } = useParams();
     const [, setLocation] = useLocation();
     const [activeLesson, setActiveLesson] = useState<any>(null);
-    const { i18n } = useTranslation();
-    const isRtl = i18n.language === "ar";
+    const isRtl = true; // Platform is always RTL (Arabic)
 
     const { data: user } = useQuery({
         queryKey: ["auth-me"],
