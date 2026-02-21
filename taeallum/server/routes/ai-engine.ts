@@ -70,20 +70,25 @@ router.get("/user-plans", requireAuth, async (req: Request, res: Response) => {
             'seo', 'wordpress', 'shopify', 'woocommerce', 'c#', 'csharp', 'c++', 'cpp', 'rust', 'go',
             'next', 'nextjs', 'nuxt', 'svelte', 'remix', 'astro', 'vite'
         ];
-        const extractTopic = (title: string): string => {
-            const normalized = title.toLowerCase().replace(/[^a-z0-9أ-ي\s\-\+#]/g, ' ');
-            for (const kw of TECH_KEYWORDS) {
-                if (normalized.includes(kw)) return kw;
+        const extractTopic = (title: string, aiDesc?: string | null, description?: string | null): string => {
+            // Search title first, then aiDescription, then description for topic keywords
+            const textsToSearch = [title, aiDesc || '', description || ''].map(t =>
+                t.toLowerCase().replace(/[^a-z0-9أ-ي\s\-\+#]/g, ' ')
+            );
+            for (const text of textsToSearch) {
+                for (const kw of TECH_KEYWORDS) {
+                    if (text.includes(kw)) return kw;
+                }
             }
-            // Fallback: use the full normalized title as topic
-            return normalized.trim().split(/\s+/).slice(0, 2).join('-');
+            // Fallback: use first 2 words of normalized title
+            return textsToSearch[0].trim().split(/\s+/).slice(0, 2).join('-');
         };
 
         // Deduplicate: for each topic+level, pick ONE course (most students > oldest)
         const deduplicateBucket = (bucket: typeof allCourses): typeof allCourses => {
             const topicMap = new Map<string, typeof allCourses[0]>();
             for (const course of bucket) {
-                const topic = extractTopic(course.title);
+                const topic = extractTopic(course.title, course.aiDescription, course.description);
                 const existing = topicMap.get(topic);
                 if (!existing) {
                     topicMap.set(topic, course);
