@@ -3,8 +3,8 @@ import OpenAI from "openai";
 import { requireAuth } from "./auth";
 import { db } from "../db";
 import * as schema from "../db/schema";
-import { aiSessions, studyPlans, subscriptions, users } from "../db/schema";
-import { eq, desc } from "drizzle-orm";
+import { aiSessions, studyPlans, subscriptions, users, enrollments } from "../db/schema";
+import { eq, desc, sql } from "drizzle-orm";
 
 import { getConfig } from "../config";
 
@@ -42,12 +42,63 @@ router.get("/user-plans", requireAuth, async (req: Request, res: Response) => {
             orderBy: [desc(schema.studyPlans.createdAt)]
         });
 
-        // Dynamically enrich milestones with ALL courses from matching category, sorted by level
+        // Dynamically enrich milestones with BEST course per topic, sorted by level
         const LEVEL_ORDER: Record<string, number> = { beginner: 1, intermediate: 2, advanced: 3 };
         const allCourses = await db.query.courses.findMany({
             where: eq(schema.courses.isPublished, true),
             with: { category: true }
         });
+
+        // Count enrollments per course (proxy for rating)
+        const enrollmentRows = await db.select({
+            courseId: schema.enrollments.courseId,
+            studentCount: sql<number>`count(*)::int`.as('student_count')
+        }).from(schema.enrollments).groupBy(schema.enrollments.courseId);
+        const enrollmentMap = new Map<string, number>();
+        for (const row of enrollmentRows) {
+            enrollmentMap.set(row.courseId, row.studentCount);
+        }
+
+        // Extract topic keyword from course title for deduplication
+        const TECH_KEYWORDS = [
+            'html', 'html5', 'css', 'css3', 'javascript', 'js', 'typescript', 'react', 'vue', 'angular',
+            'node', 'nodejs', 'express', 'php', 'laravel', 'python', 'django', 'flask', 'java', 'kotlin',
+            'swift', 'dart', 'flutter', 'mysql', 'sql', 'mongodb', 'nosql', 'postgresql', 'firebase',
+            'tailwind', 'bootstrap', 'sass', 'figma', 'photoshop', 'illustrator', 'premiere', 'aftereffects',
+            'unity', 'unreal', 'blender', 'docker', 'kubernetes', 'aws', 'azure', 'git', 'linux',
+            'excel', 'power-bi', 'powerbi', 'tableau', 'pandas', 'numpy', 'tensorflow', 'pytorch',
+            'seo', 'wordpress', 'shopify', 'woocommerce', 'c#', 'csharp', 'c++', 'cpp', 'rust', 'go',
+            'next', 'nextjs', 'nuxt', 'svelte', 'remix', 'astro', 'vite'
+        ];
+        const extractTopic = (title: string): string => {
+            const normalized = title.toLowerCase().replace(/[^a-z0-9أ-ي\s\-\+#]/g, ' ');
+            for (const kw of TECH_KEYWORDS) {
+                if (normalized.includes(kw)) return kw;
+            }
+            // Fallback: use the full normalized title as topic
+            return normalized.trim().split(/\s+/).slice(0, 2).join('-');
+        };
+
+        // Deduplicate: for each topic+level, pick ONE course (most students > oldest)
+        const deduplicateBucket = (bucket: typeof allCourses): typeof allCourses => {
+            const topicMap = new Map<string, typeof allCourses[0]>();
+            for (const course of bucket) {
+                const topic = extractTopic(course.title);
+                const existing = topicMap.get(topic);
+                if (!existing) {
+                    topicMap.set(topic, course);
+                } else {
+                    const existingStudents = enrollmentMap.get(existing.id) || 0;
+                    const currentStudents = enrollmentMap.get(course.id) || 0;
+                    // Pick the one with more students, tiebreaker = oldest (earliest createdAt)
+                    if (currentStudents > existingStudents ||
+                        (currentStudents === existingStudents && course.createdAt < existing.createdAt)) {
+                        topicMap.set(topic, course);
+                    }
+                }
+            }
+            return Array.from(topicMap.values());
+        };
 
         const enrichedPlans = plans.map((plan: any) => {
             const planData = plan.planData as any;
@@ -84,10 +135,10 @@ router.get("/user-plans", requireAuth, async (req: Request, res: Response) => {
                 (a, b) => (LEVEL_ORDER[a.level || 'beginner'] || 99) - (LEVEL_ORDER[b.level || 'beginner'] || 99)
             );
 
-            // Split into level buckets
-            const beginnerCourses = sortedCourses.filter(c => c.level === 'beginner');
-            const intermediateCourses = sortedCourses.filter(c => c.level === 'intermediate');
-            const advancedCourses = sortedCourses.filter(c => c.level === 'advanced');
+            // Split into level buckets, then DEDUPLICATE each bucket
+            const beginnerCourses = deduplicateBucket(sortedCourses.filter(c => c.level === 'beginner'));
+            const intermediateCourses = deduplicateBucket(sortedCourses.filter(c => c.level === 'intermediate'));
+            const advancedCourses = deduplicateBucket(sortedCourses.filter(c => c.level === 'advanced'));
             const buckets = [beginnerCourses, intermediateCourses, advancedCourses];
 
             // Distribute courses across milestones by level
