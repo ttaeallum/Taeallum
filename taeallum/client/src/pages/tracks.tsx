@@ -191,7 +191,27 @@ export default function Tracks() {
 
                                   {milestone.courses && milestone.courses.length > 0 && (
                                     <div className="mt-4 pt-4 border-t border-border/20">
-                                      <p className="text-xs font-bold text-primary uppercase tracking-widest mb-3">الدورات المرشحة من المنصة:</p>
+                                      {/* Weekly schedule header */}
+                                      <div className="flex items-center justify-between mb-3">
+                                        <p className="text-xs font-bold text-primary uppercase tracking-widest">الدورات المرشحة من المنصة:</p>
+                                        {milestone.weeklyHours && (
+                                          <Badge variant="outline" className="text-[10px] border-primary/30 text-primary gap-1">
+                                            <Clock className="w-3 h-3" />
+                                            {milestone.weeklyHours} ساعة/أسبوع
+                                          </Badge>
+                                        )}
+                                      </div>
+
+                                      {/* Progress reminder banner */}
+                                      <div className="mb-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
+                                          <Clock className="w-3 h-3 text-amber-500" />
+                                        </div>
+                                        <p className="text-[11px] text-amber-600 dark:text-amber-400 leading-relaxed">
+                                          حافظ على التزامك بالجدول الأسبوعي! إذا تأخرت عن الخطة، سيذكرك المساعد الذكي بالعودة للمسار.
+                                        </p>
+                                      </div>
+
                                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         {milestone.courses.map((course: any) => (
                                           <Link key={course.id} href={`/courses/${course.slug}`}>
@@ -199,9 +219,22 @@ export default function Tracks() {
                                               <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-border/50">
                                                 <img src={course.thumbnail || "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=200&q=80"} alt={course.title} className="w-full h-full object-cover group-hover/course:scale-110 transition-transform" />
                                               </div>
-                                              <div className="min-w-0">
+                                              <div className="min-w-0 flex-1">
                                                 <h5 className="text-xs font-bold truncate group-hover/course:text-primary transition-colors">{course.title}</h5>
-                                                <Badge variant="outline" className="text-[9px] py-0 h-4 border-primary/20 text-muted-foreground mt-1 uppercase">{course.level}</Badge>
+                                                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                                  <Badge variant="outline" className="text-[9px] py-0 h-4 border-primary/20 text-muted-foreground uppercase">{course.level}</Badge>
+                                                  {course.totalHours > 0 && (
+                                                    <span className="text-[9px] text-muted-foreground flex items-center gap-0.5">
+                                                      <Clock className="w-2.5 h-2.5" />
+                                                      {course.totalHours}h
+                                                    </span>
+                                                  )}
+                                                  {course.estimatedWeeks && (
+                                                    <span className="text-[9px] text-primary/70 font-medium">
+                                                      الأسبوع {course.startWeek}{course.startWeek !== course.endWeek ? `-${course.endWeek}` : ''}
+                                                    </span>
+                                                  )}
+                                                </div>
                                               </div>
                                               <ArrowLeft className="w-3 h-3 text-muted-foreground mr-auto group-hover/course:text-primary transition-all -translate-x-1 group-hover/course:translate-x-0" />
                                             </div>

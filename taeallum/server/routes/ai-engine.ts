@@ -3,7 +3,7 @@ import OpenAI from "openai";
 import { requireAuth } from "./auth";
 import { db } from "../db";
 import * as schema from "../db/schema";
-import { aiSessions, studyPlans, subscriptions, users, enrollments } from "../db/schema";
+import { aiSessions, studyPlans, subscriptions, users, enrollments, lessons, sections } from "../db/schema";
 import { eq, desc, sql } from "drizzle-orm";
 
 import { getConfig } from "../config";
@@ -105,6 +105,33 @@ router.get("/user-plans", requireAuth, async (req: Request, res: Response) => {
             return Array.from(topicMap.values());
         };
 
+        // Compute total duration (hours) per course from lessons
+        const durationRows = await db.select({
+            courseId: schema.sections.courseId,
+            totalSeconds: sql<number>`COALESCE(SUM(${schema.lessons.duration}), 0)::int`.as('total_seconds')
+        }).from(schema.lessons)
+            .innerJoin(schema.sections, eq(schema.lessons.sectionId, schema.sections.id))
+            .groupBy(schema.sections.courseId);
+        const durationMap = new Map<string, number>();
+        for (const row of durationRows) {
+            durationMap.set(row.courseId, Math.round((row.totalSeconds || 0) / 3600 * 10) / 10); // hours with 1 decimal
+        }
+
+        // Extract weekly available hours from plan data
+        const getWeeklyHours = (planData: any): number => {
+            // Try to extract from plan's duration and totalHours
+            if (planData.totalHours && planData.duration) {
+                const durationStr = planData.duration.toLowerCase();
+                let months = 0;
+                const monthMatch = durationStr.match(/(\d+)/);
+                if (monthMatch) months = parseInt(monthMatch[1]);
+                if (months > 0) {
+                    return Math.round(planData.totalHours / (months * 4)); // totalHours / weeks
+                }
+            }
+            return 10; // Default: 10 hours/week (moderate)
+        };
+
         const enrichedPlans = plans.map((plan: any) => {
             const planData = plan.planData as any;
             if (!planData?.milestones || planData.milestones.length === 0) return plan;
@@ -146,17 +173,31 @@ router.get("/user-plans", requireAuth, async (req: Request, res: Response) => {
             const advancedCourses = deduplicateBucket(sortedCourses.filter(c => c.level === 'advanced'));
             const buckets = [beginnerCourses, intermediateCourses, advancedCourses];
 
-            // Distribute courses across milestones by level
+            // Determine student's weekly available hours
+            const weeklyHours = getWeeklyHours(planData);
+
+            // Distribute courses across milestones by level, with time estimates
+            let runningWeekStart = 1;
             const enrichedMilestones = planData.milestones.map((m: any, idx: number) => {
                 const bucket = buckets[Math.min(idx, buckets.length - 1)] || [];
-                const courses = bucket.map((c: any) => ({
-                    id: c.id,
-                    title: c.title,
-                    slug: c.slug,
-                    level: c.level,
-                    thumbnail: c.thumbnail
-                }));
-                return { ...m, courses };
+                const courses = bucket.map((c: any) => {
+                    const courseHours = durationMap.get(c.id) || 0;
+                    const estimatedWeeks = courseHours > 0 ? Math.max(1, Math.ceil(courseHours / weeklyHours)) : 1;
+                    const startWeek = runningWeekStart;
+                    runningWeekStart += estimatedWeeks;
+                    return {
+                        id: c.id,
+                        title: c.title,
+                        slug: c.slug,
+                        level: c.level,
+                        thumbnail: c.thumbnail,
+                        totalHours: courseHours,
+                        estimatedWeeks,
+                        startWeek,
+                        endWeek: startWeek + estimatedWeeks - 1
+                    };
+                });
+                return { ...m, courses, weeklyHours };
             });
 
             return {
