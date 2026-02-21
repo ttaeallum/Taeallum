@@ -184,7 +184,7 @@ export default function Tracks() {
                                 </div>
                                 <div className="mr-16 flex-1 bg-muted/30 border border-border/50 rounded-2xl p-6 hover:bg-muted/50 transition-colors">
                                   <h4 className="text-lg font-bold mb-2 flex items-center gap-2">
-                                    {milestone.title}
+                                    {i === 0 ? 'المستوى الأول - مبتدئ' : i === 1 ? 'المستوى الثاني - متوسط' : i === 2 ? 'المستوى الثالث - متقدم' : milestone.title}
                                     {i === 0 && <Badge variant="secondary" className="text-[10px] bg-green-500/10 text-green-600 border-green-500/20">نقطة البداية</Badge>}
                                   </h4>
                                   <p className="text-muted-foreground text-sm mb-4">{milestone.description}</p>
@@ -202,13 +202,13 @@ export default function Tracks() {
                                         )}
                                       </div>
 
-                                      {/* Progress reminder banner */}
-                                      <div className="mb-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
-                                          <Clock className="w-3 h-3 text-amber-500" />
+                                      {/* Exam hint banner */}
+                                      <div className="mb-3 p-3 rounded-xl bg-primary/5 border border-primary/20 flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                          <Trophy className="w-3 h-3 text-primary" />
                                         </div>
-                                        <p className="text-[11px] text-amber-600 dark:text-amber-400 leading-relaxed">
-                                          حافظ على التزامك بالجدول الأسبوعي! إذا تأخرت عن الخطة، سيذكرك المساعد الذكي بالعودة للمسار.
+                                        <p className="text-[11px] text-primary/80 leading-relaxed">
+                                          عند إتمام كل دورة، يمكنك اختبار مهاراتك من خلال امتحان إلكتروني للحصول على شهادة إنجاز.
                                         </p>
                                       </div>
 
