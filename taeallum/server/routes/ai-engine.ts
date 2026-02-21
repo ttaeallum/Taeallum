@@ -41,7 +41,75 @@ router.get("/user-plans", requireAuth, async (req: Request, res: Response) => {
             where: eq(schema.studyPlans.userId, userId!),
             orderBy: [desc(schema.studyPlans.createdAt)]
         });
-        res.json(plans);
+
+        // Dynamically enrich milestones with ALL courses from matching category, sorted by level
+        const LEVEL_ORDER: Record<string, number> = { beginner: 1, intermediate: 2, advanced: 3 };
+        const allCourses = await db.query.courses.findMany({
+            where: eq(schema.courses.isPublished, true),
+            with: { category: true }
+        });
+
+        const enrichedPlans = plans.map((plan: any) => {
+            const planData = plan.planData as any;
+            if (!planData?.milestones || planData.milestones.length === 0) return plan;
+
+            // Determine the category from categoryHint or from existing course IDs
+            const categoryHint = (planData.categoryHint || "").toLowerCase();
+
+            // Filter courses by category
+            let categoryCourses = allCourses;
+            if (categoryHint) {
+                categoryCourses = allCourses.filter(c =>
+                    (c.category?.slug || "").toLowerCase().includes(categoryHint) ||
+                    (c.category?.name || "").toLowerCase().includes(categoryHint)
+                );
+            } else {
+                // Try to infer category from existing milestone courses
+                const existingCourseIds = new Set<string>();
+                for (const m of planData.milestones) {
+                    for (const c of (m.courses || [])) {
+                        existingCourseIds.add(c.id);
+                    }
+                }
+                if (existingCourseIds.size > 0) {
+                    const existingCourse = allCourses.find(c => existingCourseIds.has(c.id));
+                    if (existingCourse?.categoryId) {
+                        categoryCourses = allCourses.filter(c => c.categoryId === existingCourse.categoryId);
+                    }
+                }
+            }
+
+            // Sort courses by level: beginner → intermediate → advanced
+            const sortedCourses = [...categoryCourses].sort(
+                (a, b) => (LEVEL_ORDER[a.level || 'beginner'] || 99) - (LEVEL_ORDER[b.level || 'beginner'] || 99)
+            );
+
+            // Split into level buckets
+            const beginnerCourses = sortedCourses.filter(c => c.level === 'beginner');
+            const intermediateCourses = sortedCourses.filter(c => c.level === 'intermediate');
+            const advancedCourses = sortedCourses.filter(c => c.level === 'advanced');
+            const buckets = [beginnerCourses, intermediateCourses, advancedCourses];
+
+            // Distribute courses across milestones by level
+            const enrichedMilestones = planData.milestones.map((m: any, idx: number) => {
+                const bucket = buckets[Math.min(idx, buckets.length - 1)] || [];
+                const courses = bucket.map((c: any) => ({
+                    id: c.id,
+                    title: c.title,
+                    slug: c.slug,
+                    level: c.level,
+                    thumbnail: c.thumbnail
+                }));
+                return { ...m, courses };
+            });
+
+            return {
+                ...plan,
+                planData: { ...planData, milestones: enrichedMilestones }
+            };
+        });
+
+        res.json(enrichedPlans);
     } catch (error) {
         console.error("Fetch plans error:", error);
         res.status(500).json({ message: "Failed to fetch your learning paths" });
