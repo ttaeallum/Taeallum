@@ -148,7 +148,8 @@ export default function LearnCourse() {
         if (isIframeTag) {
             return (
                 <div
-                    className="absolute inset-0 w-full h-full [&>iframe]:absolute [&>iframe]:inset-0 [&>iframe]:w-full [&>iframe]:h-full"
+                    className="absolute inset-0 w-full h-full overflow-hidden [&>iframe]:absolute [&>iframe]:inset-0 [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:max-w-full"
+                    style={{ maxWidth: '100vw' }}
                     dangerouslySetInnerHTML={{ __html: videoUrl }}
                 />
             );
