@@ -195,7 +195,7 @@ export default function LearnCourse() {
     };
 
     return (
-        <div className="flex flex-col h-screen bg-zinc-950 overflow-hidden" dir="rtl">
+        <div className="flex flex-col h-screen bg-zinc-950 overflow-x-hidden overflow-y-hidden" dir="rtl">
             {/* Cinematic Header */}
             <header className="h-16 border-b border-white/5 flex items-center justify-between px-6 shrink-0 bg-black/60 backdrop-blur-2xl sticky top-0 z-50">
                 <div className="flex items-center gap-6">
@@ -303,10 +303,10 @@ export default function LearnCourse() {
             </header>
 
             <div className="flex-1 flex overflow-hidden flex-row">
-                <main className="flex-1 overflow-y-auto bg-black flex flex-col items-center custom-scrollbar">
+                <main className="flex-1 overflow-y-auto overflow-x-hidden bg-black flex flex-col items-center custom-scrollbar">
                     {/* Cinematic Video Area (Large) - Full Width for Mobile & Desktop */}
-                    <div className="w-full bg-zinc-950 border-b border-white/5 shadow-2xl relative z-10 group/player">
-                        <div className="w-full aspect-video relative max-h-[50vh] min-h-[180px] md:max-h-none">
+                    <div className="w-full bg-zinc-950 border-b border-white/5 shadow-2xl relative z-10 group/player overflow-hidden">
+                        <div className="w-full aspect-video relative max-h-[50vh] min-h-[180px] md:max-h-none overflow-hidden">
                             {/* Player Wrapper with refined shadows */}
                             <div className="w-full h-full relative z-20">
                                 {renderVideoPlayer()}
@@ -343,12 +343,12 @@ export default function LearnCourse() {
                             </div>
 
                             {/* Cinematic Background Glow (Synchronized with Player) */}
-                            <div className="absolute -inset-20 bg-primary/10 rounded-full blur-[150px] opacity-30 pointer-events-none z-0" />
+                            <div className="absolute inset-0 bg-primary/10 rounded-full blur-[100px] opacity-30 pointer-events-none z-0" />
                         </div>
                     </div>
 
                     {/* Content Section below video */}
-                    <div className="w-full max-w-[1400px] px-6 lg:px-12 py-12 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+                    <div className="w-full max-w-[1400px] px-4 md:px-6 lg:px-12 py-8 md:py-12 animate-in fade-in slide-in-from-bottom-6 duration-1000 overflow-hidden">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
                             {/* Left Side: Lesson info and navigation */}
                             <div className="lg:col-span-2 space-y-10 order-2 lg:order-1">

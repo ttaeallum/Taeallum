@@ -36,7 +36,7 @@ export default function LessonPlayer() {
   if (isLoading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin w-8 h-8 text-primary" /></div>;
 
   return (
-    <div className="flex flex-col h-screen bg-background" dir="rtl">
+    <div className="flex flex-col h-screen bg-background overflow-x-hidden" dir="rtl">
       {/* Header */}
       <header className="h-16 border-b border-border/40 flex items-center justify-between px-4 shrink-0 bg-background z-10">
         <div className="flex items-center gap-4">
@@ -104,7 +104,7 @@ export default function LessonPlayer() {
       </aside>
 
       {/* Main Content (Player) */}
-      <main className="flex-1 overflow-y-auto bg-black flex flex-col items-center relative custom-scrollbar">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden bg-black flex flex-col items-center relative custom-scrollbar">
         <div className="w-full aspect-video bg-zinc-900 relative group max-h-[45vh] min-h-[200px] md:max-h-none">
           {activeLessonData?.videoUrl ? (
             <div className="w-full h-full">
