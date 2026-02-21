@@ -2,7 +2,12 @@ import { Router, type Request, type Response } from "express";
 import OpenAI from "openai";
 import { requireAuth } from "./auth";
 import { db } from "../db";
-import { aiSessions, aiMessages, subscriptions, users, courses, enrollments, studyPlans } from "../db/schema";
+import { aiSessions, aiMessages, subscriptions, users, courses, categories, enrollments, studyPlans } from "../db/schema";
+
+// Helper to sort courses by level: beginner → intermediate → advanced
+const LEVEL_ORDER: Record<string, number> = { beginner: 1, intermediate: 2, advanced: 3 };
+const sortByLevel = <T extends { level: string | null }>(arr: T[]): T[] =>
+    [...arr].sort((a, b) => (LEVEL_ORDER[a.level || 'beginner'] || 99) - (LEVEL_ORDER[b.level || 'beginner'] || 99));
 import { eq, desc, and, ilike, or } from "drizzle-orm";
 
 import { getConfig } from "../config";
@@ -178,13 +183,13 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                 type: "function",
                 function: {
                     name: "search_platform_courses",
-                    description: "Search for specific educational courses available on the Taeallum platform.",
+                    description: "Search for specific educational courses available on the Taeallum platform. IMPORTANT: Always provide the category slug to filter by specialization. Results are automatically sorted from beginner to advanced.",
                     parameters: {
                         type: "object",
                         properties: {
                             query: { type: "string", description: "Keywords to search in title or description" },
-                            category: { type: "string", description: "Category slug (e.g. coding, business)" },
-                            level: { type: "string", enum: ["beginner", "intermediate", "advanced"] }
+                            category: { type: "string", description: "Category slug MUST match one of: web-development, data-ai, cybersecurity, ui-ux-design, digital-marketing, video-editing, cloud-computing, e-commerce, trading, project-management, motion-graphics, game-development, data-analytics, software-engineering-devops, language-learning, mobile-development" },
+                            level: { type: "string", enum: ["beginner", "intermediate", "advanced"], description: "Filter by specific level. Omit to get ALL levels sorted beginner→advanced" }
                         }
                     }
                 }
@@ -294,6 +299,13 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 - إذا لم تجد دورة مطابقة تماماً في 'search_platform_courses'، اجعل المرحلة وصفية ولكن لا تربطها بكورسات عشوائية من تخصصات أخرى.
 - ابحث عن الكورسات أولاً باستخدام 'search_platform_courses' قبل إنشاء الخطة.
 
+[ترتيب الكورسات - هام جداً]:
+- يجب ترتيب الكورسات في كل مسار من مبتدئ → متوسط → متقدم.
+- عند استدعاء 'search_platform_courses'، مرر دائماً ال category slug المناسب.
+- في الخطة الدراسية، ضع المرحلة الأولى = كورسات المبتدئ، المرحلة الثانية = المتوسط، المرحلة الثالثة = المتقدم.
+- لا تخلط المستويات داخل نفس المرحلة.
+- الكورسات تأتي مرتبة تلقائياً من النظام، لكن تأكد من وضعها في المراحل الصحيحة.
+
 [مراحل العمل]:
 1. المرحلة 1 (القطاع والتخصص): عرض القطاعات الخمسة، ثم عند الاختيار عرض التخصصات الدقيقة فوراً.
 2. المرحلة 2 (المستوى): [SUGGESTIONS: مبتدئ كلياً|لديه أساسيات|مستوى متوسط].
@@ -355,30 +367,43 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                     if (functionName === "search_platform_courses") {
                         toolLogs.push(`استكشاف الموارد: ${args.query || args.category || ""}`);
 
-                        // Build search conditions
-                        const conditions: any[] = [eq(courses.isPublished, true)];
+                        // Fetch all published courses with their category info
                         const searchResult = await db.query.courses.findMany({
                             where: eq(courses.isPublished, true),
+                            with: { category: true },
                             limit: 50
                         });
 
-                        // Filter by query keyword matching if provided
+                        // Filter by category slug if provided (STRICT filter for specialization isolation)
                         let filtered = searchResult;
+                        if (args.category) {
+                            const catSlug = args.category.toLowerCase();
+                            filtered = searchResult.filter(c =>
+                                (c.category?.slug || "").toLowerCase().includes(catSlug) ||
+                                (c.category?.name || "").toLowerCase().includes(catSlug)
+                            );
+                        }
+
+                        // Filter by query keyword matching if provided
                         if (args.query) {
                             const q = args.query.toLowerCase();
-                            filtered = searchResult.filter(c =>
+                            filtered = filtered.filter(c =>
                                 (c.title && c.title.toLowerCase().includes(q)) ||
                                 (c.description && c.description.toLowerCase().includes(q)) ||
                                 (c.aiDescription && c.aiDescription.toLowerCase().includes(q))
                             );
-                            // If no results for query, don't return everything, keep it empty for AI to know
                         }
+
+                        // Filter by level if specified
                         if (args.level) {
                             const leveled = filtered.filter(c => c.level === args.level);
                             if (leveled.length > 0) filtered = leveled;
                         }
 
-                        result = filtered.map(c => `- ${c.title}(ID: ${c.id})(المستوى: ${c.level}): ${c.aiDescription || c.description?.slice(0, 150)}`);
+                        // Sort by level: beginner → intermediate → advanced
+                        filtered = sortByLevel(filtered);
+
+                        result = filtered.map((c, idx) => `${idx + 1}. ${c.title}(ID: ${c.id})(المستوى: ${c.level})(التصنيف: ${c.category?.name || 'غير محدد'}): ${c.aiDescription || c.description?.slice(0, 150)}`);
                     }
                     else if (functionName === "enroll_student") {
                         toolLogs.push(`تنفيذ عملية تسجيل: ${args.courseTitle}`);
@@ -442,11 +467,11 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                             }
                         }
 
-                        // Build enriched milestones with course details
+                        // Build enriched milestones with course details, sorted by level
                         const enrichedMilestones = (args.milestones || []).map((m: any) => {
                             const milestoneCoursIds = m.courseIds || [];
                             // Match ONLY against already filtered 'allCourses' (which respects categoryHint)
-                            const matchedCourses = allCourses.filter(c => milestoneCoursIds.includes(c.id));
+                            const matchedCourses = sortByLevel(allCourses.filter(c => milestoneCoursIds.includes(c.id)));
 
                             return {
                                 title: m.title,
@@ -462,23 +487,45 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                         });
 
                         // If no courses were matched via AI, auto-match by keyword within the ISOLATED subset
+                        // Then sort by level order (beginner → intermediate → advanced)
                         const totalMatched = enrichedMilestones.reduce((sum: number, m: any) => sum + m.courses.length, 0);
                         if (totalMatched === 0 && allCourses.length > 0) {
-                            for (const milestone of enrichedMilestones) {
-                                const keywords = milestone.title.toLowerCase().split(/\s+/);
-                                const matched = allCourses.filter(c =>
-                                    keywords.some((kw: string) => kw.length > 2 && (
-                                        (c.title && c.title.toLowerCase().includes(kw)) ||
-                                        (c.description && c.description.toLowerCase().includes(kw))
-                                    ))
-                                ).slice(0, 3);
-                                milestone.courses = matched.map(c => ({
-                                    id: c.id,
-                                    title: c.title,
-                                    slug: c.slug,
-                                    level: c.level,
-                                    thumbnail: c.thumbnail
-                                }));
+                            // Auto-distribute courses across milestones by level
+                            const sortedCourses = sortByLevel(allCourses);
+                            const beginnerCourses = sortedCourses.filter(c => c.level === 'beginner');
+                            const intermediateCourses = sortedCourses.filter(c => c.level === 'intermediate');
+                            const advancedCourses = sortedCourses.filter(c => c.level === 'advanced');
+                            const courseBuckets = [beginnerCourses, intermediateCourses, advancedCourses];
+
+                            for (let i = 0; i < enrichedMilestones.length; i++) {
+                                const milestone = enrichedMilestones[i];
+                                // Distribute by level buckets to milestones: milestone 0=beginner, 1=intermediate, 2=advanced
+                                const bucket = courseBuckets[Math.min(i, courseBuckets.length - 1)] || [];
+                                if (bucket.length > 0) {
+                                    milestone.courses = bucket.map(c => ({
+                                        id: c.id,
+                                        title: c.title,
+                                        slug: c.slug,
+                                        level: c.level,
+                                        thumbnail: c.thumbnail
+                                    }));
+                                } else {
+                                    // Fallback: keyword search
+                                    const keywords = milestone.title.toLowerCase().split(/\s+/);
+                                    const matched = sortByLevel(allCourses.filter(c =>
+                                        keywords.some((kw: string) => kw.length > 2 && (
+                                            (c.title && c.title.toLowerCase().includes(kw)) ||
+                                            (c.description && c.description.toLowerCase().includes(kw))
+                                        ))
+                                    )).slice(0, 3);
+                                    milestone.courses = matched.map(c => ({
+                                        id: c.id,
+                                        title: c.title,
+                                        slug: c.slug,
+                                        level: c.level,
+                                        thumbnail: c.thumbnail
+                                    }));
+                                }
                             }
                         }
 
