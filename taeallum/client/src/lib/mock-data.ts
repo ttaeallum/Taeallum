@@ -99,11 +99,9 @@ export const tracks: Track[] = [
     image: "https://images.unsplash.com/photo-1593720213428-28a5b9e94613?w=800&q=80",
     level: "شامل",
     milestones: [
-      { id: "m1", title: "أساسيات الويب", description: "HTML5, CSS3 وفهم آلية عمل الإنترنت" },
-      { id: "m2", title: "لغة البرمجة JavaScript", description: "المتغيرات، الدوال، والتعامل مع DOM" },
-      { id: "m3", title: "أطر العمل الحديثة", description: "React.js وبناء تطبيقات الصفحة الواحدة" },
-      { id: "m4", title: "إدارة الحالة والبيانات", description: "Redux, API Integration" },
-      { id: "m5", title: "مشروع التخرج", description: "بناء متجر إلكتروني متكامل" }
+      { id: "m1", title: "مبتدئ - أساسيات الويب", description: "HTML5, CSS3 وفهم آلية عمل الإنترنت والمتغيرات والدوال" },
+      { id: "m2", title: "متوسط - أطر العمل الحديثة", description: "React.js وبناء تطبيقات الصفحة الواحدة وإدارة الحالة" },
+      { id: "m3", title: "متقدم - مشاريع متكاملة", description: "بناء متجر إلكتروني متكامل مع API Integration" }
     ]
   },
   {
@@ -115,10 +113,9 @@ export const tracks: Track[] = [
     image: "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800&q=80",
     level: "شامل",
     milestones: [
-      { id: "m1", title: "مبادئ التصميم البصري", description: "الألوان، التباين، والتايبوغراف" },
-      { id: "m2", title: "أدوات التصميم", description: "إتقان Figma و Adobe XD" },
-      { id: "m3", title: "تجربة المستخدم UX", description: "البحث، رحلة المستخدم، والبروتوتايب" },
-      { id: "m4", title: "بناء معرض أعمال", description: "تجهيز Portfolio وعرض المشاريع" }
+      { id: "m1", title: "مبتدئ - مبادئ التصميم البصري", description: "الألوان، التباين، والتايبوغرافي وأساسيات Figma" },
+      { id: "m2", title: "متوسط - تجربة المستخدم UX", description: "البحث، رحلة المستخدم، والبروتوتايب و Adobe XD" },
+      { id: "m3", title: "متقدم - بناء معرض أعمال", description: "تجهيز Portfolio وعرض المشاريع الاحترافية" }
     ]
   },
   {

@@ -554,9 +554,29 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 
                         toolLogs.push(`تم ربط ${allMatchedCourseIds.size} كورس من المنصة بالمسار`);
 
+                        // Enforce exactly 3 milestones: مبتدئ، متوسط، متقدم
+                        const LEVEL_LABELS = ['المستوى الأول - مبتدئ', 'المستوى الثاني - متوسط', 'المستوى الثالث - متقدم'];
+                        let finalMilestones = enrichedMilestones;
+
+                        if (finalMilestones.length > 3) {
+                            const extra = finalMilestones.slice(3);
+                            const extraCourses = extra.flatMap((m: any) => m.courses || []);
+                            finalMilestones = finalMilestones.slice(0, 3);
+                            finalMilestones[2].courses = [...(finalMilestones[2].courses || []), ...extraCourses];
+                        } else {
+                            while (finalMilestones.length < 3) {
+                                finalMilestones.push({ title: LEVEL_LABELS[finalMilestones.length], description: '', courses: [] });
+                            }
+                        }
+
+                        finalMilestones = finalMilestones.map((m: any, idx: number) => ({
+                            ...m,
+                            title: LEVEL_LABELS[idx] || m.title
+                        }));
+
                         const planDataWithCourses = {
                             ...args,
-                            milestones: enrichedMilestones,
+                            milestones: finalMilestones,
                             linkedCoursesCount: allMatchedCourseIds.size
                         };
 

@@ -8,8 +8,6 @@ import { Check, Sparkles, Zap, ArrowRight, ShieldCheck, Clock, Headphones } from
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { pricingTiers } from "@/lib/ai-questions";
-import { useMutation } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
 
 // Currency data
 const currencies = {
@@ -22,40 +20,12 @@ export default function AIPricing() {
   const [, setLocation] = useLocation();
   const [currency] = useState<CurrencyCode>("usd");
 
-  const { toast } = useToast();
+  // PayTabs MEPS payment link
+  const PAYTABS_PAYMENT_LINK = "https://secure-jordan.paytabs.com/payment/link/175686/8515210";
 
-  const checkoutMutation = useMutation({
-    mutationFn: async (planId: string) => {
-      const res = await fetch("/api/paytabs/initiate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Failed to initiate payment");
-      }
-      return res.json();
-    },
-    onSuccess: (data) => {
-      if (data.redirectUrl) {
-        window.location.href = data.redirectUrl;
-      } else {
-        toast({
-          title: "خطأ",
-          description: "لم يتم استلام رابط الدفع",
-          variant: "destructive",
-        });
-      }
-    },
-    onError: (error: any) => {
-      toast({
-        title: "خطأ",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  const handleSubscribe = () => {
+    window.location.href = PAYTABS_PAYMENT_LINK;
+  };
 
   // Removed currency detection
 
@@ -125,7 +95,7 @@ export default function AIPricing() {
                   <Button
                     size="lg"
                     className="w-full h-14 text-lg font-bold rounded-xl shadow-lg shadow-primary/25 hover:scale-105 transition-transform"
-                    onClick={() => checkoutMutation.mutate("pro")}
+                    onClick={() => handleSubscribe()}
                   >
                     اشترك الآن
                     <ArrowRight className="w-5 h-5 mr-2 rotate-180" />

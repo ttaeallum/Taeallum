@@ -200,9 +200,31 @@ router.get("/user-plans", requireAuth, async (req: Request, res: Response) => {
                 return { ...m, courses, weeklyHours };
             });
 
+            // Enforce exactly 3 milestones: مبتدئ، متوسط، متقدم
+            const LEVEL_LABELS = ['المستوى الأول - مبتدئ', 'المستوى الثاني - متوسط', 'المستوى الثالث - متقدم'];
+            let finalMilestones = enrichedMilestones;
+
+            if (finalMilestones.length > 3) {
+                // Merge extra milestones' courses into the 3rd (advanced) milestone
+                const extra = finalMilestones.slice(3);
+                const extraCourses = extra.flatMap((m: any) => m.courses || []);
+                finalMilestones = finalMilestones.slice(0, 3);
+                finalMilestones[2].courses = [...(finalMilestones[2].courses || []), ...extraCourses];
+            } else {
+                while (finalMilestones.length < 3) {
+                    finalMilestones.push({ title: LEVEL_LABELS[finalMilestones.length], description: '', courses: [], weeklyHours });
+                }
+            }
+
+            // Apply level labels
+            finalMilestones = finalMilestones.map((m: any, idx: number) => ({
+                ...m,
+                title: LEVEL_LABELS[idx] || m.title
+            }));
+
             return {
                 ...plan,
-                planData: { ...planData, milestones: enrichedMilestones }
+                planData: { ...planData, milestones: finalMilestones }
             };
         });
 

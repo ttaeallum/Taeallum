@@ -171,7 +171,7 @@ export default function Tracks() {
                           </h3>
 
                           <div className="relative space-y-8 before:absolute before:inset-y-0 before:right-[19px] before:w-0.5 before:bg-gradient-to-b before:from-primary before:to-transparent">
-                            {data.milestones?.map((milestone: any, i: number) => (
+                            {data.milestones?.slice(0, 3).map((milestone: any, i: number) => (
                               <motion.div
                                 key={i}
                                 initial={{ opacity: 0, x: -20 }}
