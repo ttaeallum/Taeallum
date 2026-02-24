@@ -151,6 +151,25 @@ export default function LearnCourse() {
         // Handle both iframe tags AND direct URLs (like Bunny.net/Mediashare)
         const isIframeTag = videoUrl.trim().startsWith("<iframe");
         const isDirectUrl = videoUrl.startsWith("http") || videoUrl.startsWith("/");
+        const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+        const ytMatch = videoUrl.match(ytRegex);
+
+        // If it's YouTube (either iframe OR direct link), extract ID and rebuild to be clean
+        if (ytMatch && ytMatch[1]) {
+            const videoId = ytMatch[1];
+            return (
+                <div className="absolute inset-0 w-full h-full bg-black">
+                    <iframe
+                        src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=0&color=white&iv_load_policy=3&showinfo=0&disablekb=0&fs=1`}
+                        loading="lazy"
+                        className="absolute inset-0 w-full h-full"
+                        style={{ border: 0 }}
+                        allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;"
+                        allowFullScreen
+                    ></iframe>
+                </div>
+            );
+        }
 
         if (isIframeTag) {
             return (
@@ -163,15 +182,8 @@ export default function LearnCourse() {
         }
 
         if (isDirectUrl) {
-            // Transform YouTube/Vimeo links to embed versions if necessary
+            // Transform Vimeo links to embed versions if necessary (YouTube already handled above)
             let finalUrl = videoUrl.trim();
-
-            // YouTube transformation
-            const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-            const ytMatch = finalUrl.match(ytRegex);
-            if (ytMatch && ytMatch[1] && !finalUrl.includes("embed")) {
-                finalUrl = `https://www.youtube.com/embed/${ytMatch[1]}?rel=0&modestbranding=1&color=white&iv_load_policy=3&showinfo=0&disablekb=0&fs=1`;
-            }
 
             // Vimeo transformation
             const vimeoRegex = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/;

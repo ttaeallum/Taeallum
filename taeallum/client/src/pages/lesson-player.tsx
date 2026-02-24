@@ -114,25 +114,27 @@ export default function LessonPlayer() {
               {(() => {
                 const videoUrl = activeLessonData.videoUrl;
 
-                // 1. Check if it's already an iframe
-                if (videoUrl.includes('<iframe')) {
-                  return <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: videoUrl }} />;
-                }
-
-                // 2. YouTube Detection & Transformation
+                // 1. YouTube Detection & Transformation (Prioritize for customization)
                 const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
                 const ytMatch = videoUrl.match(ytRegex);
                 if (ytMatch && ytMatch[1]) {
                   const videoId = ytMatch[1];
                   return (
-                    <iframe
-                      src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&color=white&iv_load_policy=3&showinfo=0&disablekb=0&fs=1`}
-                      className="absolute inset-0 w-full h-full"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    ></iframe>
+                    <div className="absolute inset-0 w-full h-full">
+                      <iframe
+                        src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=0&color=white&iv_load_policy=3&showinfo=0&disablekb=0&fs=1`}
+                        className="absolute inset-0 w-full h-full"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      ></iframe>
+                    </div>
                   );
+                }
+
+                // 2. Check if it's already an iframe (non-YouTube)
+                if (videoUrl.includes('<iframe')) {
+                  return <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: videoUrl }} />;
                 }
 
                 // 3. Direct Video Files (MP4, WEBM, etc.)
