@@ -252,7 +252,7 @@ export default function AIAgent() {
             <Card className="flex-1 bg-white dark:bg-[#0c0c0c] border border-white/20 dark:border-white/5 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] rounded-3xl lg:rounded-[2.5rem] flex flex-col overflow-hidden relative backdrop-blur-3xl h-full">
 
               {/* Predictive Progress Header */}
-              <div className="px-6 lg:px-10 pt-6 pb-2 border-b border-border/5 bg-zinc-50/50 dark:bg-zinc-900/20 shrink-0">
+              <div className="px-4 lg:px-8 pt-4 pb-2 border-b border-border/5 bg-zinc-50/50 dark:bg-zinc-900/20 shrink-0">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
@@ -314,7 +314,7 @@ export default function AIAgent() {
               <div
                 ref={scrollRef}
                 onScroll={handleScroll}
-                className="flex-1 overflow-y-auto px-4 lg:px-12 py-8 space-y-8 scrollbar-none relative"
+                className="flex-1 overflow-y-auto px-4 lg:px-10 py-4 space-y-4 scrollbar-none relative"
               >
                 <AnimatePresence initial={false}>
                   {messages.map((msg, i) => {
@@ -341,22 +341,22 @@ export default function AIAgent() {
                         className={cn("flex flex-col gap-3 max-w-[92%] sm:max-w-[85%]", msg.role === "user" ? "self-start" : "self-end items-end")}
                       >
                         <div className={cn(
-                          "p-4 md:p-6 lg:p-7 rounded-[1.8rem] relative shadow-lg group",
+                          "p-4 md:p-5 lg:px-6 lg:py-4 rounded-2xl relative shadow-md group",
                           msg.role === "user"
                             ? "bg-zinc-100 dark:bg-zinc-800 text-foreground rounded-tr-none"
                             : "bg-primary text-primary-foreground rounded-tl-none font-bold"
                         )}>
-                          <div className="text-[14px] md:text-base leading-relaxed break-words">
+                          <div className="text-[13px] md:text-[15px] leading-snug break-words">
                             {cleanContent}
                           </div>
 
                           {msg.role === "assistant" && suggestionsList.length > 0 && (
-                            <div className="mt-8 flex flex-wrap gap-3 justify-end">
+                            <div className="mt-4 flex flex-wrap gap-2 justify-end">
                               {suggestionsList.map((suggestion, idx) => (
                                 <motion.button
                                   key={idx}
-                                  whileHover={{ y: -3, scale: 1.03 }}
-                                  whileTap={{ scale: 0.97 }}
+                                  whileHover={{ y: -2, scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
                                   onClick={() => {
                                     if (suggestion.trim().includes("ابدأ الآن")) {
                                       setLocation("/tracks");
@@ -365,7 +365,7 @@ export default function AIAgent() {
                                     }
                                   }}
                                   disabled={isLoading || i < messages.length - 1}
-                                  className="px-5 py-3 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 transition-all text-[13px] font-bold shadow-md hover:shadow-lg border border-zinc-200 dark:border-zinc-700 disabled:opacity-40"
+                                  className="px-4 py-2 rounded-lg bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 transition-all text-[12px] font-bold shadow-sm hover:shadow-md border border-zinc-200 dark:border-zinc-700 disabled:opacity-40"
                                 >
                                   {suggestion.trim()}
                                 </motion.button>
@@ -410,7 +410,7 @@ export default function AIAgent() {
               </AnimatePresence>
 
               {/* INPUT AREA (FIXED AT BOTTOM) */}
-              <footer className="px-4 md:px-10 py-5 lg:py-6 border-t border-border/5 bg-white/80 dark:bg-black/40 backdrop-blur-xl shrink-0 z-20">
+              <footer className="px-4 md:px-10 py-4 border-t border-border/5 bg-white/80 dark:bg-black/40 backdrop-blur-xl shrink-0 z-20">
                 <div className="max-w-4xl mx-auto w-full relative">
                   {currentStep === 5 ? (
                     <motion.div
