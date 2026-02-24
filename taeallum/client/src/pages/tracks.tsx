@@ -189,7 +189,7 @@ export default function Tracks() {
                                   </h4>
                                   <p className="text-muted-foreground text-sm mb-4">{milestone.description}</p>
 
-                                  {milestone.courses && milestone.courses.length > 0 && (
+                                  {milestone.courses && milestone.courses.length > 0 ? (
                                     <div className="mt-4 pt-4 border-t border-border/20">
                                       {/* Weekly schedule header */}
                                       <div className="flex items-center justify-between mb-3">
@@ -240,6 +240,12 @@ export default function Tracks() {
                                             </div>
                                           </Link>
                                         ))}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="mt-4 pt-4 border-t border-border/20">
+                                      <div className="p-4 rounded-xl bg-muted/20 border border-border/30 text-center">
+                                        <p className="text-xs text-muted-foreground">سيتم إضافة الدورات لهذا المستوى قريباً</p>
                                       </div>
                                     </div>
                                   )}

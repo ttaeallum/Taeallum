@@ -492,9 +492,34 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                         if (totalMatched === 0 && allCourses.length > 0) {
                             // Auto-distribute courses across milestones by level
                             const sortedCourses = sortByLevel(allCourses);
-                            const beginnerCourses = sortedCourses.filter(c => c.level === 'beginner');
-                            const intermediateCourses = sortedCourses.filter(c => c.level === 'intermediate');
-                            const advancedCourses = sortedCourses.filter(c => c.level === 'advanced');
+                            let beginnerCourses = sortedCourses.filter(c => c.level === 'beginner');
+                            let intermediateCourses = sortedCourses.filter(c => c.level === 'intermediate');
+                            let advancedCourses = sortedCourses.filter(c => c.level === 'advanced');
+
+                            // Fill empty buckets from nearest available level
+                            if (intermediateCourses.length === 0 && beginnerCourses.length > 0) {
+                                intermediateCourses = [...beginnerCourses];
+                            } else if (intermediateCourses.length === 0 && advancedCourses.length > 0) {
+                                intermediateCourses = [...advancedCourses];
+                            }
+                            if (advancedCourses.length === 0 && intermediateCourses.length > 0) {
+                                advancedCourses = [...intermediateCourses];
+                            } else if (advancedCourses.length === 0 && beginnerCourses.length > 0) {
+                                advancedCourses = [...beginnerCourses];
+                            }
+                            if (beginnerCourses.length === 0 && intermediateCourses.length > 0) {
+                                beginnerCourses = [...intermediateCourses];
+                            }
+
+                            // Last resort: split evenly
+                            if (beginnerCourses.length === 0 && intermediateCourses.length === 0 && advancedCourses.length === 0 && sortedCourses.length > 0) {
+                                const third = Math.ceil(sortedCourses.length / 3);
+                                beginnerCourses = sortedCourses.slice(0, third);
+                                intermediateCourses = sortedCourses.slice(third, third * 2);
+                                advancedCourses = sortedCourses.slice(third * 2);
+                            }
+
+
                             const courseBuckets = [beginnerCourses, intermediateCourses, advancedCourses];
 
                             for (let i = 0; i < enrichedMilestones.length; i++) {

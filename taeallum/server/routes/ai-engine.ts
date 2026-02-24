@@ -168,9 +168,33 @@ router.get("/user-plans", requireAuth, async (req: Request, res: Response) => {
             );
 
             // Split into level buckets, then DEDUPLICATE each bucket
-            const beginnerCourses = deduplicateBucket(sortedCourses.filter(c => c.level === 'beginner'));
-            const intermediateCourses = deduplicateBucket(sortedCourses.filter(c => c.level === 'intermediate'));
-            const advancedCourses = deduplicateBucket(sortedCourses.filter(c => c.level === 'advanced'));
+            let beginnerCourses = deduplicateBucket(sortedCourses.filter(c => c.level === 'beginner'));
+            let intermediateCourses = deduplicateBucket(sortedCourses.filter(c => c.level === 'intermediate'));
+            let advancedCourses = deduplicateBucket(sortedCourses.filter(c => c.level === 'advanced'));
+
+            // Fill empty buckets from nearest available level so every milestone has courses
+            if (intermediateCourses.length === 0 && beginnerCourses.length > 0) {
+                intermediateCourses = [...beginnerCourses];
+            } else if (intermediateCourses.length === 0 && advancedCourses.length > 0) {
+                intermediateCourses = [...advancedCourses];
+            }
+            if (advancedCourses.length === 0 && intermediateCourses.length > 0) {
+                advancedCourses = [...intermediateCourses];
+            } else if (advancedCourses.length === 0 && beginnerCourses.length > 0) {
+                advancedCourses = [...beginnerCourses];
+            }
+            if (beginnerCourses.length === 0 && intermediateCourses.length > 0) {
+                beginnerCourses = [...intermediateCourses];
+            }
+
+            // Last resort: if ALL are empty but we have courses, split evenly
+            if (beginnerCourses.length === 0 && intermediateCourses.length === 0 && advancedCourses.length === 0 && sortedCourses.length > 0) {
+                const third = Math.ceil(sortedCourses.length / 3);
+                beginnerCourses = sortedCourses.slice(0, third);
+                intermediateCourses = sortedCourses.slice(third, third * 2);
+                advancedCourses = sortedCourses.slice(third * 2);
+            }
+
             const buckets = [beginnerCourses, intermediateCourses, advancedCourses];
 
             // Determine student's weekly available hours

@@ -123,7 +123,7 @@ export default function LessonPlayer() {
                   const videoId = ytMatch[1];
                   return (
                     <iframe
-                      src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`}
+                      src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&color=white&iv_load_policy=3&showinfo=0&disablekb=0&fs=1`}
                       className="absolute inset-0 w-full h-full"
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

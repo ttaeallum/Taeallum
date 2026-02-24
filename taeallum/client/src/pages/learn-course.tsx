@@ -163,7 +163,7 @@ export default function LearnCourse() {
             const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
             const ytMatch = finalUrl.match(ytRegex);
             if (ytMatch && ytMatch[1] && !finalUrl.includes("embed")) {
-                finalUrl = `https://www.youtube.com/embed/${ytMatch[1]}`;
+                finalUrl = `https://www.youtube.com/embed/${ytMatch[1]}?rel=0&modestbranding=1&color=white&iv_load_policy=3&showinfo=0&disablekb=0&fs=1`;
             }
 
             // Vimeo transformation
