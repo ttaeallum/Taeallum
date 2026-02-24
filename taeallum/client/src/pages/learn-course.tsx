@@ -4,7 +4,7 @@ import { Link, useParams, useLocation } from "wouter";
 import { PlayCircle, CheckCircle, ChevronLeft, ChevronRight, Download, BookOpen, Loader2, Lock, ArrowRight, Video, Sparkles } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
     Sheet,
@@ -76,41 +76,48 @@ export default function LearnCourse() {
         }
     });
 
+    // Memoize flat lessons list to prevent recalculating on every render
+    const flatLessons = useMemo(() => {
+        if (!curriculum) return [];
+        return curriculum.flatMap((s: any) => s.lessons || []);
+    }, [curriculum]);
+
+    // Calculate progress percentage with memoization
+    const progress = useMemo(() => {
+        if (!flatLessons.length || !activeLesson) return 0;
+        const currentIndex = flatLessons.findIndex((l: any) => l.id === activeLesson.id);
+        if (currentIndex === -1) return 0;
+        return Math.round(((currentIndex + 1) / flatLessons.length) * 100);
+    }, [flatLessons, activeLesson?.id]);
+
     // Helper to set first lesson as active initially AND update if curriculum changes (reactive)
     useEffect(() => {
         if (!curriculum || curriculum.length === 0) return;
 
         // If no active lesson, set the first one
         if (!activeLesson) {
-            for (const section of curriculum) {
-                if (section.lessons && section.lessons.length > 0) {
-                    setActiveLesson(section.lessons[0]);
-                    break;
-                }
+            const firstLesson = flatLessons[0];
+            if (firstLesson) {
+                setActiveLesson(firstLesson);
             }
         } else {
-            // Find current active lesson in NEW curriculum to get potentially updated data (like videoUrl)
-            const flatLessons = curriculum.flatMap((s: any) => s.lessons);
+            // Find current active lesson in NEW curriculum to get potentially updated data
             const updated = flatLessons.find((l: any) => l.id === activeLesson.id);
             if (updated && (updated.videoUrl !== activeLesson.videoUrl || updated.title !== activeLesson.title)) {
                 setActiveLesson(updated);
             }
         }
-    }, [curriculum]); // removed activeLesson from deps to prevent infinite loop
+    }, [curriculum, flatLessons]);
 
     // Find next and previous lessons for navigation
-    let prevLesson: any = null;
-    let nextLesson: any = null;
-
-    if (curriculum && activeLesson) {
-        const flatLessons = curriculum.flatMap((s: any) => s.lessons);
+    const { prevLesson, nextLesson } = useMemo(() => {
+        if (!flatLessons.length || !activeLesson) return { prevLesson: null, nextLesson: null };
         const currentIndex = flatLessons.findIndex((l: any) => l.id === activeLesson.id);
-        if (currentIndex > 0) prevLesson = flatLessons[currentIndex - 1];
-        if (currentIndex < flatLessons.length - 1) nextLesson = flatLessons[currentIndex + 1];
-    }
-
-    // Calculate progress percentage
-    const progress = curriculum ? Math.round(((curriculum.flatMap((s: any) => s.lessons).findIndex((l: any) => l.id === activeLesson?.id) + 1) / curriculum.flatMap((s: any) => s.lessons).length) * 100) : 0;
+        return {
+            prevLesson: currentIndex > 0 ? flatLessons[currentIndex - 1] : null,
+            nextLesson: currentIndex < flatLessons.length - 1 ? flatLessons[currentIndex + 1] : null
+        };
+    }, [flatLessons, activeLesson?.id]);
 
     if (accessLoading || courseLoading || curriculumLoading) {
         return (
@@ -196,7 +203,7 @@ export default function LearnCourse() {
     };
 
     return (
-        <div className="flex flex-col h-screen bg-zinc-950 overflow-x-hidden overflow-y-hidden" dir="rtl">
+        <div className="flex flex-col h-screen bg-zinc-950 overflow-hidden" dir="rtl">
             {/* Cinematic Header */}
             <header className="h-16 border-b border-white/5 flex items-center justify-between px-6 shrink-0 bg-black/60 backdrop-blur-2xl sticky top-0 z-50">
                 <div className="flex items-center gap-6">
@@ -240,7 +247,7 @@ export default function LearnCourse() {
                                     <Progress value={progress} className="h-1.5 bg-white/5" />
                                 </div>
                             </SheetHeader>
-                            <ScrollArea className="h-[calc(100vh-180px)]">
+                            <ScrollArea className="flex-1 overflow-y-auto">
                                 <div className="divide-y divide-white/5">
                                     {curriculum?.map((section: any) => (
                                         <div key={section.id} className="group/section">

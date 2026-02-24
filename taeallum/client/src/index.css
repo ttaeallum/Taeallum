@@ -164,8 +164,8 @@
 
   /* Elegant thin scrollbar */
   ::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
+    width: 10px;
+    height: 10px;
   }
 
   ::-webkit-scrollbar-track {
@@ -173,8 +173,10 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--primary) / 0.12);
+    background: hsl(var(--primary) / 0.2);
     border-radius: 20px;
+    border: 2px solid transparent;
+    background-clip: content-box;
     transition: all 0.3s ease;
   }
 

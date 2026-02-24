@@ -4,7 +4,7 @@ import { Link, useRoute } from "wouter";
 import { PlayCircle, CheckCircle, ChevronLeft, ChevronRight, Download, MessageSquare, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 const formatDuration = (seconds: number) => {
@@ -31,12 +31,15 @@ export default function LessonPlayer() {
     enabled: !!params?.id
   });
 
-  const activeLessonData = curriculum?.flatMap((s: any) => s.lessons).find((l: any) => l.id === params?.id);
+  const activeLessonData = useMemo(() => {
+    if (!curriculum) return null;
+    return curriculum.flatMap((s: any) => s.lessons || []).find((l: any) => l.id === params?.id);
+  }, [curriculum, params?.id]);
 
   if (isLoading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin w-8 h-8 text-primary" /></div>;
 
   return (
-    <div className="flex flex-col h-screen bg-background overflow-x-hidden" dir="rtl">
+    <div className="flex flex-col h-screen bg-background overflow-hidden" dir="rtl">
       {/* Header */}
       <header className="h-16 border-b border-border/40 flex items-center justify-between px-4 shrink-0 bg-background z-10">
         <div className="flex items-center gap-4">
