@@ -108,7 +108,7 @@ export default function LessonPlayer() {
 
       {/* Main Content (Player) */}
       <main className="flex-1 bg-black flex flex-col items-center relative">
-        <div className="w-full aspect-video bg-zinc-900 relative group overflow-hidden">
+        <div className="w-full relative pb-[56.25%] h-0 bg-zinc-900 group">
           {activeLessonData?.videoUrl ? (
             <div className="w-full h-full">
               {(() => {

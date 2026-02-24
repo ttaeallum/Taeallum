@@ -160,7 +160,7 @@ export default function LearnCourse() {
             return (
                 <div className="absolute inset-0 w-full h-full bg-black">
                     <iframe
-                        src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=0&color=white&iv_load_policy=3&showinfo=0&disablekb=0&fs=1`}
+                        src={`https://www.youtube.com/embed/${videoId}?rel=0&color=white&iv_load_policy=3&showinfo=0&disablekb=0&fs=1`}
                         loading="lazy"
                         className="absolute inset-0 w-full h-full"
                         style={{ border: 0 }}
@@ -326,7 +326,7 @@ export default function LearnCourse() {
                 <main className="flex-1 bg-black flex flex-col items-center">
                     {/* Cinematic Video Area (Large) - Full Width for Mobile & Desktop */}
                     <div className="w-full bg-zinc-950 border-b border-white/5 shadow-2xl relative z-10 group/player overflow-hidden">
-                        <div className="w-full aspect-video relative overflow-hidden">
+                        <div className="w-full relative pb-[56.25%] h-0">
                             {/* Player Wrapper with refined shadows */}
                             <div className="w-full h-full relative z-20">
                                 {renderVideoPlayer()}
