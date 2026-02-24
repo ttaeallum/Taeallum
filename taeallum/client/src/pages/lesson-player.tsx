@@ -39,7 +39,7 @@ export default function LessonPlayer() {
   if (isLoading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin w-8 h-8 text-primary" /></div>;
 
   return (
-    <div className="flex flex-col h-screen bg-background overflow-hidden" dir="rtl">
+    <div className="flex flex-col h-screen bg-background overflow-hidden fixed inset-0" dir="rtl">
       {/* Header */}
       <header className="h-16 border-b border-border/40 flex items-center justify-between px-4 shrink-0 bg-background z-10">
         <div className="flex items-center gap-4">
@@ -108,7 +108,7 @@ export default function LessonPlayer() {
 
       {/* Main Content (Player) */}
       <main className="flex-1 overflow-y-auto overflow-x-hidden bg-black flex flex-col items-center relative custom-scrollbar">
-        <div className="w-full aspect-video bg-zinc-900 relative group max-h-[45vh] min-h-[200px] md:max-h-none">
+        <div className="w-full aspect-video bg-zinc-900 relative group overflow-hidden">
           {activeLessonData?.videoUrl ? (
             <div className="w-full h-full">
               {(() => {
@@ -122,7 +122,7 @@ export default function LessonPlayer() {
                   return (
                     <div className="absolute inset-0 w-full h-full">
                       <iframe
-                        src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=0&color=white&iv_load_policy=3&showinfo=0&disablekb=0&fs=1`}
+                        src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&color=white&iv_load_policy=3&showinfo=0&disablekb=0&fs=1`}
                         className="absolute inset-0 w-full h-full"
                         frameBorder="0"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

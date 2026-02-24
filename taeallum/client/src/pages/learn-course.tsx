@@ -160,7 +160,7 @@ export default function LearnCourse() {
             return (
                 <div className="absolute inset-0 w-full h-full bg-black">
                     <iframe
-                        src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=0&color=white&iv_load_policy=3&showinfo=0&disablekb=0&fs=1`}
+                        src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&color=white&iv_load_policy=3&showinfo=0&disablekb=0&fs=1`}
                         loading="lazy"
                         className="absolute inset-0 w-full h-full"
                         style={{ border: 0 }}
@@ -215,7 +215,7 @@ export default function LearnCourse() {
     };
 
     return (
-        <div className="flex flex-col h-screen bg-zinc-950 overflow-hidden" dir="rtl">
+        <div className="flex flex-col h-screen bg-zinc-950 overflow-hidden fixed inset-0" dir="rtl">
             {/* Cinematic Header */}
             <header className="h-16 border-b border-white/5 flex items-center justify-between px-6 shrink-0 bg-black/60 backdrop-blur-2xl sticky top-0 z-50">
                 <div className="flex items-center gap-6">
@@ -322,11 +322,11 @@ export default function LearnCourse() {
                 </div>
             </header>
 
-            <div className="flex-1 flex overflow-hidden flex-row">
+            <div className="flex-1 flex overflow-hidden flex-row relative">
                 <main className="flex-1 overflow-y-auto overflow-x-hidden bg-black flex flex-col items-center custom-scrollbar">
                     {/* Cinematic Video Area (Large) - Full Width for Mobile & Desktop */}
                     <div className="w-full bg-zinc-950 border-b border-white/5 shadow-2xl relative z-10 group/player overflow-hidden">
-                        <div className="w-full aspect-video relative max-h-[50vh] min-h-[180px] md:max-h-none overflow-hidden">
+                        <div className="w-full aspect-video relative overflow-hidden">
                             {/* Player Wrapper with refined shadows */}
                             <div className="w-full h-full relative z-20">
                                 {renderVideoPlayer()}
