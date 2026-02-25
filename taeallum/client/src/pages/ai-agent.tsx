@@ -118,8 +118,8 @@ export default function AIAgent() {
         id: "init",
         role: "assistant",
         content: isRtl
-          ? "مرحباً بك في منصة تعلّم. أنا مساعدك البرمجي الذكي، سأقودك لاختيار مسارك في عالم البرمجة في 4 خطوات. لنبدأ بمجال البرمجة الذي يستهويك: [SUGGESTIONS: تطوير المواقع (Web) 🌐|تطوير التطبيقات (Mobile) 📱|البيانات والذكاء الاصطناعي 🤖|تطوير الألعاب (Games) 🎮|الأمن السيبراني (Cyber) 🔒]"
-          : "Welcome to Taallm. I am your Programming Assistant, I will lead you to choose your path in the world of code in 4 steps. Let's start with the field you're interested in: [SUGGESTIONS: Web Development 🌐|Mobile Apps 📱|Data & AI 🤖|Game Development 🎮|Cyber Security 🔒]",
+          ? "مرحباً بك في منصة تعلّم. أنا مساعدك التقني الذكي، سنحدد مسارك الاحترافي بناءً على 7 قطاعات رئيسية في تكنولوجيا المعلومات. أي قطاع تود استكشافه؟ [SUGGESTIONS: علوم الحاسوب 💻|هندسة البرمجيات ⚙️|علم البيانات والذكاء الاصطناعي 🧠|الأمن السيبراني 🔒|إنترنت الأشياء والاتصالات 📡|نظم المعلومات الإدارية 📊|تطوير الويب والهاتف 📱]"
+          : "Welcome to Taallm. I am your Intelligent Tech Assistant, we will define your professional path based on 7 main IT sectors. Which sector would you like to explore? [SUGGESTIONS: Computer Science 💻|Software Engineering ⚙️|Data Science & AI 🧠|Cybersecurity 🔒|IOT & Communications 📡|Management Information 📊|Web & Mobile Development 📱]",
         timestamp: new Date()
       }]);
     }
@@ -133,8 +133,8 @@ export default function AIAgent() {
         id: "init",
         role: "assistant",
         content: isRtl
-          ? "أهلاً بك مجدداً. لنبدأ من جديد بتحديد مسارك البرمجي. أي مجال تفضل؟ [SUGGESTIONS: تطوير المواقع (Web) 🌐|تطوير التطبيقات (Mobile) 📱|البيانات والذكاء الاصطناعي 🤖|تطوير الألعاب (Games) 🎮|الأمن السيبراني (Cyber) 🔒]"
-          : "Welcome back. Let's start fresh by identifying your programming path. Which field do you prefer? [SUGGESTIONS: Web Development 🌐|Mobile Apps 📱|Data & AI 🤖|Game Development 🎮|Cyber Security 🔒]",
+          ? "أهلاً بك مجدداً. لنبدأ من جديد بتحديد مسارك التقني. أي قطاع تود البدء به؟ [SUGGESTIONS: علوم الحاسوب 💻|هندسة البرمجيات ⚙️|علم البيانات والذكاء الاصطناعي 🧠|الأمن السيبراني 🔒|إنترنت الأشياء والاتصالات 📡|نظم المعلومات الإدارية 📊|تطوير الويب والهاتف 📱]"
+          : "Welcome back. Let's start fresh by identifying your tech path. Which sector would you like to start with? [SUGGESTIONS: Computer Science 💻|Software Engineering ⚙️|Data Science & AI 🧠|Cybersecurity 🔒|IOT & Communications 📡|Management Information 📊|Web & Mobile Development 📱]",
         timestamp: new Date()
       }]);
       setActiveLogs([]);
