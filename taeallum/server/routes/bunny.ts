@@ -16,7 +16,7 @@ const normalizeYoutubeUrl = (url: string) => {
 // 1. Fetch from YouTube and send to Bunny
 router.post("/fetch-to-bunny", async (req: Request, res: Response) => {
     // v18: Strict selection to avoid collision with RENDER_SERVICE_ID
-    const libraryId = process.env.BUNNY_LIBRARY_ID || "597149";
+    const libraryId = process.env.BUNNY_LIBRARY_ID || "583591";
     const apiKey = process.env.BUNNY_API_KEY || "367a5c92-24fb-4fdb-82d0b1e4107a-959f-4b99";
 
     try {

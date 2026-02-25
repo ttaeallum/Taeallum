@@ -388,7 +388,7 @@ router.post("/generate-plan", requireAuth, async (req: Request, res: Response) =
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [
-                { role: "system", content: "You are a professional study plan generator for Taeallum platform. Output only JSON." },
+                { role: "system", content: "أنت خبير في توجيه المبرمجين وتصميم المسارات التعليمية التقنية لمنصة 'تعلّم'. مهمتك هي إنشاء خطة دراسية برمجية متكاملة واحترافية باللغة العربية." },
                 { role: "user", content: prompt }
             ],
             response_format: { type: "json_object" }

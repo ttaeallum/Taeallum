@@ -118,8 +118,8 @@ export default function AIAgent() {
         id: "init",
         role: "assistant",
         content: isRtl
-          ? "مرحباً بك في منصة تعلّم. أنا مساعدك التنفيذي، سأقودك لاختيار مسارك المهني في 4 خطوات. لنبدأ بالقطاع العام الذي تهتم به: [SUGGESTIONS: البرمجة والتطوير 💻|البيانات والذكاء الاصطناعي 🤖|التصميم الإبداعي 🎨|الأعمال والتسويق 📈|اللغات 🌍]"
-          : "Welcome to Taallm. I am your Executive Agent, I will lead you to choose your career path in 4 steps. Let's start with the sector you're interested in: [SUGGESTIONS: Programming & Development 💻|Data & AI 🤖|Creative Design 🎨|Business & Marketing 📈|Languages 🌍]",
+          ? "مرحباً بك في منصة تعلّم. أنا مساعدك البرمجي الذكي، سأقودك لاختيار مسارك في عالم البرمجة في 4 خطوات. لنبدأ بمجال البرمجة الذي يستهويك: [SUGGESTIONS: تطوير المواقع (Web) 🌐|تطوير التطبيقات (Mobile) 📱|البيانات والذكاء الاصطناعي 🤖|تطوير الألعاب (Games) 🎮|الأمن السيبراني (Cyber) 🔒]"
+          : "Welcome to Taallm. I am your Programming Assistant, I will lead you to choose your path in the world of code in 4 steps. Let's start with the field you're interested in: [SUGGESTIONS: Web Development 🌐|Mobile Apps 📱|Data & AI 🤖|Game Development 🎮|Cyber Security 🔒]",
         timestamp: new Date()
       }]);
     }
@@ -133,8 +133,8 @@ export default function AIAgent() {
         id: "init",
         role: "assistant",
         content: isRtl
-          ? "أهلاً بك مجدداً. لنبدأ من جديد بتحديد مسارك. أي قطاع تفضل؟ [SUGGESTIONS: البرمجة والتطوير 💻|البيانات والذكاء الاصطناعي 🤖|التصميم الإبداعي 🎨|الأعمال والتسويق 📈|اللغات 🌍]"
-          : "Welcome back. Let's start fresh by identifying your path. Which sector do you prefer? [SUGGESTIONS: Programming & Development 💻|Data & AI 🤖|Creative Design 🎨|Business & Marketing 📈|Languages 🌍]",
+          ? "أهلاً بك مجدداً. لنبدأ من جديد بتحديد مسارك البرمجي. أي مجال تفضل؟ [SUGGESTIONS: تطوير المواقع (Web) 🌐|تطوير التطبيقات (Mobile) 📱|البيانات والذكاء الاصطناعي 🤖|تطوير الألعاب (Games) 🎮|الأمن السيبراني (Cyber) 🔒]"
+          : "Welcome back. Let's start fresh by identifying your programming path. Which field do you prefer? [SUGGESTIONS: Web Development 🌐|Mobile Apps 📱|Data & AI 🤖|Game Development 🎮|Cyber Security 🔒]",
         timestamp: new Date()
       }]);
       setActiveLogs([]);

@@ -134,7 +134,7 @@ export default function LessonPlayer() {
 
                 // 2. Check if it's already an iframe (non-YouTube)
                 if (videoUrl.includes('<iframe')) {
-                  return <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: videoUrl }} />;
+                  return <div className="absolute inset-0 w-full h-full" dangerouslySetInnerHTML={{ __html: videoUrl }} />;
                 }
 
                 // 3. Direct Video Files (MP4, WEBM, etc.)
@@ -152,13 +152,15 @@ export default function LessonPlayer() {
 
                 // 4. Bunny.net / Other Transformation
                 let finalUrl = videoUrl;
+                const libId = import.meta.env.VITE_BUNNY_LIBRARY_ID || "583591";
+
                 if (videoUrl.includes("video.bunny.net/play/")) {
                   finalUrl = videoUrl.replace("video.bunny.net/play/", "iframe.mediadelivery.net/embed/");
                 }
 
                 const bunnyVideoIdRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
                 if (bunnyVideoIdRegex.test(videoUrl)) {
-                  finalUrl = `https://iframe.mediadelivery.net/embed/597149/${videoUrl}`;
+                  finalUrl = `https://iframe.mediadelivery.net/embed/${libId}/${videoUrl}`;
                 }
 
                 return (

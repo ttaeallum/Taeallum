@@ -4,7 +4,7 @@ import { db } from "../server/db";
 import { lessons } from "../server/db/schema";
 import { eq } from "drizzle-orm";
 
-const BUNNY_LIBRARY_ID = "597149";
+const BUNNY_LIBRARY_ID = "583591";
 
 function isUUID(str: string): boolean {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

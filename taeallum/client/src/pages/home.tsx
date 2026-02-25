@@ -65,8 +65,8 @@ export default function Home() {
   return (
     <Layout>
       <Seo
-        title="تعلّم (Taallm) | دورات مجانية ومهارات مجانية"
-        description="منصة تعلّم (Taallm) هي وجهتك الأولى لاحتراف البرمجة والطلوب في سوق العمل من خلال دورات مجانية ومهارات مجانية باللغة العربية."
+        title="تعلّم (Taallm) | احترف البرمجة مجاناً"
+        description="منصة تعلّم (Taallm) هي وجهتك الأولى لاحتراف البرمجة والتقنيات الأكثر طلباً في سوق العمل من خلال دورات مجانية واحترافية باللغة العربية."
       />
       {coursesSchema && (
         <script type="application/ld+json">
@@ -92,9 +92,9 @@ export default function Home() {
               className="text-right"
             >
               <h1 className="font-black text-4xl sm:text-6xl md:text-7xl lg:text-8xl leading-tight md:leading-[1.1] text-foreground mb-4 md:mb-8 tracking-tighter">
-                بوابتك نحو <br />
+                بوابتك لـ <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary via-emerald-500 to-primary animate-gradient-x">
-                  إتقان المستقبل
+                  احتراف البرمجة
                 </span>
               </h1>
 
@@ -285,7 +285,7 @@ export default function Home() {
             >
               <h2 className="text-3xl md:text-5xl font-heading font-black mb-6 md:mb-8 text-white">ابدأ تطوير مهاراتك اليوم</h2>
               <p className="text-lg md:text-2xl text-primary-foreground/80 mb-10 md:mb-12 max-w-3xl mx-auto leading-relaxed font-medium">
-                انضم إلى أكبر تجمع للمبرمجين والمبدعين العرب واستفد من خبرات المدرب الذكي والمسارات الاحترافية.
+                انضم إلى أكبر تجمع للمبرمجين العرب واستفد من خبرات المدرب الذكي والمسارات الاحترافية في عالم الكود.
               </p>
               <div className="flex flex-col sm:flex-row gap-6 justify-center">
                 <Link href="/ai-pricing">

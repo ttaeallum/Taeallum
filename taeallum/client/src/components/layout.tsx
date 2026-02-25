@@ -299,7 +299,7 @@ export function Footer() {
               <Logo className="scale-125" />
             </Link>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              منصتك الأولى لتعلم المهارات الرقمية والتقنية في الشرق الأوسط. انضم إلينا وابدأ رحلة مستقبلك اليوم.
+              منصتك الأولى لاحتراف البرمجة والتقنيات الأكثر طلباً في سوق العمل. انضم إلينا وابدأ رحلة مستقبلك اليوم.
             </p>
           </div>
 

@@ -184,6 +184,13 @@ export default function LearnCourse() {
         if (isDirectUrl) {
             // Transform Vimeo links to embed versions if necessary (YouTube already handled above)
             let finalUrl = videoUrl.trim();
+            const libId = import.meta.env.VITE_BUNNY_LIBRARY_ID || "583591";
+
+            // Bunny.net UUID Detection
+            const bunnyVideoIdRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            if (bunnyVideoIdRegex.test(finalUrl)) {
+                finalUrl = `https://iframe.mediadelivery.net/embed/${libId}/${finalUrl}`;
+            }
 
             // Vimeo transformation
             const vimeoRegex = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/;
@@ -328,7 +335,7 @@ export default function LearnCourse() {
                     <div className="w-full bg-zinc-950 border-b border-white/5 shadow-2xl relative z-10 group/player overflow-hidden">
                         <div className="w-full relative pb-[56.25%] h-0">
                             {/* Player Wrapper with refined shadows */}
-                            <div className="w-full h-full relative z-20">
+                            <div className="absolute inset-0 z-20">
                                 {renderVideoPlayer()}
 
                                 {/* Professional Watermark */}
