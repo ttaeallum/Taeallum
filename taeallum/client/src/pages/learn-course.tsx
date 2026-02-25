@@ -160,7 +160,7 @@ export default function LearnCourse() {
             return (
                 <div className="absolute inset-0 w-full h-full bg-black">
                     <iframe
-                        src={`https://www.youtube.com/embed/${videoId}?rel=0&color=white&iv_load_policy=3&showinfo=0&disablekb=0&fs=1`}
+                        src={`https://www.youtube.com/embed/${videoId}?rel=0&color=white&modestbranding=1&iv_load_policy=3&showinfo=0&disablekb=0&fs=1`}
                         loading="lazy"
                         className="absolute inset-0 w-full h-full"
                         style={{ border: 0 }}
@@ -330,18 +330,18 @@ export default function LearnCourse() {
             </header>
 
             <div className="flex-1 flex flex-col md:flex-row relative">
-                <main className="flex-1 bg-black flex flex-col items-center">
-                    {/* Cinematic Video Area (Large) - Full Width for Mobile & Desktop */}
-                    <div className="w-full bg-zinc-950 border-b border-white/5 shadow-2xl relative z-10 group/player overflow-hidden">
-                        <div className="w-full relative pb-[56.25%] h-0">
-                            {/* Player Wrapper with refined shadows */}
+                <main className="flex-1 bg-[#fcfcfc] dark:bg-black/95 flex flex-col items-center">
+                    {/* Centered Lesson Player Area */}
+                    <div className="w-full py-8 md:py-12 px-4 md:px-8 max-w-[1200px] mx-auto overflow-hidden">
+                        <div className="w-full relative pb-[56.25%] h-0 shadow-[0_30px_70px_-10px_rgba(0,0,0,0.3)] dark:shadow-[0_30px_70px_-10px_rgba(0,0,0,0.5)] rounded-2xl md:rounded-3xl border border-border group/player overflow-hidden">
+                            {/* Player Wrapper */}
                             <div className="absolute inset-0 z-20">
                                 {renderVideoPlayer()}
 
                                 {/* Professional Watermark */}
-                                <div className="absolute top-6 right-6 flex items-center gap-2 text-white/20 text-[10px] font-black pointer-events-none select-none bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5">
+                                <div className="absolute top-4 right-4 flex items-center gap-2 text-white/40 text-[9px] font-black pointer-events-none select-none bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5">
                                     <Lock className="w-3 h-3 opacity-50" />
-                                    <span>محتوى تعليمي آمن - {user?.fullName}</span>
+                                    <span>{user?.fullName}</span>
                                 </div>
 
                                 {/* Floating Next/Prev Overlays (appear on hover) */}
