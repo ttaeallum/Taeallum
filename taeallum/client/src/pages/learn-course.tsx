@@ -4,7 +4,7 @@ import { Link, useParams, useLocation } from "wouter";
 import { PlayCircle, CheckCircle, ChevronLeft, ChevronRight, Download, BookOpen, Loader2, Lock, ArrowRight, Video, Sparkles } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
     Sheet,
@@ -15,6 +15,13 @@ import {
 } from "@/components/ui/sheet";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
+
+declare global {
+    interface Window {
+        YT: any;
+        onYouTubeIframeAPIReady: () => void;
+    }
+}
 
 const formatDuration = (seconds: number) => {
     if (!seconds) return "";
@@ -27,6 +34,8 @@ export default function LearnCourse() {
     const { courseId } = useParams();
     const [, setLocation] = useLocation();
     const [activeLesson, setActiveLesson] = useState<any>(null);
+    const [isVideoEnded, setIsVideoEnded] = useState(false);
+    const playerRef = useRef<any>(null);
     const isRtl = true; // Platform is always RTL (Arabic)
 
     const { data: user } = useQuery({
@@ -90,9 +99,11 @@ export default function LearnCourse() {
         return Math.round(((currentIndex + 1) / flatLessons.length) * 100);
     }, [flatLessons, activeLesson?.id]);
 
-    // Helper to set first lesson as active initially AND update if curriculum changes (reactive)
     useEffect(() => {
         if (!curriculum || curriculum.length === 0) return;
+
+        // Reset video end state when lesson changes
+        setIsVideoEnded(false);
 
         // If no active lesson, set the first one
         if (!activeLesson) {
@@ -107,7 +118,77 @@ export default function LearnCourse() {
                 setActiveLesson(updated);
             }
         }
-    }, [curriculum, flatLessons]);
+    }, [curriculum, flatLessons, activeLesson?.id]);
+
+    // Load YouTube IFrame API
+    useEffect(() => {
+        if (window.YT) return;
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+    }, []);
+
+    // Create YouTube Player
+    useEffect(() => {
+        if (!activeLesson || !window.YT) return;
+
+        const videoUrl = activeLesson.videoUrl?.trim();
+        const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+        const ytMatch = videoUrl?.match(ytRegex);
+
+        if (!ytMatch || !ytMatch[1]) return;
+        const videoId = ytMatch[1];
+
+        // Cleanup previous player
+        if (playerRef.current) {
+            try { playerRef.current.destroy(); } catch (e) { }
+        }
+
+        const onPlayerReady = (event: any) => {
+            // event.target.playVideo(); 
+        };
+
+        const onPlayerStateChange = (event: any) => {
+            if (event.data === window.YT.PlayerState.ENDED) {
+                setIsVideoEnded(true);
+            } else if (event.data === window.YT.PlayerState.PLAYING) {
+                setIsVideoEnded(false);
+            }
+        };
+
+        const createPlayer = () => {
+            playerRef.current = new window.YT.Player(`youtube-player-${activeLesson.id}`, {
+                height: '100%',
+                width: '100%',
+                videoId: videoId,
+                playerVars: {
+                    rel: 0,
+                    modestbranding: 1,
+                    showinfo: 0,
+                    iv_load_policy: 3,
+                    color: 'white',
+                },
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        };
+
+        if (window.YT && window.YT.Player) {
+            createPlayer();
+        } else {
+            // Wait for API to be ready
+            window.onYouTubeIframeAPIReady = createPlayer;
+        }
+
+        return () => {
+            if (playerRef.current) {
+                try { playerRef.current.destroy(); } catch (e) { }
+            }
+        };
+    }, [activeLesson?.id]);
 
     // Find next and previous lessons for navigation
     const { prevLesson, nextLesson } = useMemo(() => {
@@ -156,17 +237,37 @@ export default function LearnCourse() {
 
         // If it's YouTube (either iframe OR direct link), extract ID and rebuild to be clean
         if (ytMatch && ytMatch[1]) {
-            const videoId = ytMatch[1];
             return (
                 <div className="absolute inset-0 w-full h-full bg-black">
-                    <iframe
-                        src={`https://www.youtube.com/embed/${videoId}?rel=0&color=white&modestbranding=1&iv_load_policy=3&showinfo=0&disablekb=0&fs=1`}
-                        loading="lazy"
-                        className="absolute inset-0 w-full h-full"
-                        style={{ border: 0 }}
-                        allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;"
-                        allowFullScreen
-                    ></iframe>
+                    <div id={`youtube-player-${activeLesson.id}`} className="w-full h-full" />
+
+                    {/* End Screen Overlay */}
+                    {isVideoEnded && nextLesson && (
+                        <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-xl flex flex-col items-center justify-center animate-in fade-in duration-500">
+                            <div className="bg-white/5 border border-white/10 p-8 rounded-[40px] flex flex-col items-center gap-6 shadow-2xl relative overflow-hidden group/overlay">
+                                <div className="absolute inset-0 bg-primary/5 group-hover/overlay:bg-primary/10 transition-colors pointer-events-none" />
+                                <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30 animate-bounce">
+                                    <PlayCircle className="w-10 h-10 text-primary" />
+                                </div>
+                                <div className="text-center space-y-2 relative">
+                                    <p className="text-primary text-[10px] font-black uppercase tracking-[0.3em]">الدرس التالي</p>
+                                    <h3 className="text-xl md:text-2xl font-black text-white max-w-[300px] leading-tight mt-1">
+                                        {nextLesson.title}
+                                    </h3>
+                                </div>
+                                <Button
+                                    onClick={() => {
+                                        setActiveLesson(nextLesson);
+                                        setIsVideoEnded(false);
+                                    }}
+                                    className="bg-primary hover:bg-primary/90 text-white font-black px-12 h-14 rounded-2xl text-lg shadow-2xl shadow-primary/40 active:scale-95 transition-all flex items-center gap-3"
+                                >
+                                    بدء التشغيل
+                                    <ChevronLeft className="w-6 h-6" />
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
