@@ -1,5 +1,5 @@
 import { Layout } from "@/components/layout";
-import { BookOpen, Clock, ArrowLeft, Target, Map, Trophy, Sparkles, LayoutDashboard } from "lucide-react";
+import { BookOpen, Clock, ArrowLeft, Target, Map, Trophy, Sparkles, LayoutDashboard, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -213,33 +214,41 @@ export default function Tracks() {
                                       </div>
 
                                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        {milestone.courses.map((course: any) => (
-                                          <Link key={course.id} href={`/courses/${course.slug}`}>
-                                            <div className="flex items-center gap-3 p-3 bg-background border border-border/50 rounded-xl hover:border-primary/40 transition-all group/course cursor-pointer">
-                                              <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-border/50">
-                                                <img src={course.thumbnail || "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=200&q=80"} alt={course.title} className="w-full h-full object-cover group-hover/course:scale-110 transition-transform" />
-                                              </div>
-                                              <div className="min-w-0 flex-1">
-                                                <h5 className="text-xs font-bold truncate group-hover/course:text-primary transition-colors">{course.title}</h5>
-                                                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                                  <Badge variant="outline" className="text-[9px] py-0 h-4 border-primary/20 text-muted-foreground uppercase">{course.level}</Badge>
-                                                  {course.totalHours > 0 && (
-                                                    <span className="text-[9px] text-muted-foreground flex items-center gap-0.5">
-                                                      <Clock className="w-2.5 h-2.5" />
-                                                      {course.totalHours}h
-                                                    </span>
-                                                  )}
-                                                  {course.estimatedWeeks && (
-                                                    <span className="text-[9px] text-primary/70 font-medium">
-                                                      الأسبوع {course.startWeek}{course.startWeek !== course.endWeek ? `-${course.endWeek}` : ''}
-                                                    </span>
+                                        {milestone.courses.map((course: any) => {
+                                          const isYouTube = !!course.youtubeUrl;
+                                          const courseLink = isYouTube ? `/lesson/youtube?url=${encodeURIComponent(course.youtubeUrl)}` : `/courses/${course.slug}`;
+
+                                          return (
+                                            <Link key={course.id || course.youtubeUrl} href={courseLink}>
+                                              <div className="flex items-center gap-3 p-3 bg-background border border-border/50 rounded-xl hover:border-primary/40 transition-all group/course cursor-pointer">
+                                                <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-border/50 bg-muted/20 flex items-center justify-center">
+                                                  {isYouTube ? (
+                                                    <div className="w-full h-full bg-red-500/10 flex items-center justify-center">
+                                                      <PlayCircle className="w-6 h-6 text-red-600" />
+                                                    </div>
+                                                  ) : (
+                                                    <img src={course.thumbnail || "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=200&q=80"} alt={course.title} className="w-full h-full object-cover group-hover/course:scale-110 transition-transform" />
                                                   )}
                                                 </div>
+                                                <div className="min-w-0 flex-1">
+                                                  <h5 className="text-xs font-bold truncate group-hover/course:text-primary transition-colors">{course.title}</h5>
+                                                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                                    <Badge variant="outline" className={cn("text-[9px] py-0 h-4 border-primary/20 text-muted-foreground uppercase", isYouTube && "bg-red-500/5 text-red-600 border-red-500/20")}>
+                                                      {isYouTube ? "YouTube" : course.level}
+                                                    </Badge>
+                                                    {course.totalHours > 0 && (
+                                                      <span className="text-[9px] text-muted-foreground flex items-center gap-0.5">
+                                                        <Clock className="w-2.5 h-2.5" />
+                                                        {course.totalHours}h
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                                <ArrowLeft className="w-3 h-3 text-muted-foreground mr-auto group-hover/course:text-primary transition-all -translate-x-1 group-hover/course:translate-x-0" />
                                               </div>
-                                              <ArrowLeft className="w-3 h-3 text-muted-foreground mr-auto group-hover/course:text-primary transition-all -translate-x-1 group-hover/course:translate-x-0" />
-                                            </div>
-                                          </Link>
-                                        ))}
+                                            </Link>
+                                          );
+                                        })}
                                       </div>
                                     </div>
                                   ) : (

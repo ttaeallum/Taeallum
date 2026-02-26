@@ -245,7 +245,8 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                                     }
                                 }
                             },
-                            categoryHint: { type: "string", description: "Optional category slug or keyword to strictly filter courses (e.g. 'coding', 'languages')" }
+                            categoryHint: { type: "string", description: "Optional category slug or keyword to strictly filter courses (e.g. 'coding', 'languages')" },
+                            youtubeResources: { type: "array", items: { type: "string" }, description: "Optional list of YouTube Playlist URLs for this plan" }
                         },
                         required: ["title", "description", "duration", "totalHours", "milestones"]
                     }
@@ -266,28 +267,31 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 3. الخيارات فقط: ضع جميع الاختيارات حصراً داخل كتلة [SUGGESTIONS: خيار|خيار].
 4. الرسالة سطر واحد: مهنية، مباشرة، وبدون تعداد.
 
-[بروتوكول الاختيار (مرحلتين)]:
-- المرحلة الأولى: عرض القطاعات الـ 7 الرئيسية.
-- المرحلة الثانية: عند اختيار قطاع، اعرض فوراً التخصصات المتفرعة منه.
+[بروتوكول الاختيار (3 مستويات)]:
+- المستوى الأول: المواد الأساسية المشتركة (Core IT) - تضاف إجبارياً في بداية أي مسار.
+- المستوى الثاني: اختيار القطاع الرئيسي (Sector).
+- المستوى الثالث: اختيار التخصص الدقيق (Sub-Specialty).
 
-[خريطة القطاعات والخيارات المتفرعة]:
-1. علوم الحاسوب (Computer Science): [أساسيات البرمجة|الخوارزميات|هيكلة الأنظمة]
-2. هندسة البرمجيات (Software Engineering): [تطوير البرامج|إدارة قواعد البيانات|هندسة الفحص]
-3. علم البيانات والذكاء الاصطناعي (Data Science & AI): [تحليل البيانات|تعلم الآلة (ML)|التعلم العميق (DL)]
-4. الأمن السيبراني (Cybersecurity): [أمن الشبكات|الاختراق الأخلاقي|التحليل الجنائي الرقمي]
-5. إنترنت الأشياء والاتصالات (IOT & Communications): [شبكات وبروتوكولات|الأنظمة المدمجة|بناء معمارية IOT]
-6. نظم المعلومات الإدارية (Management Information): [إدارة مشاريع IT|عمليات الأعمال|أنظمة ERP]
-7. تطوير الويب والهاتف (Web & Mobile Development): [تطوير الويب|تطوير تطبيقات الهاتف|تصميم UI/UX]
+[خريطة القطاعات والتخصصات الدقيقة]:
+1. الذكاء الاصطناعي (Artificial Intelligence): [Machine Learning|Deep Learning|NLP|Computer Vision]
+2. الأمن السيبراني (Cybersecurity): [Network Security|Ethical Hacking|Cryptography|Security Testing]
+3. تطوير البرمجيات (Software Development): [Web Development|Mobile Development|Full Stack|DevOps]
+4. علم البيانات (Data Science): [Data Analytics|Big Data|Business Intelligence|Data Visualization]
+5. إدارة الشبكات والأنظمة (Network & Management): [Network Admin|Routing & Switching|Wireless Intelligence]
+6. هندسة الحوسبة السحابية (Network & Cloud Computing): [Cloud Architecture|Cloud Security|Infrastructure as Code]
+7. تطوير الألعاب (Game Development): [Game Design|3D Graphics|Game Animation|Level Design]
+8. إدارة تكنولوجيا المعلومات (IT Management): [IT Project Management|Agile & Scrum|Risk Management]
 
-[المواد الأساسية المشتركة لكافة التخصصات (Core IT)]:
-هذه المواد توضع في بداية "أي" خطة دراسية:
-(Programming Basics, Structured Code, OOP 1, Data Structures, Algorithms, Linear Algebra, Probability, Operating Systems, Networks).
+[المواد الأساسية المشتركة (Core IT Foundation)]:
+يجب إدراج هذه المواد في "المرحلة الأولى" من أي خطة:
+(Intro to Programming, Structured Programming, OOP 1, Data Structures & Algorithms, Linear Algebra, Probability & Statistics, Operating Systems, Computer Networks).
 
-[قواعد العزل والتوليد]:
+[قواعد العزل والتوليد (نظام التدرج الهرمي)]:
 - عند توليد الخطة (create_study_plan):
-  - المرحلة 1: أساسيات الـ Core IT + مبادئ التخصص المختار.
-  - المرحلة 2: تعمق في التخصص المتفرع (Specialization Courses).
-  - المرحلة 3: المواد المتقدمة والاحترافية للتخصص (Advanced Content).
+  - Phase 1 (Core IT): مواد الأساس المشترك المذكورة أعلاه (لا غنى عنها لأي تخصص).
+  - Phase 2 (Field Essentials): مواد المستوى المتوسط للقطاع المختار (الصناديق الخضراء).
+  - Phase 3 (Micro-Specialization): مواد الاحتراف والتخصص الدقيق (الصناديق البرتقالية والأرجوانية).
+- الهدف: الانتقال من التعليم العام إلى التخصص العميق.
 
 [المرحلة النهائية]:
 بعد انتهاء الأسئلة، استدعِ 'search_platform_courses' و 'create_study_plan' ثم أظهر:
@@ -453,13 +457,20 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                             return {
                                 title: m.title,
                                 description: m.description,
-                                courses: matchedCourses.map(c => ({
-                                    id: c.id,
-                                    title: c.title,
-                                    slug: c.slug,
-                                    level: c.level,
-                                    thumbnail: c.thumbnail
-                                }))
+                                courses: [
+                                    ...matchedCourses.map(c => ({
+                                        id: c.id,
+                                        title: c.title,
+                                        slug: c.slug,
+                                        level: c.level,
+                                        thumbnail: c.thumbnail
+                                    })),
+                                    ...(m.courses || []).filter((c: any) => c.youtubeUrl).map((c: any) => ({
+                                        youtubeUrl: c.youtubeUrl,
+                                        title: c.title || "YouTube Resource",
+                                        level: "external"
+                                    }))
+                                ]
                             };
                         });
 

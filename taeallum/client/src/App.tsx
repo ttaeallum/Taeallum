@@ -36,6 +36,7 @@ import Refund from "@/pages/refund";
 import Support from "@/pages/support";
 import ForgotPassword from "@/pages/forgot-password";
 import PayTabsReturn from "@/pages/paytabs-return";
+import LessonPlayer from "@/pages/lesson-player";
 
 function Router() {
   return (
@@ -89,6 +90,7 @@ function Router() {
       <Route path="/support" component={Support} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/paytabs/return" component={PayTabsReturn} />
+      <Route path="/lesson/:id" component={LessonPlayer} />
       <Route component={NotFound} />
     </Switch>
   );

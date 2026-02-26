@@ -16,9 +16,13 @@ const formatDuration = (seconds: number) => {
 
 export default function LessonPlayer() {
   const [, params] = useRoute("/lesson/:id");
-  const { data: curriculum, isLoading } = useQuery({
+  const isYouTubeMode = params?.id === "youtube";
+  const youtubeUrl = new URLSearchParams(window.location.search).get("url");
+
+  const { data: curriculum, isLoading: curriculumLoading } = useQuery({
     queryKey: ["course-curriculum", params?.id],
     queryFn: async () => {
+      if (isYouTubeMode) return null;
       // First find the lesson to get its courseId
       const lessonRes = await fetch(`/api/courses/lesson/${params?.id}`);
       if (!lessonRes.ok) throw new Error("Failed to fetch lesson");
@@ -28,22 +32,34 @@ export default function LessonPlayer() {
       if (!res.ok) throw new Error("Failed to fetch curriculum");
       return res.json();
     },
-    enabled: !!params?.id
+    enabled: !!params?.id && !isYouTubeMode
   });
 
   const activeLessonData = useMemo(() => {
+    if (isYouTubeMode) {
+      return {
+        title: "مصدر تعليمي خارجي (YouTube)",
+        videoUrl: youtubeUrl
+      };
+    }
     if (!curriculum) return null;
     return curriculum.flatMap((s: any) => s.lessons || []).find((l: any) => l.id === params?.id);
-  }, [curriculum, params?.id]);
+  }, [curriculum, params?.id, isYouTubeMode, youtubeUrl]);
+
+  const isLoading = curriculumLoading && !isYouTubeMode;
 
   if (isLoading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin w-8 h-8 text-primary" /></div>;
+
+  const embedUrl = activeLessonData?.videoUrl;
+  const isEmbeddable = embedUrl?.includes("youtube.com/embed/");
+  const finalEmbedUrl = isEmbeddable ? embedUrl : embedUrl?.replace("watch?v=", "embed/");
 
   return (
     <div className="flex flex-col min-h-screen bg-background" dir="rtl">
       {/* Header */}
       <header className="h-16 border-b border-border/40 flex items-center justify-between px-4 shrink-0 bg-background z-10">
         <div className="flex items-center gap-4">
-          <Link href="/dashboard">
+          <Link href="/tracks">
             <Button variant="ghost" size="icon">
               <ChevronRight className="w-5 h-5" />
             </Button>
@@ -58,53 +74,55 @@ export default function LessonPlayer() {
         </div>
       </header>
 
-      {/* Sidebar (Curriculum) */}
-      <aside className="w-80 border-l border-border/40 bg-card hidden lg:flex flex-col shrink-0">
-        <div className="p-4 border-b border-border/40">
-          <h2 className="font-bold text-right">محتوى الكورس</h2>
-        </div>
-
-        <ScrollArea className="flex-1">
-          <div className="divide-y divide-border/20">
-            {curriculum?.map((section: any) => (
-              <div key={section.id}>
-                <div className="px-4 py-3 bg-muted/20 text-sm font-bold text-muted-foreground text-right">
-                  {section.title}
-                </div>
-                <div className="text-right">
-                  {section.lessons?.map((lesson: any) => {
-                    const isActive = lesson.id === params?.id;
-                    return (
-                      <Link key={lesson.id} href={`/lesson/${lesson.id}`}>
-                        <div
-                          className={cn(
-                            "px-4 py-3 flex gap-3 hover:bg-muted/30 cursor-pointer transition-colors border-r-2",
-                            isActive ? "bg-primary/5 border-primary" : "border-transparent"
-                          )}
-                        >
-                          <div className="mt-0.5">
-                            {isActive ? (
-                              <PlayCircle className="w-4 h-4 text-primary fill-current/20" />
-                            ) : (
-                              <div className="w-4 h-4 rounded-full border border-muted-foreground/40"></div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={cn("text-sm font-medium break-words leading-tight", isActive && "text-primary")}>
-                              {lesson.title}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-0.5">{formatDuration(lesson.duration)}</p>
-                          </div>
-                        </div>
-                      </Link>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
+      {/* Sidebar (Curriculum) - Only show if NOT in YouTube mode */}
+      {!isYouTubeMode && (
+        <aside className="w-80 border-l border-border/40 bg-card hidden lg:flex flex-col shrink-0">
+          <div className="p-4 border-b border-border/40">
+            <h2 className="font-bold text-right">محتوى الكورس</h2>
           </div>
-        </ScrollArea>
-      </aside>
+
+          <ScrollArea className="flex-1">
+            <div className="divide-y divide-border/20">
+              {curriculum?.map((section: any) => (
+                <div key={section.id}>
+                  <div className="px-4 py-3 bg-muted/20 text-sm font-bold text-muted-foreground text-right">
+                    {section.title}
+                  </div>
+                  <div className="text-right">
+                    {section.lessons?.map((lesson: any) => {
+                      const isActive = lesson.id === params?.id;
+                      return (
+                        <Link key={lesson.id} href={`/lesson/${lesson.id}`}>
+                          <div
+                            className={cn(
+                              "px-4 py-3 flex gap-3 hover:bg-muted/30 cursor-pointer transition-colors border-r-2",
+                              isActive ? "bg-primary/5 border-primary" : "border-transparent"
+                            )}
+                          >
+                            <div className="mt-0.5">
+                              {isActive ? (
+                                <PlayCircle className="w-4 h-4 text-primary fill-current/20" />
+                              ) : (
+                                <div className="w-4 h-4 rounded-full border border-muted-foreground/40"></div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={cn("text-sm font-medium break-words leading-tight", isActive && "text-primary")}>
+                                {lesson.title}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{formatDuration(lesson.duration)}</p>
+                            </div>
+                          </div>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </aside>
+      )}
 
       {/* Main Content (Player) */}
       <main className="flex-1 bg-black flex flex-col items-center relative">

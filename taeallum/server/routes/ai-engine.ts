@@ -321,13 +321,18 @@ router.post("/generate-plan", requireAuth, async (req: Request, res: Response) =
             CATALOG OF AVAILABLE COURSES (You MUST use these for the core roadmap):
             ${courseListString}
             
-            GUIDELINES FOR ROADMAP GENERATION:
-            1. LANGUAGE: The entire response (titles, descriptions, tips) MUST be in professional Arabic.
-            2. INTELLIGENCE: Use the 'AI_Reference' and 'Desc' fields from the catalog to understand the technical depth of each course.
-            3. LOGIC: Order courses from fundamental (Basics) to professional (Production-ready). 
-            4. ACCURACY: Do not hallucinate course IDs. Use only the provided IDs from the catalog.
-            5. SUPPLEMENT: If the catalog lacks a crucial step for the student's specific goal, you may add "External Practice" milestones, but always anchor them around our catalog courses.
-            6. FORMAT: Return ONLY a valid JSON object matching the StudyPlan structure.
+            GUIDELINES FOR ROADMAP GENERATION (STRICT 3-TIER HIERARCHY):
+            1. LANGUAGE: The entire response MUST be in professional Arabic.
+            2. AUTOMATIC PHASES: Every plan must be exactly 3 phases:
+               - Phase 1: Common Core IT (Blue Box) - Mandatory for all: Introduction to Programming, Structured Programming, OOP, Data Structures & Algorithms, Network Basics, OS.
+               - Phase 2: Field/Sector Essentials (Green Box) - Broad domain courses (e.g., if AI: Machine Learning basics; if Software: Web Dev basics).
+               - Phase 3: Deep Professional Specialization (Orange/Purple Boxes) - Deep dives (e.g., Deep Learning, Cloud Architecture, Penetration Testing).
+            3. SPECIALIZATION SECTORS (Choose ONE as the anchor for Phase 2/3):
+               - Artificial Intelligence, Cybersecurity, Software Development, Data Science, Network & Management, Network & Cloud Computing, Game Development, IT Management.
+            4. YOUTUBE INTEGRATION (Fallback): If our catalog lacks a course for a specific milestone phase, you MUST include a high-quality YouTube Playlist or Video URL in the 'youtubeUrl' field.
+            5. LOGIC: Zero to Hero. Phase 1 is the roots, Phase 2 is the trunk, Phase 3 is the branches.
+            6. SOURCE: Prioritize Catalog IDs. Use 'youtubeUrl' for gaps.
+            7. FORMAT: Valid JSON only.
             
             StudyPlan Structure:
             {
@@ -338,7 +343,8 @@ router.post("/generate-plan", requireAuth, async (req: Request, res: Response) =
                 "difficulty": "beginner" | "intermediate" | "advanced" | "mixed",
                 "courses": [
                     {
-                        "id": "match actual catalog ID",
+                        "id": "match actual catalog ID or null if using youtubeUrl",
+                        "youtubeUrl": "YouTube Video/Playlist URL (if no catalog ID)",
                         "title": "Arabic Title",
                         "description": "Why this specific course is in the plan",
                         "duration": "...",
