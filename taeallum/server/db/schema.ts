@@ -188,6 +188,31 @@ export const ads = pgTable("ads", {
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// 15. Promo Codes Table
+export const promoCodes = pgTable("promo_codes", {
+    id: uuid("id").defaultRandom().primaryKey(),
+    code: text("code").notNull().unique(),           // e.g. TAALLUM70
+    discountPercent: integer("discount_percent").notNull(), // e.g. 72 (meaning 72% off → $250 → $70)
+    discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }), // optional fixed discount
+    isActive: boolean("is_active").default(true).notNull(),
+    usageCount: integer("usage_count").default(0).notNull(),
+    usageLimit: integer("usage_limit"),              // null = unlimited
+    expiresAt: timestamp("expires_at"),              // null = no expiry
+    description: text("description"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// 16. Promo Code Usages Table (who used which code)
+export const promoCodeUsages = pgTable("promo_code_usages", {
+    id: uuid("id").defaultRandom().primaryKey(),
+    promoCodeId: uuid("promo_code_id").references(() => promoCodes.id, { onDelete: "cascade" }).notNull(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+    pricePaid: decimal("price_paid", { precision: 10, scale: 2 }).notNull(),
+    originalPrice: decimal("original_price", { precision: 10, scale: 2 }).notNull(),
+    usedAt: timestamp("used_at").defaultNow().notNull(),
+});
+
 // --- Relations ---
 
 export const categoriesRelations = relations(categories, ({ many }) => ({

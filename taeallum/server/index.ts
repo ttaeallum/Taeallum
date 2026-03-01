@@ -23,6 +23,7 @@ import aiEngineRouter from "./routes/ai-engine";
 import adsRouter from "./routes/ads";
 import payTabsRouter from "./routes/paytabs";
 import youtubeRouter from "./routes/youtube";
+import promoCodesRouter from "./routes/promo-codes";
 
 import { db } from "./db";
 import { sql } from "drizzle-orm";
@@ -281,6 +282,7 @@ app.get("/api/debug/env-check", (req, res) => {
 import { default as seoRouter } from "./routes/seo";
 
 app.use("/api/ads", adsRouter);
+app.use("/api/promo-codes", promoCodesRouter);
 app.use("/", seoRouter);
 
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
