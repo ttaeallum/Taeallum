@@ -665,15 +665,29 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
             const lastMatch = suggestionsMatches[suggestionsMatches.length - 1];
             finalSuggestions = `\n[SUGGESTIONS: ${lastMatch[1].trim()}]`;
         } else {
-            // Fallback logic
-            let contextSuggestions = "البرمجة والتطوير 💻|البيانات والذكاء الاصطناعي 🤖|التصميم الإبداعي 🎨|الأعمال والتسويق 📈|اللغات 🌍";
+            // Smart fallback based on conversation phase
+            let contextSuggestions = "الذكاء الاصطناعي 🧠|الأمن السيبراني 🔒|تطوير البرمجيات 💻|علم البيانات 📊|إدارة الشبكات 🌐|الحوسبة السحابية ☁️|تطوير الألعاب 🎮";
 
             if (isFinalPhase) {
                 contextSuggestions = "ابدأ الآن 🚀";
-            } else if (lowerResponse.includes("مستوى") || lowerResponse.includes("مبتدئ")) {
-                contextSuggestions = "مبتدئ - أبدأ من الصفر 🌱|عندي أساسيات بسيطة 📚|مستوى متوسط - أريد التعمق 🔥";
-            } else if (lowerResponse.includes("ساعة") || lowerResponse.includes("وقت") || lowerResponse.includes("جدولة")) {
-                contextSuggestions = "مكثف - أكثر من 20 ساعة أسبوعياً ⚡|متوسط - من 10 إلى 20 ساعة 📅|هادئ - أقل من 10 ساعات 🕐";
+            } else if (lowerResponse.includes("ساعة") || lowerResponse.includes("وقت") || lowerResponse.includes("جدولة") || lowerResponse.includes("أسبوع")) {
+                contextSuggestions = "مكثف — أكثر من 20 ساعة ⚡|متوسط — من 10 إلى 20 ساعة 📅|هادئ — أقل من 10 ساعات 🕐";
+            } else if (lowerResponse.includes("مستوى") || lowerResponse.includes("مبتدئ") || lowerResponse.includes("خبرة")) {
+                contextSuggestions = "مبتدئ تماماً 🌱|عندي أساسيات بسيطة 📚|مستوى متوسط 🔥";
+            } else if (lowerResponse.includes("الذكاء الاصطناعي") || lowerResponse.includes("artificial intelligence")) {
+                contextSuggestions = "Machine Learning|Deep Learning|معالجة اللغة الطبيعية NLP|رؤية الحاسوب";
+            } else if (lowerResponse.includes("الأمن السيبراني") || lowerResponse.includes("cybersecurity")) {
+                contextSuggestions = "Ethical Hacking|أمن الشبكات|اختبار الاختراق|تشفير البيانات";
+            } else if (lowerResponse.includes("تطوير البرمجيات") || lowerResponse.includes("software")) {
+                contextSuggestions = "تطوير الويب|تطوير الموبايل|Full Stack|DevOps";
+            } else if (lowerResponse.includes("علم البيانات") || lowerResponse.includes("data science")) {
+                contextSuggestions = "تحليل البيانات|Big Data|Business Intelligence|Data Visualization";
+            } else if (lowerResponse.includes("إدارة الشبكات") || lowerResponse.includes("network")) {
+                contextSuggestions = "Network Admin|Routing & Switching|الشبكات اللاسلكية";
+            } else if (lowerResponse.includes("الحوسبة السحابية") || lowerResponse.includes("cloud")) {
+                contextSuggestions = "Cloud Architecture|Cloud Security|Infrastructure as Code";
+            } else if (lowerResponse.includes("تطوير الألعاب") || lowerResponse.includes("game")) {
+                contextSuggestions = "Game Design|رسوميات ثلاثية الأبعاد|Game Animation";
             }
             finalSuggestions = `\n[SUGGESTIONS: ${contextSuggestions}]`;
         }
