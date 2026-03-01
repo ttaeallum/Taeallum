@@ -162,15 +162,41 @@ router.get("/user-plans", requireAuth, async (req: Request, res: Response) => {
                 }
             }
 
-            // Sort courses by level: beginner → intermediate → advanced
-            const sortedCourses = [...categoryCourses].sort(
+            // CORE IT FOUNDATION slugs — these always go in Level 1 for every plan
+            const CORE_IT_SLUGS = new Set([
+                '01_Intro_to_Programming',
+                '02_Structured_Programming',
+                '03_OOP',
+                '04_Data_Structures',
+                '12_Networking',
+                '10_Operating_Systems',
+            ]);
+
+            // Sort courses
+            const sortedCourses = [...allCourses].sort(
                 (a, b) => (LEVEL_ORDER[a.level || 'beginner'] || 99) - (LEVEL_ORDER[b.level || 'beginner'] || 99)
             );
 
-            // Split into level buckets, then DEDUPLICATE each bucket
-            let beginnerCourses = deduplicateBucket(sortedCourses.filter(c => c.level === 'beginner'));
-            let intermediateCourses = deduplicateBucket(sortedCourses.filter(c => c.level === 'intermediate'));
-            let advancedCourses = deduplicateBucket(sortedCourses.filter(c => c.level === 'advanced'));
+            // Level 1: Core IT Foundation (fixed, always the same regardless of specialization)
+            let beginnerCourses = deduplicateBucket(
+                sortedCourses.filter(c => CORE_IT_SLUGS.has(c.slug || ''))
+            );
+
+            // Level 2: Specialization-shared courses (NOT core IT, matching category)
+            let intermediateCourses = deduplicateBucket(
+                categoryCourses.filter(c =>
+                    !CORE_IT_SLUGS.has(c.slug || '') &&
+                    (c.level === 'beginner' || c.level === 'intermediate')
+                )
+            );
+
+            // Level 3: Deep specialization courses (advanced, matching category)
+            let advancedCourses = deduplicateBucket(
+                categoryCourses.filter(c =>
+                    !CORE_IT_SLUGS.has(c.slug || '') &&
+                    c.level === 'advanced'
+                )
+            );
 
             // Fill empty buckets from nearest available level so every milestone has courses
             if (intermediateCourses.length === 0 && beginnerCourses.length > 0) {
@@ -300,9 +326,9 @@ router.post("/generate-plan", requireAuth, async (req: Request, res: Response) =
 
         if (!isSubscribed) {
             return res.status(403).json({
-                message: "عذراً، هذه الخدمة متاحة للمشتركين فقط.",
+                message: "عذراً، هذه الخدمة متاحة لأصحاب الخطة الدراسية فقط.",
                 upgradeRequired: true,
-                suggestion: "يرجى الاشتراك في خطة المساعد الذكي (10$ شهرياً) للحصول على خطة دراسية مخصصة."
+                suggestion: "يرجى الحصول على الخطة الدراسية للحصول على خطتك التعليمية المخصصة."
             });
         }
 
@@ -324,15 +350,19 @@ router.post("/generate-plan", requireAuth, async (req: Request, res: Response) =
             GUIDELINES FOR ROADMAP GENERATION (STRICT 3-TIER HIERARCHY):
             1. LANGUAGE: The entire response MUST be in professional Arabic.
             2. AUTOMATIC PHASES: Every plan must be exactly 3 phases:
-               - Phase 1: Common Core IT (Blue Box) - Mandatory for all: Introduction to Programming, Structured Programming, OOP, Data Structures & Algorithms, Network Basics, OS.
-               - Phase 2: Field/Sector Essentials (Green Box) - Broad domain courses (e.g., if AI: Machine Learning basics; if Software: Web Dev basics).
-               - Phase 3: Deep Professional Specialization (Orange/Purple Boxes) - Deep dives (e.g., Deep Learning, Cloud Architecture, Penetration Testing).
-            3. SPECIALIZATION SECTORS (Choose ONE as the anchor for Phase 2/3):
-               - Artificial Intelligence, Cybersecurity, Software Development, Data Science, Network & Management, Network & Cloud Computing, Game Development, IT Management.
-            4. YOUTUBE INTEGRATION (Fallback): If our catalog lacks a course for a specific milestone phase, you MUST include a high-quality YouTube Playlist or Video URL in the 'youtubeUrl' field.
-            5. LOGIC: Zero to Hero. Phase 1 is the roots, Phase 2 is the trunk, Phase 3 is the branches.
-            6. SOURCE: Prioritize Catalog IDs. Use 'youtubeUrl' for gaps.
-            7. FORMAT: Valid JSON only.
+               - Phase 1 — أساسيات IT المشتركة (Core IT Foundation): MANDATORY for ALL tracks regardless of specialization. Must include: Introduction to Programming, Structured Programming, OOP, Data Structures & Algorithms, Networking Fundamentals, Operating Systems. These are required before entering ANY specialization.
+               - Phase 2 — أساسيات التخصص (Specialization Foundation): Courses shared specifically within the chosen sector. EXAMPLES:
+                 * If Cybersecurity: InfoSec basics, Network Security.
+                 * If AI: Linear Algebra, Probability & Statistics, Machine Learning basics.
+                 * If Software Dev: Frontend Technologies, Databases.
+                 * If DevOps/Cloud: Linux, Docker, AWS fundamentals.
+               - Phase 3 — التخصص العميق (Deep Specialization): Highly specific courses for the exact sub-specialty within the sector. EXAMPLES:
+                 * If Ethical Hacking within Cybersecurity: Ethical Hacking, Penetration Testing.
+                 * If Deep Learning within AI: Deep Learning, NLP or Computer Vision.
+                 * If Full Stack within Software: React/TypeScript, MERN Stack.
+            3. CATALOG PRIORITY: Always prefer actual courses from the catalog above YouTube links.
+            4. YOUTUBE FALLBACK: Only use youtubeUrl if no catalog course covers the topic.
+            5. LOGIC: Phase 1 = Foundation (everyone), Phase 2 = Your sector's common ground, Phase 3 = Your exact sub-specialty.
             
             StudyPlan Structure:
             {

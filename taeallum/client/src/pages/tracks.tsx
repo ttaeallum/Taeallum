@@ -1,5 +1,5 @@
 import { Layout } from "@/components/layout";
-import { BookOpen, Clock, ArrowLeft, Target, Map, Trophy, Sparkles, LayoutDashboard, PlayCircle } from "lucide-react";
+import { BookOpen, Clock, ArrowLeft, Target, Map, Trophy, Sparkles, LayoutDashboard, PlayCircle, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
@@ -85,12 +85,60 @@ export default function Tracks() {
             transition={{ delay: 0.2 }}
             className="text-muted-foreground text-xl max-w-2xl mx-auto leading-relaxed"
           >
-            هذه المسارات مصممة خصيصاً لك بواسطة المساعد الذكي بناءً على أهدافك وطموحاتك.
+            هذه المسارات مصممة خصيصاً لك بواسطة الخطة الدراسية بناءً على أهدافك وطموحاتك.
           </motion.p>
         </div>
       </div>
 
-      <div className="container px-4 md:px-8 max-w-5xl mx-auto py-20">
+      <div className="container px-4 md:px-8 max-w-7xl mx-auto py-12">
+        <div className="text-right mb-12">
+          <h2 className="text-3xl font-black mb-4 flex items-center justify-end gap-3">
+            المسارات الاحترافية (Roadmap)
+            <Trophy className="w-8 h-8 text-amber-500" />
+          </h2>
+          <p className="text-muted-foreground">اختر تخصصك وابدأ رحلتك التعليمية بمنهج متكامل ومدروس من قبل خبرائنا.</p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-24">
+          {[
+            { title: "الأساسيات التقنية", slug: "programming", icon: BookOpen, color: "bg-blue-500", desc: "أساسيات البرمجة، الخوارزميات، وهندسة البرمجيات." },
+            { title: "تطوير البرمجيات", slug: "web-development", icon: LayoutDashboard, color: "bg-emerald-500", desc: "تطوير الويب (Full Stack) وتطبيقات الموبايل." },
+            { title: "الأمن السيبراني", slug: "cybersecurity", icon: ShieldCheck, color: "bg-red-500", desc: "أمن المعلومات، الاختراق الأخلاقي، والتحقيق الرقمي." },
+            { title: "الذكاء الاصطناعي", slug: "data-ai", icon: Sparkles, color: "bg-purple-500", desc: "تعلم الآلة، معالجة اللغات، والرؤية الحاسوبية." },
+            { title: "علوم البيانات", slug: "data-analytics-bi", icon: Target, color: "bg-orange-500", desc: "تحليل البيانات، ذكاء الأعمال، والبيانات الضخمة." },
+            { title: "الشبكات والسحابة", slug: "cloud-computing", icon: Map, color: "bg-cyan-500", desc: "الخدمات السحابية، الشبكات، وأمن السحابة." },
+            { title: "تطوير الألعاب", slug: "game-development", icon: PlayCircle, color: "bg-pink-500", desc: "بناء الألعاب باستخدام Godot و Blender." },
+            { title: "الإدارة التقنية", slug: "project-management", icon: Trophy, color: "bg-amber-500", desc: "إدارة المشاريع (PMP) ومنهجيات Agile." },
+          ].map((track, i) => (
+            <Link key={track.slug} href={`/courses?category=${track.slug}`}>
+              <motion.div
+                whileHover={{ y: -5 }}
+                className="group relative cursor-pointer bg-card border border-border/40 rounded-[2.5rem] p-8 overflow-hidden hover:border-primary/50 transition-all shadow-sm hover:shadow-2xl hover:shadow-primary/5 h-full flex flex-col"
+              >
+                <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg transform group-hover:scale-110 transition-transform", track.color)}>
+                  <track.icon className="w-7 h-7" />
+                </div>
+                <h3 className="text-xl font-black mb-3 group-hover:text-primary transition-colors">{track.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed flex-1">{track.desc}</p>
+
+                <div className="mt-6 flex items-center text-primary font-bold text-xs gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  تصفح المسار <ArrowLeft className="w-3 h-3" />
+                </div>
+
+                <div className="absolute top-0 left-0 w-24 h-24 bg-primary/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              </motion.div>
+            </Link>
+          ))}
+        </div>
+
+        <div className="border-t border-border/40 pt-24 mb-12 text-right">
+          <h2 className="text-3xl font-black mb-4 flex items-center justify-end gap-3">
+            مساراتك الذكية (AI Powered)
+            <Sparkles className="w-8 h-8 text-primary" />
+          </h2>
+          <p className="text-muted-foreground">خطط دراسية شخصية تم إنشاؤها خصيصاً لك بناءً على أهدافك المهنية.</p>
+        </div>
+
         {!userPlans || userPlans.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -102,11 +150,11 @@ export default function Tracks() {
             </div>
             <h2 className="text-2xl font-black mb-4">لا توجد مسارات بعد!</h2>
             <p className="text-muted-foreground mb-8">
-              لم تقم بإنشاء أي مسار تعليمي حتى الآن. تحدث مع المساعد الذكي الآن ليصمم لك خطتك الدراسية الأولى.
+              لم تقم بإنشاء أي مسار تعليمي حتى الآن. احصل على خطتك الدراسية الآن ليصمم لك منهجاً مخصصاً.
             </p>
             <Link href="/ai-agent">
               <Button size="lg" className="font-bold gap-2">
-                تحدث مع المساعد الذكي الآن <ArrowLeft className="w-4 h-4 rotate-180" />
+                احصل على خطتك الدراسية الآن <ArrowLeft className="w-4 h-4 rotate-180" />
               </Button>
             </Link>
           </motion.div>
@@ -157,7 +205,7 @@ export default function Tracks() {
                     </DialogTrigger>
 
                     <DialogContent className="max-w-4xl p-0 overflow-hidden bg-background/95 backdrop-blur-xl border-border/50 !rounded-[2.5rem]" dir="rtl">
-                      <div className="relative h-full max-h-[90vh] overflow-y-auto custom-scrollbar">
+                      <div className="relative h-full max-h-[85vh] overflow-y-auto custom-scrollbar">
                         <div className="relative h-48 bg-primary/10 p-12 flex items-center justify-center">
                           <div className="text-center">
                             <h2 className="text-3xl md:text-5xl font-black mb-4 text-primary">{plan.title}</h2>
@@ -192,25 +240,8 @@ export default function Tracks() {
 
                                   {milestone.courses && milestone.courses.length > 0 ? (
                                     <div className="mt-4 pt-4 border-t border-border/20">
-                                      {/* Weekly schedule header */}
                                       <div className="flex items-center justify-between mb-3">
-                                        <p className="text-xs font-bold text-primary uppercase tracking-widest">الدورات المرشحة من المنصة:</p>
-                                        {milestone.weeklyHours && (
-                                          <Badge variant="outline" className="text-[10px] border-primary/30 text-primary gap-1">
-                                            <Clock className="w-3 h-3" />
-                                            {milestone.weeklyHours} ساعة/أسبوع
-                                          </Badge>
-                                        )}
-                                      </div>
-
-                                      {/* Exam hint banner */}
-                                      <div className="mb-3 p-3 rounded-xl bg-primary/5 border border-primary/20 flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                          <Trophy className="w-3 h-3 text-primary" />
-                                        </div>
-                                        <p className="text-[11px] text-primary/80 leading-relaxed">
-                                          عند إتمام كل دورة، يمكنك اختبار مهاراتك من خلال امتحان إلكتروني للحصول على شهادة إنجاز.
-                                        </p>
+                                        <p className="text-xs font-bold text-primary uppercase tracking-widest">الدورات المرشحة:</p>
                                       </div>
 
                                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -232,17 +263,6 @@ export default function Tracks() {
                                                 </div>
                                                 <div className="min-w-0 flex-1">
                                                   <h5 className="text-xs font-bold truncate group-hover/course:text-primary transition-colors">{course.title}</h5>
-                                                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                                    <Badge variant="outline" className={cn("text-[9px] py-0 h-4 border-primary/20 text-muted-foreground uppercase", isYouTube && "bg-red-500/5 text-red-600 border-red-500/20")}>
-                                                      {isYouTube ? "YouTube" : course.level}
-                                                    </Badge>
-                                                    {course.totalHours > 0 && (
-                                                      <span className="text-[9px] text-muted-foreground flex items-center gap-0.5">
-                                                        <Clock className="w-2.5 h-2.5" />
-                                                        {course.totalHours}h
-                                                      </span>
-                                                    )}
-                                                  </div>
                                                 </div>
                                                 <ArrowLeft className="w-3 h-3 text-muted-foreground mr-auto group-hover/course:text-primary transition-all -translate-x-1 group-hover/course:translate-x-0" />
                                               </div>
@@ -251,31 +271,10 @@ export default function Tracks() {
                                         })}
                                       </div>
                                     </div>
-                                  ) : (
-                                    <div className="mt-4 pt-4 border-t border-border/20">
-                                      <div className="p-4 rounded-xl bg-muted/20 border border-border/30 text-center">
-                                        <p className="text-xs text-muted-foreground">سيتم إضافة الدورات لهذا المستوى قريباً</p>
-                                      </div>
-                                    </div>
-                                  )}
+                                  ) : null}
                                 </div>
                               </motion.div>
                             ))}
-
-                            <div className="relative flex gap-8 mr-1 mt-8">
-                              <div className="absolute right-0 w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center z-10 shadow-lg shadow-primary/40">
-                                <Sparkles className="w-5 h-5" />
-                              </div>
-                              <div className="mr-16 pt-2">
-                                <h4 className="text-xl font-black text-primary">الاحتراف والوظيفة!</h4>
-                                <p className="text-sm text-muted-foreground">بنهاية هذا المسار ستكون جاهزاً لسوق العمل.</p>
-                                <Link href="/ai-agent">
-                                  <Button className="mt-4 w-full md:w-auto font-bold shadow-lg shadow-primary/20" variant="outline">
-                                    المتابعة مع المساعد الذكي
-                                  </Button>
-                                </Link>
-                              </div>
-                            </div>
                           </div>
                         </div>
                       </div>
