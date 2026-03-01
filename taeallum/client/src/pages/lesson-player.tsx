@@ -127,10 +127,11 @@ export default function LessonPlayer() {
       {/* Main Content (Player) */}
       <main className="flex-1 bg-black flex flex-col items-center relative">
         <div className="w-full relative pb-[56.25%] h-0 bg-zinc-900 group">
-          {activeLessonData?.videoUrl ? (
+          {(activeLessonData?.videoUrl || activeLessonData?.bunnyVideoId) ? (
             <div className="w-full h-full">
               {(() => {
-                const videoUrl = activeLessonData.videoUrl;
+                const videoUrl = activeLessonData.videoUrl || activeLessonData.bunnyVideoId;
+                if (!videoUrl) return null;
 
                 // 1. YouTube Detection & Transformation (Prioritize for customization)
                 const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
@@ -170,7 +171,7 @@ export default function LessonPlayer() {
 
                 // 4. Bunny.net / Other Transformation
                 let finalUrl = videoUrl;
-                const libId = import.meta.env.VITE_BUNNY_LIBRARY_ID || "583591";
+                const libId = import.meta.env.VITE_BUNNY_LIBRARY_ID || "608329";
 
                 if (videoUrl.includes("video.bunny.net/play/")) {
                   finalUrl = videoUrl.replace("video.bunny.net/play/", "iframe.mediadelivery.net/embed/");

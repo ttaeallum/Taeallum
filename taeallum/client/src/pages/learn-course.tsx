@@ -217,7 +217,7 @@ export default function LearnCourse() {
     const renderVideoPlayer = () => {
         if (!activeLesson) return null;
 
-        const libId = import.meta.env.VITE_BUNNY_LIBRARY_ID || "583591";
+        const libId = import.meta.env.VITE_BUNNY_LIBRARY_ID || "608329";
         const bunnyUUID = activeLesson.bunnyVideoId?.trim();
         const rawVideoUrl = activeLesson.videoUrl?.trim();
 
@@ -559,10 +559,6 @@ export default function LearnCourse() {
                                         <Progress value={progress} className="h-2 bg-white/5" />
                                     </div>
 
-                                    <Button variant="ghost" className="w-full justify-center gap-2 h-12 text-primary font-bold hover:bg-primary/5 rounded-2xl border border-primary/10">
-                                        <Download className="w-4 h-4" />
-                                        تحميل المصادر
-                                    </Button>
                                 </Card>
 
                                 <div className="bg-gradient-to-br from-primary/10 to-transparent p-8 rounded-3xl border border-primary/10 relative overflow-hidden group">
