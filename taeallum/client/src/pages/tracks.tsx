@@ -1,5 +1,5 @@
 import { Layout } from "@/components/layout";
-import { BookOpen, Clock, ArrowLeft, Target, Map, Trophy, Sparkles, LayoutDashboard, PlayCircle, ShieldCheck } from "lucide-react";
+import { BookOpen, Clock, ArrowLeft, Target, Map, Trophy, Sparkles, LayoutDashboard, PlayCircle, ShieldCheck, CalendarDays, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
@@ -213,68 +213,124 @@ export default function Tracks() {
                           </div>
                         </div>
 
+                        {/* Plan Stats Bar */}
+                        {(() => {
+                          const allCourses = (data.milestones || []).flatMap((m: any) => m.courses || []).filter((c: any) => !c.youtubeUrl);
+                          const totalCourses = allCourses.length;
+                          const totalHours = allCourses.reduce((sum: number, c: any) => sum + (c.totalHours || 0), 0);
+                          const weeklyHours = data.milestones?.[0]?.weeklyHours || data.weeklyHours || 10;
+                          const totalWeeks = totalHours > 0 && weeklyHours > 0 ? Math.ceil(totalHours / weeklyHours) : null;
+                          const totalMonths = totalWeeks ? +(totalWeeks / 4).toFixed(1) : null;
+                          return (
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-8 pt-6 pb-2">
+                              <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 text-center">
+                                <Hash className="w-5 h-5 text-primary mx-auto mb-1" />
+                                <div className="text-2xl font-black text-primary">{totalCourses}</div>
+                                <div className="text-xs text-muted-foreground font-bold">كورس</div>
+                              </div>
+                              <div className="bg-blue-500/5 border border-blue-500/10 rounded-2xl p-4 text-center">
+                                <Clock className="w-5 h-5 text-blue-500 mx-auto mb-1" />
+                                <div className="text-2xl font-black text-blue-500">{totalHours > 0 ? `${totalHours}` : "—"}</div>
+                                <div className="text-xs text-muted-foreground font-bold">ساعة إجمالية</div>
+                              </div>
+                              <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-4 text-center">
+                                <CalendarDays className="w-5 h-5 text-emerald-500 mx-auto mb-1" />
+                                <div className="text-2xl font-black text-emerald-500">{totalMonths ? `${totalMonths}` : (plan.duration || "—")}</div>
+                                <div className="text-xs text-muted-foreground font-bold">أشهر تقريباً</div>
+                              </div>
+                              <div className="bg-amber-500/5 border border-amber-500/10 rounded-2xl p-4 text-center">
+                                <BookOpen className="w-5 h-5 text-amber-500 mx-auto mb-1" />
+                                <div className="text-2xl font-black text-amber-500">{weeklyHours}</div>
+                                <div className="text-xs text-muted-foreground font-bold">ساعة/أسبوع</div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
                         <div className="p-8 md:p-12 relative">
                           <h3 className="text-2xl font-bold mb-8 flex items-center gap-3">
                             <Target className="w-6 h-6 text-primary" />
-                            رحلة التعلم (AI Managed Roadmap)
+                            خارطة التعلم — 3 مستويات
                           </h3>
 
                           <div className="relative space-y-8 before:absolute before:inset-y-0 before:right-[19px] before:w-0.5 before:bg-gradient-to-b before:from-primary before:to-transparent">
-                            {data.milestones?.slice(0, 3).map((milestone: any, i: number) => (
-                              <motion.div
-                                key={i}
-                                initial={{ opacity: 0, x: -20 }}
-                                whileInView={{ opacity: 1, x: 0 }}
-                                transition={{ delay: i * 0.1 }}
-                                className="relative flex gap-8 mr-1"
-                              >
-                                <div className="absolute right-0 w-10 h-10 rounded-full bg-background border-4 border-primary flex items-center justify-center z-10 shadow-lg shadow-primary/20 text-xs font-black">
-                                  {i + 1}
-                                </div>
-                                <div className="mr-16 flex-1 bg-muted/30 border border-border/50 rounded-2xl p-6 hover:bg-muted/50 transition-colors">
-                                  <h4 className="text-lg font-bold mb-2 flex items-center gap-2">
-                                    {i === 0 ? 'المستوى الأول - مبتدئ' : i === 1 ? 'المستوى الثاني - متوسط' : i === 2 ? 'المستوى الثالث - متقدم' : milestone.title}
-                                    {i === 0 && <Badge variant="secondary" className="text-[10px] bg-green-500/10 text-green-600 border-green-500/20">نقطة البداية</Badge>}
-                                  </h4>
-                                  <p className="text-muted-foreground text-sm mb-4">{milestone.description}</p>
+                            {data.milestones?.slice(0, 3).map((milestone: any, i: number) => {
+                              const levelColors = [
+                                { bg: "bg-green-500/10", border: "border-green-500/30", text: "text-green-600", badge: "bg-green-500/10 text-green-600" },
+                                { bg: "bg-blue-500/10", border: "border-blue-500/30", text: "text-blue-600", badge: "bg-blue-500/10 text-blue-600" },
+                                { bg: "bg-purple-500/10", border: "border-purple-500/30", text: "text-purple-600", badge: "bg-purple-500/10 text-purple-600" },
+                              ];
+                              const lc = levelColors[i] || levelColors[2];
+                              const levelLabels = ['🟢 المستوى الأول — أساسيات IT', '🔵 المستوى الثاني — أساسيات التخصص', '🟣 المستوى الثالث — التخصص العميق'];
+                              return (
+                                <motion.div
+                                  key={i}
+                                  initial={{ opacity: 0, x: -20 }}
+                                  whileInView={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: i * 0.1 }}
+                                  className="relative flex gap-8 mr-1"
+                                >
+                                  <div className="absolute right-0 w-10 h-10 rounded-full bg-background border-4 border-primary flex items-center justify-center z-10 shadow-lg shadow-primary/20 text-xs font-black">
+                                    {i + 1}
+                                  </div>
+                                  <div className={`mr-16 flex-1 ${lc.bg} border ${lc.border} rounded-2xl p-6`}>
+                                    <h4 className={`text-lg font-black mb-1 ${lc.text}`}>
+                                      {levelLabels[i]}
+                                    </h4>
+                                    <p className="text-muted-foreground text-sm mb-4">{milestone.description}</p>
 
-                                  {milestone.courses && milestone.courses.length > 0 ? (
-                                    <div className="mt-4 pt-4 border-t border-border/20">
-                                      <div className="flex items-center justify-between mb-3">
-                                        <p className="text-xs font-bold text-primary uppercase tracking-widest">الدورات المرشحة:</p>
-                                      </div>
+                                    {milestone.courses && milestone.courses.length > 0 ? (
+                                      <div className="mt-4 pt-4 border-t border-border/20">
+                                        <p className="text-xs font-bold text-primary uppercase tracking-widest mb-3">
+                                          {milestone.courses.filter((c: any) => !c.youtubeUrl).length} كورس في هذا المستوى:
+                                        </p>
 
-                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        {milestone.courses.map((course: any) => {
-                                          const isYouTube = !!course.youtubeUrl;
-                                          const courseLink = isYouTube ? `/lesson/youtube?url=${encodeURIComponent(course.youtubeUrl)}` : `/courses/${course.slug}`;
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                          {milestone.courses.map((course: any) => {
+                                            const isYouTube = !!course.youtubeUrl;
+                                            const courseLink = isYouTube ? `/lesson/youtube?url=${encodeURIComponent(course.youtubeUrl)}` : `/courses/${course.slug}`;
 
-                                          return (
-                                            <Link key={course.id || course.youtubeUrl} href={courseLink}>
-                                              <div className="flex items-center gap-3 p-3 bg-background border border-border/50 rounded-xl hover:border-primary/40 transition-all group/course cursor-pointer">
-                                                <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-border/50 bg-muted/20 flex items-center justify-center">
-                                                  {isYouTube ? (
-                                                    <div className="w-full h-full bg-red-500/10 flex items-center justify-center">
-                                                      <PlayCircle className="w-6 h-6 text-red-600" />
-                                                    </div>
-                                                  ) : (
-                                                    <img src={course.thumbnail || "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=200&q=80"} alt={course.title} className="w-full h-full object-cover group-hover/course:scale-110 transition-transform" />
-                                                  )}
+                                            return (
+                                              <Link key={course.id || course.youtubeUrl} href={courseLink}>
+                                                <div className="flex items-center gap-3 p-3 bg-background border border-border/50 rounded-xl hover:border-primary/40 transition-all group/course cursor-pointer">
+                                                  <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-border/50 bg-muted/20 flex items-center justify-center">
+                                                    {isYouTube ? (
+                                                      <div className="w-full h-full bg-red-500/10 flex items-center justify-center">
+                                                        <PlayCircle className="w-6 h-6 text-red-600" />
+                                                      </div>
+                                                    ) : (
+                                                      <img src={course.thumbnail || "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=200&q=80"} alt={course.title} className="w-full h-full object-cover group-hover/course:scale-110 transition-transform" />
+                                                    )}
+                                                  </div>
+                                                  <div className="min-w-0 flex-1">
+                                                    <h5 className="text-xs font-bold truncate group-hover/course:text-primary transition-colors">{course.title}</h5>
+                                                    {(course.startWeek || course.totalHours > 0) && (
+                                                      <div className="flex gap-2 mt-1">
+                                                        {course.totalHours > 0 && (
+                                                          <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                                            <Clock className="w-2.5 h-2.5" />{course.totalHours}h
+                                                          </span>
+                                                        )}
+                                                        {course.startWeek && (
+                                                          <span className="text-[10px] text-primary font-bold flex items-center gap-0.5">
+                                                            <CalendarDays className="w-2.5 h-2.5" />أسبوع {course.startWeek}–{course.endWeek}
+                                                          </span>
+                                                        )}
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                  <ArrowLeft className="w-3 h-3 text-muted-foreground mr-auto group-hover/course:text-primary transition-all -translate-x-1 group-hover/course:translate-x-0" />
                                                 </div>
-                                                <div className="min-w-0 flex-1">
-                                                  <h5 className="text-xs font-bold truncate group-hover/course:text-primary transition-colors">{course.title}</h5>
-                                                </div>
-                                                <ArrowLeft className="w-3 h-3 text-muted-foreground mr-auto group-hover/course:text-primary transition-all -translate-x-1 group-hover/course:translate-x-0" />
-                                              </div>
-                                            </Link>
-                                          );
-                                        })}
+                                              </Link>
+                                            );
+                                          })}
+                                        </div>
                                       </div>
-                                    </div>
-                                  ) : null}
-                                </div>
-                              </motion.div>
-                            ))}
+                                    ) : null}
+                                  </div>
+                                </motion.div>
+                              );
+                            })}
                           </div>
                         </div>
                       </div>

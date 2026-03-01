@@ -117,9 +117,7 @@ export default function AIAgent() {
       setMessages([{
         id: "init",
         role: "assistant",
-        content: isRtl
-          ? "مرحباً بك في منصة تعلّم. أنا مساعدك التقني الذكي، سنحدد مسارك الاحترافي بناءً على 7 قطاعات رئيسية في تكنولوجيا المعلومات. أي قطاع تود استكشافه؟ [SUGGESTIONS: علوم الحاسوب 💻|هندسة البرمجيات ⚙️|علم البيانات والذكاء الاصطناعي 🧠|الأمن السيبراني 🔒|إنترنت الأشياء والاتصالات 📡|نظم المعلومات الإدارية 📊|تطوير الويب والهاتف 📱]"
-          : "Welcome to Taallm. I am your Intelligent Tech Assistant, we will define your professional path based on 7 main IT sectors. Which sector would you like to explore? [SUGGESTIONS: Computer Science 💻|Software Engineering ⚙️|Data Science & AI 🧠|Cybersecurity 🔒|IOT & Communications 📡|Management Information 📊|Web & Mobile Development 📱]",
+        content: "أهلاً بك في منصة تعلّم! لنبني خطتك الدراسية معاً. أي قطاع تريد الاحتراف فيه؟ [SUGGESTIONS: الذكاء الاصطناعي 🧠|الأمن السيبراني 🔒|تطوير البرمجيات 💻|علم البيانات 📊|إدارة الشبكات 🌐|الحوسبة السحابية ☁️|تطوير الألعاب 🎮]",
         timestamp: new Date()
       }]);
     }
@@ -132,9 +130,7 @@ export default function AIAgent() {
       setMessages([{
         id: "init",
         role: "assistant",
-        content: isRtl
-          ? "أهلاً بك مجدداً. لنبدأ من جديد بتحديد مسارك التقني. أي قطاع تود البدء به؟ [SUGGESTIONS: علوم الحاسوب 💻|هندسة البرمجيات ⚙️|علم البيانات والذكاء الاصطناعي 🧠|الأمن السيبراني 🔒|إنترنت الأشياء والاتصالات 📡|نظم المعلومات الإدارية 📊|تطوير الويب والهاتف 📱]"
-          : "Welcome back. Let's start fresh by identifying your tech path. Which sector would you like to start with? [SUGGESTIONS: Computer Science 💻|Software Engineering ⚙️|Data Science & AI 🧠|Cybersecurity 🔒|IOT & Communications 📡|Management Information 📊|Web & Mobile Development 📱]",
+        content: "أهلاً بك مجدداً! لنبني خطتك الدراسية من جديد. أي قطاع تريد الاحتراف فيه؟ [SUGGESTIONS: الذكاء الاصطناعي 🧠|الأمن السيبراني 🔒|تطوير البرمجيات 💻|علم البيانات 📊|إدارة الشبكات 🌐|الحوسبة السحابية ☁️|تطوير الألعاب 🎮]",
         timestamp: new Date()
       }]);
       setActiveLogs([]);
@@ -221,11 +217,11 @@ export default function AIAgent() {
             </div>
             <h2 className="text-3xl font-black mb-6 tracking-tight">{isRtl ? "نظام الذكاء الحصري" : "Exclusive Intelligence"}</h2>
             <p className="text-muted-foreground mb-12 leading-relaxed">
-              {isRtl ? "يتطلب الوصول إلى المساعد المختص اشتراكاً فعالاً لضمان توفير أعلى قدرة حوسبية لتحليل مسارك." : "Accessing the specialized assistant requires an active subscription to ensure maximum computing power for your analysis."}
+              {isRtl ? "يتطلب الوصول إلى الخطة الدراسية اشتراكاً فعالاً لضمان توفير أعلى قدرة على بناء مسارك التعليمي." : "Accessing the study plan requires an active subscription."}
             </p>
             <Link href="/ai-pricing">
               <Button size="lg" className="h-16 px-12 rounded-2xl text-md font-bold shadow-xl shadow-primary/20 hover:scale-[1.03] transition-all">
-                {isRtl ? "تفعيل الاشتراك" : "Activate Subscription"}
+                {isRtl ? "احصل على الخطة الدراسية" : "Get Study Plan"}
               </Button>
             </Link>
           </Card>
@@ -298,7 +294,7 @@ export default function AIAgent() {
                     <Bot className="w-5 h-5 text-white dark:text-black group-hover:scale-110 transition-transform" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-black tracking-tighter">{isRtl ? "المساعد الذكي" : "Neural Assistant"}</h2>
+                    <h2 className="text-lg font-black tracking-tighter">الخطة الدراسية</h2>
                     <div className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
                       <span className="text-[9px] font-mono text-muted-foreground uppercase opacity-40">Active_Node_4o_Mini</span>
