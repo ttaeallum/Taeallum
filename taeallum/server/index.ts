@@ -32,6 +32,22 @@ import { registerRoutes } from "./routes";
 const app = express();
 const httpServer = createServer(app);
 
+// Request Logger
+app.use((req, res, next) => {
+  if (req.url.includes("vite") || req.url.includes(".tsx") || req.url.includes(".ts")) {
+    // Shush noisy vite logs in console if needed, but for now we log everything
+  }
+  console.log(`[REQUEST] ${req.method} ${req.url}`);
+  next();
+});
+
+// Initialize Vite Early in Development
+let viteInstance: any = null;
+if (process.env.NODE_ENV !== "production") {
+  const { setupVite } = await import("./vite");
+  viteInstance = await setupVite(httpServer, app);
+}
+
 
 app.use(express.json({
   verify: (req: any, res, buf) => {
@@ -268,6 +284,8 @@ app.use("/api/ads", adsRouter);
 app.use("/", seoRouter);
 
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+app.use("/thumbnails", express.static(path.join(process.cwd(), "client", "public", "thumbnails")));
+app.use(express.static(path.join(process.cwd(), "client", "public")));
 
 // --- 3. SERVER STARTUP ---
 (async () => {
@@ -324,9 +342,9 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
     if (process.env.NODE_ENV === "production") {
       serveStatic(app);
-    } else {
-      const { setupVite } = await import("./vite");
-      await setupVite(httpServer, app);
+    } else if (viteInstance) {
+      const { serveViteSPA } = await import("./vite");
+      serveViteSPA(viteInstance, app);
     }
   } catch (error) {
     console.error("[CRITICAL STARTUP ERROR]", error);

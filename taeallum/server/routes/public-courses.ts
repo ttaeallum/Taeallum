@@ -43,6 +43,7 @@ router.get("/stats", async (req: Request, res: Response) => {
 
 // Get all published courses
 router.get("/", async (req: Request, res: Response) => {
+    console.log("[ROUTER] Public Courses GET / hit");
     try {
         const allCourses = await db.select({
             id: schema.courses.id,
@@ -138,7 +139,6 @@ router.get("/:slug", async (req: Request, res: Response) => {
             limit: 1,
         });
 
-        // Fallback: try lookup with original encoded slug if the above fails
         if (!course) {
             const encodedSlug = encodeURIComponent(String(req.params.slug));
             [course] = await db.query.courses.findMany({
@@ -152,7 +152,20 @@ router.get("/:slug", async (req: Request, res: Response) => {
             return res.status(404).json({ message: "Course not found" });
         }
 
-        res.json(course);
+        // Add lessonsCount and duration
+        const [stats] = await db.select({
+            lessonsCount: sql<number>`CAST(COUNT(${schema.lessons.id}) AS INTEGER)`,
+            totalDuration: sql<number>`CAST(COALESCE(SUM(${schema.lessons.duration}), 0) AS INTEGER)`,
+        })
+            .from(schema.sections)
+            .leftJoin(schema.lessons, eq(schema.lessons.sectionId, schema.sections.id))
+            .where(eq(schema.sections.courseId, course.id));
+
+        res.json({
+            ...course,
+            lessonsCount: stats?.lessonsCount || 0,
+            duration: stats?.totalDuration || 0
+        });
     } catch (error) {
         console.error("Error fetching course detail:", error);
         res.status(500).json({ message: "Failed to fetch course detail" });

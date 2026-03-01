@@ -242,7 +242,22 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                                 items: {
                                     type: "object",
                                     properties: {
-                                    }
+                                        title: { type: "string", description: "Milestone name (Arabic)" },
+                                        description: { type: "string", description: "What will be learned (Arabic)" },
+                                        courseIds: { type: "array", items: { type: "string" }, description: "IDs of platform courses to link" },
+                                        youtubeLinks: {
+                                            type: "array",
+                                            items: {
+                                                type: "object",
+                                                properties: {
+                                                    title: { type: "string", description: "Arabic title of the video/playlist" },
+                                                    url: { type: "string", description: "YouTube URL" }
+                                                }
+                                            },
+                                            description: "Fallback YouTube resources if no platform courses match"
+                                        }
+                                    },
+                                    required: ["title", "description"]
                                 }
                             },
                             categoryHint: { type: "string", description: "Optional category slug or keyword to strictly filter courses (e.g. 'coding', 'languages')" },
@@ -294,8 +309,9 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 - الهدف: الانتقال من التعليم العام إلى التخصص العميق.
 
 [المرحلة النهائية]:
-بعد انتهاء الأسئلة، استدعِ 'search_platform_courses' و 'create_study_plan' ثم أظهر:
-"تم تصميم مسارك الكامل من الأساسيات المشتركة حتى تخصص [اسم المتفرع]. خطتك جاهزة." [SUGGESTIONS: ابدأ الآن] [REDIRECT: /tracks] [SYSTEM_ACT: ENROLLMENT_SUCCESS]
+بعد انتهاء الأسئلة، استدعِ 'search_platform_courses' ثم 'create_study_plan'.
+**مهم جداً**: إذا لم تجد كورس في المنصة يغطي جزءاً من الخطة، أرفق رابط يوتيوب عالي الجودة في حقل 'youtubeLinks' داخل الـ milestone المناسب.
+أظهر للطالب: "تم تصميم مسارك الكامل من الأساسيات المشتركة حتى تخصص [اسم المتفرع]. خطتك جاهزة." [SUGGESTIONS: ابدأ الآن] [REDIRECT: /tracks] [SYSTEM_ACT: ENROLLMENT_SUCCESS]
 
 سياق الطالب الحالي: ${contextSummary}`
             }
@@ -451,7 +467,6 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                         // Build enriched milestones with course details, sorted by level
                         const enrichedMilestones = (args.milestones || []).map((m: any) => {
                             const milestoneCoursIds = m.courseIds || [];
-                            // Match ONLY against already filtered 'allCourses' (which respects categoryHint)
                             const matchedCourses = sortByLevel(allCourses.filter(c => milestoneCoursIds.includes(c.id)));
 
                             return {
@@ -465,117 +480,71 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                                         level: c.level,
                                         thumbnail: c.thumbnail
                                     })),
-                                    ...(m.courses || []).filter((c: any) => c.youtubeUrl).map((c: any) => ({
-                                        youtubeUrl: c.youtubeUrl,
-                                        title: c.title || "YouTube Resource",
+                                    ...(m.youtubeLinks || []).map((yl: any) => ({
+                                        youtubeUrl: yl.url,
+                                        title: yl.title || "YouTube Resource",
                                         level: "external"
                                     }))
                                 ]
                             };
                         });
 
-                        // If no courses were matched via AI, auto-match by keyword within the ISOLATED subset
-                        // Then sort by level order (beginner → intermediate → advanced)
                         const totalMatched = enrichedMilestones.reduce((sum: number, m: any) => sum + m.courses.length, 0);
+
+                        // Auto-match if needed
                         if (totalMatched === 0 && allCourses.length > 0) {
-                            // Auto-distribute courses across milestones by level
                             const sortedCourses = sortByLevel(allCourses);
                             let beginnerCourses = sortedCourses.filter(c => c.level === 'beginner');
                             let intermediateCourses = sortedCourses.filter(c => c.level === 'intermediate');
                             let advancedCourses = sortedCourses.filter(c => c.level === 'advanced');
 
-                            // Fill empty buckets from nearest available level
-                            if (intermediateCourses.length === 0 && beginnerCourses.length > 0) {
-                                intermediateCourses = [...beginnerCourses];
-                            } else if (intermediateCourses.length === 0 && advancedCourses.length > 0) {
-                                intermediateCourses = [...advancedCourses];
-                            }
-                            if (advancedCourses.length === 0 && intermediateCourses.length > 0) {
-                                advancedCourses = [...intermediateCourses];
-                            } else if (advancedCourses.length === 0 && beginnerCourses.length > 0) {
-                                advancedCourses = [...beginnerCourses];
-                            }
-                            if (beginnerCourses.length === 0 && intermediateCourses.length > 0) {
-                                beginnerCourses = [...intermediateCourses];
-                            }
-
-                            // Last resort: split evenly
-                            if (beginnerCourses.length === 0 && intermediateCourses.length === 0 && advancedCourses.length === 0 && sortedCourses.length > 0) {
-                                const third = Math.ceil(sortedCourses.length / 3);
-                                beginnerCourses = sortedCourses.slice(0, third);
-                                intermediateCourses = sortedCourses.slice(third, third * 2);
-                                advancedCourses = sortedCourses.slice(third * 2);
-                            }
-
-
                             const courseBuckets = [beginnerCourses, intermediateCourses, advancedCourses];
 
                             for (let i = 0; i < enrichedMilestones.length; i++) {
-                                const milestone = enrichedMilestones[i];
-                                // Distribute by level buckets to milestones: milestone 0=beginner, 1=intermediate, 2=advanced
+                                const ms = enrichedMilestones[i];
                                 const bucket = courseBuckets[Math.min(i, courseBuckets.length - 1)] || [];
                                 if (bucket.length > 0) {
-                                    milestone.courses = bucket.map(c => ({
-                                        id: c.id,
-                                        title: c.title,
-                                        slug: c.slug,
-                                        level: c.level,
-                                        thumbnail: c.thumbnail
-                                    }));
-                                } else {
-                                    // Fallback: keyword search
-                                    const keywords = milestone.title.toLowerCase().split(/\s+/);
-                                    const matched = sortByLevel(allCourses.filter(c =>
-                                        keywords.some((kw: string) => kw.length > 2 && (
-                                            (c.title && c.title.toLowerCase().includes(kw)) ||
-                                            (c.description && c.description.toLowerCase().includes(kw))
-                                        ))
-                                    )).slice(0, 3);
-                                    milestone.courses = matched.map(c => ({
-                                        id: c.id,
-                                        title: c.title,
-                                        slug: c.slug,
-                                        level: c.level,
-                                        thumbnail: c.thumbnail
-                                    }));
+                                    const internalIds = new Set(ms.courses?.map((c: any) => c.id).filter(Boolean));
+                                    const newCourses = bucket
+                                        .filter(c => !internalIds.has(c.id))
+                                        .map(c => ({
+                                            id: c.id,
+                                            title: c.title,
+                                            slug: c.slug,
+                                            level: c.level,
+                                            thumbnail: c.thumbnail
+                                        }));
+                                    ms.courses = [...(ms.courses || []), ...newCourses];
                                 }
                             }
                         }
 
-                        // Auto-enroll the student in all matched courses
+                        // Auto-enroll student
                         const allMatchedCourseIds = new Set<string>();
                         for (const m of enrichedMilestones) {
                             for (const c of m.courses) {
-                                allMatchedCourseIds.add(c.id);
+                                if (c.id) allMatchedCourseIds.add(c.id);
                             }
                         }
 
                         for (const courseId of Array.from(allMatchedCourseIds)) {
                             const [existing] = await db.select().from(enrollments)
-                                .where(and(
-                                    eq(enrollments.userId, userId!),
-                                    eq(enrollments.courseId, courseId)
-                                ));
+                                .where(and(eq(enrollments.userId, userId!), eq(enrollments.courseId, courseId)));
                             if (!existing) {
-                                await db.insert(enrollments).values({
-                                    userId: userId!,
-                                    courseId: courseId,
-                                    progress: 0
-                                });
+                                await db.insert(enrollments).values({ userId: userId!, courseId, progress: 0 });
                             }
                         }
 
                         toolLogs.push(`تم ربط ${allMatchedCourseIds.size} كورس من المنصة بالمسار`);
 
-                        // Enforce exactly 3 milestones: مبتدئ، متوسط، متقدم
+                        // Enforce exactly 3 milestones
                         const LEVEL_LABELS = ['المستوى الأول - مبتدئ', 'المستوى الثاني - متوسط', 'المستوى الثالث - متقدم'];
                         let finalMilestones = enrichedMilestones;
 
                         if (finalMilestones.length > 3) {
                             const extra = finalMilestones.slice(3);
-                            const extraCourses = extra.flatMap((m: any) => m.courses || []);
                             finalMilestones = finalMilestones.slice(0, 3);
-                            finalMilestones[2].courses = [...(finalMilestones[2].courses || []), ...extraCourses];
+                            finalMilestones[2].courses = [...(finalMilestones[2].courses || []), ...extra.flatMap((m: any) => m.courses || [])];
                         } else {
                             while (finalMilestones.length < 3) {
                                 finalMilestones.push({ title: LEVEL_LABELS[finalMilestones.length], description: '', courses: [] });
@@ -587,9 +556,11 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
                             title: LEVEL_LABELS[idx] || m.title
                         }));
 
+                        const allFlatCourses = finalMilestones.flatMap(m => m.courses || []);
                         const planDataWithCourses = {
                             ...args,
                             milestones: finalMilestones,
+                            courses: allFlatCourses,
                             linkedCoursesCount: allMatchedCourseIds.size
                         };
 
