@@ -217,7 +217,17 @@ export default function LearnCourse() {
     const renderVideoPlayer = () => {
         if (!activeLesson) return null;
 
-        const videoUrl = activeLesson.videoUrl?.trim();
+        const libId = import.meta.env.VITE_BUNNY_LIBRARY_ID || "583591";
+        const bunnyUUID = activeLesson.bunnyVideoId?.trim();
+        const rawVideoUrl = activeLesson.videoUrl?.trim();
+
+        // Resolve the video URL: prefer explicit videoUrl, fall back to bunnyVideoId UUID
+        let videoUrl = rawVideoUrl;
+        if (!videoUrl && bunnyUUID) {
+            // It's a Bunny UUID → build embed URL directly
+            videoUrl = `https://iframe.mediadelivery.net/embed/${libId}/${bunnyUUID}`;
+        }
+
         if (!videoUrl) {
             return (
                 <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900 border border-white/5 rounded-2xl">
@@ -285,9 +295,8 @@ export default function LearnCourse() {
         if (isDirectUrl) {
             // Transform Vimeo links to embed versions if necessary (YouTube already handled above)
             let finalUrl = videoUrl.trim();
-            const libId = import.meta.env.VITE_BUNNY_LIBRARY_ID || "583591";
 
-            // Bunny.net UUID Detection
+            // Bunny.net UUID Detection (raw UUID in videoUrl field)
             const bunnyVideoIdRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
             if (bunnyVideoIdRegex.test(finalUrl)) {
                 finalUrl = `https://iframe.mediadelivery.net/embed/${libId}/${finalUrl}`;
