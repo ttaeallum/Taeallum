@@ -61,7 +61,7 @@ export function Navbar() {
     { href: "/", label: "الرئيسية" },
     ...(isSubscribed ? [
       { href: "/tracks", label: "المسارات" },
-      { href: "/ai-agent", label: "المساعد الذكي" }
+      { href: "/ai-agent", label: "الخطة الرئيسية" }
     ] : []),
     { href: "/courses", label: "جميع الكورسات" },
     { href: "/about", label: "من نحن" },
@@ -309,7 +309,7 @@ export function Footer() {
               {isSubscribed && (
                 <>
                   <Link href="/tracks" className="hover:text-primary transition-colors">المسارات التعليمية</Link>
-                  <Link href="/ai-agent" className="hover:text-primary transition-colors">المساعد الذكي</Link>
+                  <Link href="/ai-agent" className="hover:text-primary transition-colors">الخطة الرئيسية</Link>
                 </>
               )}
               <Link href="/courses" className="hover:text-primary transition-colors">تصفح الكورسات</Link>

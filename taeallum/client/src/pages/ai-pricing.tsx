@@ -133,7 +133,7 @@ export default function AIPricing() {
                     className="w-full h-14 text-lg font-bold rounded-xl shadow-lg shadow-primary/25 hover:scale-105 transition-transform"
                     onClick={() => window.location.href = paymentLink}
                   >
-                    احصل على خطتي الدراسية
+                    احصل على خطتك الرئيسية
                     <ArrowRight className="w-5 h-5 mr-2 rotate-180" />
                   </Button>
                   <p className="text-xs text-muted-foreground mt-4">

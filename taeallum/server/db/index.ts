@@ -1,4 +1,10 @@
-import "dotenv/config";
+import path from 'path';
+import dotenv from 'dotenv';
+
+// Load .env from current dir or parent dir
+dotenv.config();
+dotenv.config({ path: path.join(process.cwd(), "..", ".env") });
+
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "./schema";

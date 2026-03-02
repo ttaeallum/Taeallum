@@ -105,7 +105,7 @@ export default function Home() {
               <div className="flex flex-col sm:flex-row-reverse gap-4 md:gap-6 justify-center sm:justify-start">
                 <Link href="/ai-pricing" className="w-full sm:w-auto">
                   <Button size="lg" className="h-14 md:h-16 px-6 md:px-10 text-lg md:text-xl font-black shadow-[0_15px_40px_rgba(var(--primary),0.25)] gap-3 rounded-2xl md:rounded-3xl hover:scale-105 active:scale-95 transition-all bg-primary hover:bg-primary/90 w-full sm:w-auto">
-                    اشترك مع المساعد الذكي
+                    احصل على خطتك الرئيسية
                   </Button>
                 </Link>
                 <Link href="/courses" className="w-full sm:w-auto">
@@ -294,7 +294,7 @@ export default function Home() {
                     variant="secondary"
                     className="h-14 md:h-16 px-8 md:px-10 text-lg md:text-xl font-black text-primary hover:bg-white rounded-2xl shadow-2xl gap-3 transition-all hover:scale-105"
                   >
-                    اشترك بالمساعد الذكي
+                    احصل على خطتك الرئيسية
                   </Button>
                 </Link>
               </div>

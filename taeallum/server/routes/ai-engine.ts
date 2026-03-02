@@ -198,29 +198,6 @@ router.get("/user-plans", requireAuth, async (req: Request, res: Response) => {
                 )
             );
 
-            // Fill empty buckets from nearest available level so every milestone has courses
-            if (intermediateCourses.length === 0 && beginnerCourses.length > 0) {
-                intermediateCourses = [...beginnerCourses];
-            } else if (intermediateCourses.length === 0 && advancedCourses.length > 0) {
-                intermediateCourses = [...advancedCourses];
-            }
-            if (advancedCourses.length === 0 && intermediateCourses.length > 0) {
-                advancedCourses = [...intermediateCourses];
-            } else if (advancedCourses.length === 0 && beginnerCourses.length > 0) {
-                advancedCourses = [...beginnerCourses];
-            }
-            if (beginnerCourses.length === 0 && intermediateCourses.length > 0) {
-                beginnerCourses = [...intermediateCourses];
-            }
-
-            // Last resort: if ALL are empty but we have courses, split evenly
-            if (beginnerCourses.length === 0 && intermediateCourses.length === 0 && advancedCourses.length === 0 && sortedCourses.length > 0) {
-                const third = Math.ceil(sortedCourses.length / 3);
-                beginnerCourses = sortedCourses.slice(0, third);
-                intermediateCourses = sortedCourses.slice(third, third * 2);
-                advancedCourses = sortedCourses.slice(third * 2);
-            }
-
             const buckets = [beginnerCourses, intermediateCourses, advancedCourses];
 
             // Determine student's weekly available hours

@@ -134,7 +134,7 @@ export default function CourseDetail() {
 
               <div className="flex flex-wrap gap-6 items-center text-sm font-medium text-foreground/80 pt-4">
                 <span className="flex items-center gap-2"><Users className="w-5 h-5 text-primary" /> +50 طالب</span>
-                <span className="flex items-center gap-2"><BookOpen className="w-5 h-5 text-primary" /> {course.lessonsCount || 0} درس</span>
+                <span className="flex items-center gap-2"><BookOpen className="w-5 h-5 text-primary" /> {course.lessonsCount || curriculum?.reduce((acc: number, s: any) => acc + (s.lessons?.length || 0), 0) || 0} درس</span>
                 <span className="flex items-center gap-2"><Clock className="w-5 h-5 text-primary" /> {course.duration ? Math.floor(course.duration / 3600) + ' ساعة' : '00:00'}</span>
               </div>
 
