@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: taallm-platform
+    env: node
+    plan: free # Can be changed to 'starter' or higher for better performance
+    buildCommand: npm install && npm run build
+    startCommand: node dist/index.cjs
+    healthCheckPath: /api/health-check-v2
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false # User must provide this from Neon or Render DB
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: BUNNY_LIBRARY_ID
+        sync: false
+      - key: VITE_BUNNY_LIBRARY_ID
+        sync: false
+      - key: BUNNY_API_KEY
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_SECURE
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
