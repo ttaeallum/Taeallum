@@ -27,35 +27,35 @@ export default function Refund() {
                         className="space-y-6"
                     >
                         <Card className="p-8 border-border/30 rounded-2xl shadow-sm">
-                            <h2 className="text-xl font-bold mb-4">1. المنتجات الرقمية (الكورسات)</h2>
+                            <h2 className="text-xl font-bold mb-4">1. سياسة المنتجات الرقمية</h2>
                             <p className="text-muted-foreground leading-relaxed text-sm">
-                                نظراً لطبيعة المنتجات الرقمية (الكورسات المسجلة) والوصول الفوري للمحتوى، فإن جميع المشتريات للكورسات الفردية تعتبر نهائية وغير قابلة للاسترجاع بمجرد منح الوصول إليها.
+                                نظراً لأن الخدمات المقدمة هي منتجات رقمية (دورات تدريبية واشتراكات في أدوات ذكاء اصطناعي) يتم تفعيلها فورياً، فإن المبالغ المدفوعة لا يمكن استردادها بمجرد بدء الوصول إلى المحتوى التعليمي. هذا الإجراء ضروري لحماية حقوق الملكية الفكرية وتكاليف تشغيل الخوادم.
                             </p>
                         </Card>
 
                         <Card className="p-8 border-border/30 rounded-2xl shadow-sm">
-                            <h2 className="text-xl font-bold mb-4">2. الاشتراكات الشهرية/السنوية</h2>
+                            <h2 className="text-xl font-bold mb-4">2. الاشتراكات المتكررة</h2>
                             <div className="space-y-4 text-muted-foreground text-sm leading-relaxed">
-                                <p>بالنسبة لنظام الاشتراكات، تنطبق القواعد التالية:</p>
+                                <p>بشأن نظام الاشتراكات الشهرية أو السنوية:</p>
                                 <ul className="list-disc list-inside space-y-2 mr-4">
-                                    <li>يمكنك إلغاء تجديد اشتراكك في أي وقت من خلال إعدادات حسابك.</li>
-                                    <li>عند الإلغاء، سيظل بإمكانك الوصول للمحتوى حتى نهاية الفترة المدفوعة الحالية.</li>
-                                    <li>لا يتم رد المبالغ المدفوعة عن الفترات التي بدأت بالفعل.</li>
+                                    <li>يمكنك إلغاء الاشتراك في أي وقت، ولن يتم سحب مبالغ إضافية في الدورة القادمة.</li>
+                                    <li>لا تتوفر مبالغ مستردة جزئية للفترات الزمنية المتبقية من الشهر الحالي.</li>
+                                    <li>يحق للمنصة إلغاء أي اشتراك في حال ثبوت مخالفة شروط الاستخدام دون التزام برد المبلغ.</li>
                                 </ul>
                             </div>
                         </Card>
 
                         <Card className="p-8 border-border/30 rounded-2xl shadow-sm">
-                            <h2 className="text-xl font-bold mb-4">3. الحالات الاستثنائية</h2>
+                            <h2 className="text-xl font-bold mb-4">3. المشاكل التقنية واسترجاع الأموال</h2>
                             <p className="text-muted-foreground leading-relaxed text-sm">
-                                في حال وجود خطأ تقني حال دون وصولك للمحتوى رغم نجاح عملية الدفع، يرجى التواصل مع فريق الدعم الفني خلال 48 ساعة لبحث إمكانية التعويض أو رد المبلغ.
+                                في حالات استثنائية (مثل تكرار الخصم عن طريق الخطأ أو وجود عطل فني يمنع الوصول للمنصة تماماً لم يتم إصلاحه خلال 72 ساعة)، يتم تقديم طلب استرجاع عبر البريد الرسمي بشرط عدم تجاوز 24 ساعة من تاريخ العملية.
                             </p>
                         </Card>
 
                         <Card className="p-8 border-border/30 rounded-2xl shadow-sm">
-                            <h2 className="text-xl font-bold mb-4">4. كيفية طلب الدعم</h2>
+                            <h2 className="text-xl font-bold mb-4">4. قنوات الدعم الرسمية</h2>
                             <p className="text-muted-foreground leading-relaxed text-sm">
-                                لأي طلبات استرجاع أو استفسارات قانونية، يرجى التواصل عبر البريد الرسمي: <span className="font-bold text-primary">support@taallm.com</span>
+                                للتواصل مع القسم المالي وبحث حالاتكم الخاصة، يرجى مراسلتنا فقط عبر: <span className="font-bold text-primary">info@taallm.com</span>
                             </p>
                         </Card>
                     </motion.div>

@@ -1,771 +1,460 @@
 import { Router, type Request, type Response } from "express";
 import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import { requireAuth } from "./auth";
 import { db } from "../db";
-import { aiSessions, aiMessages, subscriptions, users, courses, categories, enrollments, studyPlans } from "../db/schema";
-
-// Helper to sort courses by level: beginner → intermediate → advanced
-const LEVEL_ORDER: Record<string, number> = { beginner: 1, intermediate: 2, advanced: 3 };
-const sortByLevel = <T extends { level: string | null }>(arr: T[]): T[] =>
-    [...arr].sort((a, b) => (LEVEL_ORDER[a.level || 'beginner'] || 99) - (LEVEL_ORDER[b.level || 'beginner'] || 99));
-import { eq, desc, and, ilike, or } from "drizzle-orm";
-
+import { aiSessions, aiMessages, users, studyPlans, students } from "../db/schema";
+import { eq, desc, and } from "drizzle-orm";
 import { getConfig } from "../config";
 
 const router = Router();
+
+// --- 1. Constants & Types ---
+const TAALLM_COURSES = {
+    core: [
+        "Introduction to Programming",
+        "Structured Programming",
+        "Object Oriented Programming",
+        "Data Structures & Algorithms",
+        "Linear Algebra",
+        "Prompting & Pipelines",
+        "Numerical Analysis",
+        "Data Communication & Networks",
+        "Operating Systems"
+    ],
+    specializations: {
+        "Software Development": [
+            "Web Development", "Front Technologies", "Backend Development",
+            "Full Stack Development", "Database Development",
+            "Mobile Development", "Mobile UX/UI", "Bloc-Platform Apps"
+        ],
+        "Artificial Intelligence": [
+            "Artificial Intelligence", "Machine Learning", "Deep Learning",
+            "Natural Language Processing", "Computer Vision",
+            "Text Mining", "Object Detection", "Visual Development"
+        ],
+        "Cybersecurity": [
+            "Network Security", "Ethical Hacking", "Cryptography",
+            "Security Testing", "Capture Forensics",
+            "Malware Analysis", "Mobile Testing"
+        ],
+        "Data Science": [
+            "Data Analytics", "Data Visualisation", "Statistical Analysis",
+            "Big Data Technologies", "Business Intelligence",
+            "Big Data Tools", "Data Warehousing", "NoSQL Databases"
+        ],
+        "Network & Management": [
+            "Network Administration", "Network Configurations",
+            "Routing & Switching", "Network Security", "Wireless Networks"
+        ],
+        "Network & Cloud Computing": [
+            "Cloud Architecture", "Cloud Security", "Cloud Governance",
+            "Container Regulation", "Infrastructure as Code"
+        ],
+        "Game Development": [
+            "Game Design", "Game Parsing", "Laws & Design",
+            "Interactive Storytelling", "Game Theory", "3D Graphics",
+            "3D Modelling", "Game Animation", "Shader Programming"
+        ],
+        "IT Management": [
+            "IT Project Management", "Project Planning", "Project Execution",
+            "IT Project Tools", "Risk Management", "IT Service Management",
+            "Agile & Scrum", "IT Project Problem", "Data Management"
+        ]
+    }
+};
 
 const getOpenAI = () => {
     try {
         const key = getConfig("OPENAI_API_KEY");
         if (!key) {
-            console.error("[CHATBOT] No API key found in config");
+            console.error("[AI-ENGINE] Missing OPENAI_API_KEY");
             return null;
         }
-        console.log(`[CHATBOT] Using API key starting with: ${key.slice(0, 12)}...`);
         return new OpenAI({ apiKey: key });
     } catch (err) {
-        console.error("[CHATBOT] getOpenAI Exception:", err);
         return null;
     }
 };
 
-
-// GET: Test route to verify router mounting
-router.get("/ping", (req, res) => res.json({ status: "alive", path: "/api/chatbot/ping" }));
-
-// GET: Load active session + messages for the current user
-router.get("/session", requireAuth, async (req: Request, res: Response) => {
-
+const getAnthropic = () => {
     try {
-        const userId = req.session.userId;
-        console.log(`[CHATBOT] GET /session for user ${userId}`);
+        const key = getConfig("ANTHROPIC_API_KEY");
+        if (!key) return null;
+        return new Anthropic({ apiKey: key });
+    } catch (err) {
+        return null;
+    }
+};
 
-        // Find the latest active chatbot session
+// --- 1. Constants & Types ---
+const STATES = {
+    ONBOARDING_SECTOR: "onboarding_sector",
+    ONBOARDING_SPECIALIZATION: "onboarding_specialization",
+    ONBOARDING_PROFILE: "onboarding_profile",
+    ONBOARDING_PREFERENCE: "onboarding_preference",
+    ROADMAP_GENERATION: "roadmap_generation",
+    ACTIVE_LEARNING: "active_learning"
+};
+
+const INTENTS = [
+    "choose_sector",
+    "choose_specialization",
+    "provide_profile",
+    "provide_preference",
+    "greeting"
+];
+
+const RESPONSE_SCHEMA = {
+    type: "object",
+    properties: {
+        message: { type: "string" },
+        suggestions: { type: "array", items: { type: "string" } },
+        action: { type: "string", enum: ["none", "generate_plan", "enroll", "redirect"] },
+        redirect_to: { type: "string", nullable: true },
+        collected_data: {
+            type: "object",
+            properties: {
+                goal: { type: "string", nullable: true },
+                specialization: { type: "string", nullable: true },
+                level: { type: "string", nullable: true },
+                weekly_hours: { type: "number", nullable: true }
+            },
+            nullable: true
+        }
+    },
+    required: ["message", "suggestions", "action", "redirect_to"]
+};
+
+// --- 2. Orchestrator Functions ---
+
+/**
+ * Classify user intent with high confidence
+ */
+async function classifyIntent(openai: OpenAI, userInput: string): Promise<{ intent: string, confidence: number }> {
+    const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{
+            role: "system",
+            content: `Classify the user intent for a learning platform chatbot. 
+            Possible intents: ${INTENTS.join(", ")}.
+            Return JSON: { "intent": "string", "confidence": number }`
+        }, {
+            role: "user",
+            content: userInput
+        }],
+        response_format: { type: "json_object" }
+    });
+
+    return JSON.parse(response.choices[0].message.content || "{}");
+}
+
+/**
+ * Deterministic State Machine to decide next state and action
+ */
+function determineNextAction(session: any, intent: string, confidence: number) {
+    const currentState = session.currentState;
+    const profile = session.userProfile || {};
+
+    if (confidence < 0.6 && intent !== "greeting") {
+        return { nextState: currentState, action: "clarify", requiresLLM: true };
+    }
+
+    // Logic: If we have the data for the current state, move to the next logical state
+    if (currentState === STATES.ONBOARDING_SECTOR && profile.sector) {
+        return { nextState: STATES.ONBOARDING_SPECIALIZATION, action: "ask_specialization", requiresLLM: true };
+    }
+    if (currentState === STATES.ONBOARDING_SPECIALIZATION && profile.specialization) {
+        return { nextState: STATES.ONBOARDING_PROFILE, action: "ask_profile", requiresLLM: true };
+    }
+    if (currentState === STATES.ONBOARDING_PROFILE && profile.experience && profile.weekly_hours) {
+        return { nextState: STATES.ONBOARDING_PREFERENCE, action: "ask_preference", requiresLLM: true };
+    }
+    if (currentState === STATES.ONBOARDING_PREFERENCE && profile.preference) {
+        return { nextState: STATES.ROADMAP_GENERATION, action: "generate_plan", requiresLLM: true };
+    }
+
+    // Fallback: stay in current state but ask again/provide info
+    return { nextState: currentState, action: "continue", requiresLLM: true };
+}
+
+// Helper to sort courses by level: beginner → intermediate → advanced
+const LEVEL_ORDER: Record<string, number> = { beginner: 1, intermediate: 2, advanced: 3 };
+const sortByLevel = <T extends { level: string | null }>(arr: T[]): T[] =>
+    [...arr].sort((a, b) => (LEVEL_ORDER[a.level || 'beginner'] || 99) - (LEVEL_ORDER[b.level || 'beginner'] || 99));
+
+// --- 3. Route Handlers ---
+
+router.get("/ping", (_req, res) => res.json({ status: "alive" }));
+
+router.get("/session", requireAuth, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).session.userId;
         const [session] = await db.select()
-
             .from(aiSessions)
-            .where(and(
-                eq(aiSessions.userId, userId!),
-                eq(aiSessions.sessionType, "chatbot"),
-                eq(aiSessions.status, "active")
-            ))
+            .where(and(eq(aiSessions.userId, userId!), eq(aiSessions.status, "active")))
             .orderBy(desc(aiSessions.createdAt))
             .limit(1);
 
-        if (!session) {
-            return res.json({ session: null, messages: [] });
-        }
+        if (!session) return res.json({ session: null, messages: [] });
 
-        // Load all messages for this session
         const msgs = await db.select()
             .from(aiMessages)
             .where(eq(aiMessages.sessionId, session.id))
             .orderBy(aiMessages.createdAt);
 
-        res.json({
-            session: { id: session.id, status: session.status },
-            messages: msgs.map(m => ({
-                id: m.id,
-                role: m.role,
-                content: m.content,
-                timestamp: m.createdAt,
-                logs: (m.metadata as any)?.logs || []
-            }))
-        });
-    } catch (error: any) {
-        console.error("[SESSION LOAD ERROR]:", error);
-        res.status(500).json({ message: "فشل تحميل الجلسة" });
+        res.json({ session, messages: msgs });
+    } catch (error) {
+        res.status(500).json({ message: "Error loading session" });
     }
 });
 
-// POST: Reset session (start new conversation)
 router.post("/reset-session", requireAuth, async (req: Request, res: Response) => {
     try {
-        const userId = req.session.userId;
-
-        // Mark all active chatbot sessions as completed
-        const activeSessions = await db.select()
-            .from(aiSessions)
-            .where(and(
-                eq(aiSessions.userId, userId!),
-                eq(aiSessions.sessionType, "chatbot"),
-                eq(aiSessions.status, "active")
-            ));
-
-        for (const session of activeSessions) {
-            await db.update(aiSessions)
-                .set({ status: "completed", updatedAt: new Date() })
-                .where(eq(aiSessions.id, session.id));
-        }
-
+        await db.update(aiSessions)
+            .set({ status: "completed" })
+            .where(and(eq(aiSessions.userId, (req as any).session.userId!), eq(aiSessions.status, "active")));
         res.json({ success: true });
-    } catch (error: any) {
-        console.error("[SESSION RESET ERROR]:", error);
-        res.status(500).json({ message: "فشل إعادة تعيين الجلسة" });
+    } catch (error) {
+        res.status(500).json({ message: "Error resetting session" });
     }
 });
 
-// POST: Send a message (main chatbot endpoint)
 router.post("/", requireAuth, async (req: Request, res: Response) => {
     try {
         const { message: userMessage } = req.body;
-        const userId = req.session.userId;
-        console.log(`[CHATBOT] POST / for user ${userId}: "${userMessage?.slice(0, 50)}..."`);
-
-
+        const userId = (req as any).session.userId;
         const openai = getOpenAI();
-        if (!openai) {
-            return res.status(500).json({ message: "OpenAI is not configured" });
-        }
+        const anthropic = getAnthropic();
 
-        if (!userMessage) {
-            return res.status(400).json({ message: "Message is required" });
-        }
+        if ((!openai && !anthropic) || !userMessage) return res.status(400).json({ message: "Invalid request (Check API Keys)" });
 
-        // 1. Get or create a chatbot session
-        let [session] = await db.select()
-            .from(aiSessions)
-            .where(and(
-                eq(aiSessions.userId, userId!),
-                eq(aiSessions.sessionType, "chatbot"),
-                eq(aiSessions.status, "active")
-            ))
-            .orderBy(desc(aiSessions.createdAt))
-            .limit(1);
+        // 1. Session Setup
+        let [session] = await db.select().from(aiSessions)
+            .where(and(eq(aiSessions.userId, userId!), eq(aiSessions.status, "active")))
+            .orderBy(desc(aiSessions.createdAt)).limit(1);
 
         if (!session) {
-            [session] = await db.insert(aiSessions).values({
-                userId: userId!,
-                sessionType: "chatbot",
-                status: "active",
-                messagesCount: 0
-            }).returning();
+            [session] = await db.insert(aiSessions).values({ userId: userId!, currentState: STATES.ONBOARDING_SECTOR }).returning();
         }
 
-        // 2. Load previous messages from this session
-        const previousMessages = await db.select()
+        await db.insert(aiMessages).values({ sessionId: session.id, role: "user", content: userMessage });
+
+        // 2. LLM response based on current profile and message
+        const currentProfile = session.userProfile || {};
+        const currentState = session.currentState;
+
+        const msgs = await db.select()
             .from(aiMessages)
             .where(eq(aiMessages.sessionId, session.id))
             .orderBy(aiMessages.createdAt);
 
-        // 3. Save the new user message
-        await db.insert(aiMessages).values({
-            sessionId: session.id,
-            role: "user",
-            content: userMessage
-        });
+        const systemPrompt = `
+أنت "تعلّم" — مستشار تعليمي ذكي على منصة تعلّم.
+لست chatbot عادي — أنت مدرس شخصي يفكر ويحلل ويتكيف مع كل طالب.
+هدفك الوحيد: توصيل الطالب لهدفه بأقصر طريق ممكن.
 
-        // 4. Context Retrieval
-        const [userRecord] = await db.select().from(users).where(eq(users.id, userId!)).limit(1);
-        const adminEmail = (process.env.ADMIN_EMAIL || "hamzaali200410@gmail.com").toLowerCase();
-        const isAdmin = userRecord?.email.toLowerCase() === adminEmail || userRecord?.role === "admin";
+━━━━━━━━━━━━━━━━━━━━━━━━
+# مبادئك الأساسية
+━━━━━━━━━━━━━━━━━━━━━━━━
+1. لا تعطي الطالب ما لا يحتاجه أبداً
+2. لا تحفظ مسارات جاهزة — فكّر وحلّل كل طالب من الصفر
+3. كل طالب فريد — خطته فريدة
+4. لا تسأل عن معلومة قدّمها الطالب مسبقاً
+5. كن مختصراً وواضحاً — لا تطول بدون فائدة
 
-        const userEnrollments = await db.query.enrollments.findMany({
-            where: eq(enrollments.userId, userId!),
-            with: { course: true }
-        });
-        const userPlans = await db.query.studyPlans.findMany({
-            where: eq(studyPlans.userId, userId!),
-            limit: 3
-        });
+━━━━━━━━━━━━━━━━━━━━━━━━
+# الكورسات المتاحة على تعلّم فقط
+━━━━━━━━━━━━━━━━━━━━━━━━
+${JSON.stringify(TAALLM_COURSES, null, 2)}
 
-        const contextSummary = `
-        Student Name: ${userRecord?.fullName}
-        Registered: ${userRecord?.createdAt}
-        Current Courses: ${(userEnrollments as any[]).map(e => e.course?.title).join(", ") || "None"}
-        Existing Study Plans: ${userPlans.map(p => p.title).join(", ") || "None"}
-        Preferences: ${JSON.stringify(userRecord?.preferences || {})}
-        `;
+⚠️ لا تقترح أي كورس خارج هاي القائمة أبداً.
 
-        // 5. Define Tools
-        const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
-            {
-                type: "function",
-                function: {
-                    name: "search_platform_courses",
-                    description: "Search for specific educational courses available on the Taeallum platform. IMPORTANT: Always provide the category slug to filter by specialization. Results are automatically sorted from beginner to advanced.",
-                    parameters: {
-                        type: "object",
-                        properties: {
-                            query: { type: "string", description: "Keywords to search in title or description" },
-                            category: { type: "string", description: "Category slug MUST match one of: web-development, data-ai, cybersecurity, ui-ux-design, digital-marketing, video-editing, cloud-computing, e-commerce, trading, project-management, motion-graphics, game-development, data-analytics, software-engineering-devops, language-learning, mobile-development" },
-                            level: { type: "string", enum: ["beginner", "intermediate", "advanced"], description: "Filter by specific level. Omit to get ALL levels sorted beginner→advanced" }
-                        }
-                    }
-                }
-            },
-            {
-                type: "function",
-                function: {
-                    name: "enroll_student",
-                    description: "Actively enroll the student in a specific course. Only use this if the student explicitly agrees.",
-                    parameters: {
-                        type: "object",
-                        properties: {
-                            courseId: { type: "string", description: "UUID of the course" },
-                            courseTitle: { type: "string", description: "Title of the course for logging" }
-                        },
-                        required: ["courseId", "courseTitle"]
-                    }
-                }
-            },
-            {
-                type: "function",
-                function: {
-                    name: "set_learning_goals",
-                    description: "Save long-term learning goals and milestones in the student's preferences (Memory).",
-                    parameters: {
-                        type: "object",
-                        properties: {
-                            goal: { type: "string", description: "Main goal in Arabic" },
-                            deadline: { type: "string", description: "Expected completion date" },
-                            interests: { type: "array", items: { type: "string" } }
-                        },
-                        required: ["goal", "interests"]
-                    }
-                }
-            },
-            {
-                type: "function",
-                function: {
-                    name: "create_study_plan",
-                    description: "Generate and save a structured study plan for the student, linking it to actual courses on the platform. IMPORTANT: Before calling this, you MUST call search_platform_courses to find available courses and include their IDs in the milestones.",
-                    parameters: {
-                        type: "object",
-                        properties: {
-                            title: { type: "string", description: "Arabic title of the path (e.g. مسار احتراف الفرونت إيند)" },
-                            description: { type: "string", description: "Arabic summary" },
-                            duration: { type: "string", description: "e.g. 3 Months" },
-                            totalHours: { type: "number" },
-                            milestones: {
-                                type: "array",
-                                items: {
-                                    type: "object",
-                                    properties: {
-                                        title: { type: "string", description: "Milestone name (Arabic)" },
-                                        description: { type: "string", description: "What will be learned (Arabic)" },
-                                        courseIds: { type: "array", items: { type: "string" }, description: "IDs of platform courses to link" },
-                                        youtubeLinks: {
-                                            type: "array",
-                                            items: {
-                                                type: "object",
-                                                properties: {
-                                                    title: { type: "string", description: "Arabic title of the video/playlist" },
-                                                    url: { type: "string", description: "YouTube URL" }
-                                                }
-                                            },
-                                            description: "Fallback YouTube resources if no platform courses match"
-                                        }
-                                    },
-                                    required: ["title", "description"]
-                                }
-                            },
-                            categoryHint: { type: "string", description: "Optional category slug or keyword to strictly filter courses (e.g. 'coding', 'languages')" },
-                            youtubeResources: { type: "array", items: { type: "string" }, description: "Optional list of YouTube Playlist URLs for this plan" },
-                            weeklyHours: { type: "number", description: "Number of hours per week the student can dedicate. Extract from their answer: 'مكثف'=20, 'متوسط'=15, 'هادئ'=8" },
-                            experienceLevel: { type: "string", enum: ["beginner", "intermediate", "advanced"], description: "Student's current experience level extracted from their answer" }
-                        },
-                        required: ["title", "description", "duration", "totalHours", "milestones"]
-                    }
-                }
-            }
-        ];
+━━━━━━━━━━━━━━━━━━━━━━━━
+# مرحلة الفهم — اسأل قبل ما تبني
+━━━━━━━━━━━━━━━━━━━━━━━━
+قبل أي خطة، لازم تعرف:
+1. شو هدفه الدقيق؟ (مش "تقنية" — بالضبط شو بده يصير)
+2. شو مستواه الحالي؟ (مبتدئ / عنده أساس / متوسط)
+3. شو درس سابقاً؟ (حتى ما تكرر مواد خلصها)
+4. كم ساعة بالأسبوع متاحة عنده؟
 
-        // 6. Build OpenAI messages array with FULL conversation history
-        const openaiMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-            {
-                role: "system",
-                content: `[نظام: وكيل الخطة الدراسية — Taeallum]
+━━━━━━━━━━━━━━━━━━━━━━━━
+# منطق بناء المسار (3 طبقات)
+━━━━━━━━━━━━━━━━━━━━━━━━
+بعد ما تفهم الطالب، فكّر هيك:
 
-أنت "المساعد الخطة الدراسية" لمنصة تعلّم. مهمتك الوحيدة: قيادة الطالب عبر **5 أسئلة محددة** ثم توليد مساره تلقائياً.
+الطبقة 1 — Core (للكل):
+  حدد بالضبط شو من IT Core يحتاجه
+  مثال:
+  ✅ مطور ويب → يحتاج: Programming, OOP, Data Structures, Databases
+  ❌ مطور ويب → لا يحتاج: Linear Algebra, Numerical Analysis
 
-━━━━━━━━━━━━━━━━━━━━━━
-🔒 قواعد صارمة — يجب اتباعها حرفياً:
-━━━━━━━━━━━━━━━━━━━━━━
-1. اطرح سؤالاً واحداً فقط في كل رسالة. لا تدمج أسئلة.
-2. لا تنتقل للخطوة التالية حتى يجاوب الطالب على الحالية.
-3. ضع الاختيارات دائماً هكذا: [SUGGESTIONS: خيار1|خيار2|خيار3]
-4. لا تكتب قوائم أو نقاط — الرسالة سطر واحد فقط.
-5. بعد السؤال الرابع، ابدا فوراً بتوليد الخطة بدون أي سؤال إضافي.
+الطبقة 2 — Shared (للتخصص الرئيسي):
+  المواد المشتركة بين التخصصات المتقاربة
 
-━━━━━━━━━━━━━━━━━━━━━━
-📋 تسلسل الأسئلة الإجباري:
-━━━━━━━━━━━━━━━━━━━━━━
+الطبقة 3 — Specialized (للهدف الدقيق):
+  فقط المواد الخاصة بهدفه بالضبط
 
-السؤال 1 — القطاع الرئيسي:
-"أهلاً! لنبني خطتك الدراسية معاً. أي قطاع تريد الاحتراف فيه؟"
-[SUGGESTIONS: الذكاء الاصطناعي 🧠|الأمن السيبراني 🔒|تطوير البرمجيات 💻|علم البيانات 📊|إدارة الشبكات 🌐|الحوسبة السحابية ☁️|تطوير الألعاب 🎮]
+━━━━━━━━━━━━━━━━━━━━━━━━
+# قواعد المواد المشتركة (ذكاء حقيقي)
+━━━━━━━━━━━━━━━━━━━━━━━━
+إذا الطالب درس مادة في مسار وبعدين أضاف تخصص ثاني:
+→ لا تعد نفس المادة — ابنِ من حيث انتهى
 
-السؤال 2 — التخصص الدقيق (بناءً على اختيار القطاع):
-الذكاء الاصطناعي → [SUGGESTIONS: Machine Learning|Deep Learning|معالجة اللغة الطبيعية NLP|رؤية الحاسوب]
-الأمن السيبراني → [SUGGESTIONS: Ethical Hacking|أمن الشبكات|اختبار الاختراق|تشفير البيانات]
-تطوير البرمجيات → [SUGGESTIONS: تطوير الويب|تطوير الموبايل|Full Stack|DevOps]
-علم البيانات → [SUGGESTIONS: تحليل البيانات|Big Data|Business Intelligence|Data Visualization]
-إدارة الشبكات → [SUGGESTIONS: Network Admin|Routing & Switching|الشبكات اللاسلكية]
-الحوسبة السحابية → [SUGGESTIONS: Cloud Architecture|Cloud Security|Infrastructure as Code]
-تطوير الألعاب → [SUGGESTIONS: Game Design|رسوميات ثلاثية الأبعاد|Game Animation]
+مثال:
+  درس Python للويب ✅
+  بدأ Data Science → تخطى Python مباشرة ✅
 
-السؤال 3 — مستوى الخبرة:
-"ممتاز! ما مستواك الحالي في مجال التقنية؟"
-[SUGGESTIONS: مبتدئ تماماً 🌱|عندي أساسيات بسيطة 📚|مستوى متوسط 🔥]
+━━━━━━━━━━━━━━━━━━━━━━━━
+# قواعد المتابعة
+━━━━━━━━━━━━━━━━━━━━━━━━
+- بعد كل كورس → امتحان قصير
+- نجح (70%+) → الكورس الجاي
+- رسب → حدد وين الضعف بالضبط، أعد المادة المحددة فقط
+- تأخر أكثر من أسبوع → ذكّره وشجعه
+- غيّر هدفه → أعد بناء الخطة من النقطة الحالية
 
-السؤال 4 — الوقت الأسبوعي المتاح:
-"وكم ساعة في الأسبوع تستطيع تخصيصها للدراسة؟"
-[SUGGESTIONS: مكثف — أكثر من 20 ساعة ⚡|متوسط — من 10 إلى 20 ساعة 📅|هادئ — أقل من 10 ساعات 🕐]
+━━━━━━━━━━━━━━━━━━━━━━━━
+# صيغة الرد (JSON فقط)
+━━━━━━━━━━━━━━━━━━━━━━━━
+{
+  "message": "نص الرد — ودود ومختصر",
+  "suggestions": ["خيار 1", "خيار 2", "خيار 3"],
+  "action": "none | show_plan | redirect",
+  "collected_data": {
+    "goal": "الهدف الدقيق للطالب",
+    "level": "beginner | intermediate | advanced",
+    "completed_courses": [],
+    "weekly_hours": 0
+  },
+  "study_plan": {
+    "total_months": 0,
+    "phases": [
+      {
+        "phase": 1,
+        "title": "اسم المرحلة",
+        "duration_months": 0,
+        "courses": ["كورس 1", "كورس 2"],
+        "reason": "ليش هاي المرحلة"
+      }
+    ]
+  }
+}
 
-بعد الإجابة على السؤال الرابع — اعمل التالي تلقائياً بدون أي سؤال:
-1. استدعِ search_platform_courses مرات عدة (مرة للـ Core IT، ومرة للتخصص).
-2. استدعِ create_study_plan مع جميع البيانات المجمّعة.
-3. بعد نجاح create_study_plan، أرسل للمستخدم رسالة نجاح وأعطه زر "ابدأ الآن".
+━━━━━━━━━━━━━━━━━━━━━━━━
+# شخصيتك
+━━━━━━━━━━━━━━━━━━━━━━━━
+- تحكي بالعربي بشكل طبيعي وودود
+- مشجع دائماً لكن صادق
+- مباشر وواضح — لا تطول بدون فائدة
+- تعامل مع الطالب كإنسان مش كرقم
+- إذا الطالب يطلب مادة مش على تعلّم → قوله بصراحة
 
-━━━━━━━━━━━━━━━━━━━━━━
-🏗️ هيكل المسار — 3 مستويات إجبارية:
-━━━━━━━━━━━━━━━━━━━━━━
-المستوى 1 (Core IT Foundation) — إجباري لجميع التخصصات:
-مادة البرمجة، OOP، هياكل البيانات، الشبكات، أنظمة التشغيل.
+━━━━━━━━━━━━━━━━━━━━━━━━
+# ممنوع أبداً
+━━━━━━━━━━━━━━━━━━━━━━━━
+❌ لا تقترح كورس مش على تعلّم
+❌ لا تعطي مواد زيادة عن اللي يحتاجها
+❌ لا تعطي نفس المسار لكل الطلاب
+❌ لا تبدأ بالخطة قبل ما تفهم الطالب كامل
+❌ لا تكرر سؤال أجاب عنه الطالب
+❌ لا تكرر الترحيب في كل رسالة
+`;
 
-المستوى 2 (Specialization Foundation) — مواد مشتركة في القطاع المختار.
+        let aiResponse: any = {};
+        let providerUsed = "openai";
 
-المستوى 3 (Deep Specialization) — مواد التخصص الدقيق فقط.
-
-━━━━━━━━━━━━━━━━━━━━━━
-⏱️ الجدولة الزمنية:
-━━━━━━━━━━━━━━━━━━━━━━
-استخرج weeklyHours من إجابة السؤال 4:
-- "مكثف" = 20 ساعة
-- "متوسط" = 15 ساعة
-- "هادئ" = 8 ساعات
-مرر هذا الرقم في حقل weeklyHours داخل create_study_plan.
-
-━━━━━━━━━━━━━━━━━━━━━━
-✅ رسالة الإنهاء:
-━━━━━━━━━━━━━━━━━━━━━━
-بعد create_study_plan أرسل هذه الرسالة حرفياً:
-"تم بناء خطتك الدراسية الكاملة! مسارك يتضمن 3 مستويات من أساسيات IT وحتى تخصص [اسم التخصص]. خطتك جاهزة الآن."
-[SUGGESTIONS: ابدأ الآن 🚀] [REDIRECT: /tracks]
-
-━━━━━━━━━━━━━━━━━━━━━━
-سياق الطالب الحالي: ${contextSummary}`
-            }
-        ];
-
-        // Add previous messages from DB as conversation history
-        for (const msg of previousMessages) {
-            openaiMessages.push({
-                role: msg.role as "user" | "assistant",
-                content: msg.content
-            });
-        }
-
-        // Add the current user message
-        openaiMessages.push({ role: "user", content: userMessage });
-
-        // 7. Agent Reasoning Loop
-        let finalResponse = "";
-        let toolLogs: string[] = [];
-        let maxSteps = 8;
-
-        for (let i = 0; i < maxSteps; i++) {
-            const response = await openai.chat.completions.create({
-                model: "gpt-4o-mini",
-                messages: openaiMessages,
-                tools,
-                tool_choice: "auto",
+        if (anthropic) {
+            providerUsed = "anthropic";
+            const completion = await anthropic.messages.create({
+                model: "claude-3-7-sonnet-latest",
+                max_tokens: 1024,
+                messages: [{ role: "user", content: `System: ${systemPrompt}\nUser: ${userMessage}` }],
+                system: "Output raw JSON based on the prompt.",
+                temperature: 0.1,
             });
 
-            const reply = response.choices[0].message;
-            openaiMessages.push(reply);
-
-            if (reply.tool_calls) {
-                for (const toolCall of reply.tool_calls) {
-                    const functionName = toolCall.function.name;
-                    let args;
-                    try {
-                        args = JSON.parse(toolCall.function.arguments);
-                    } catch (err) {
-                        console.error("Failed to parse tool arguments:", toolCall.function.arguments);
-                        openaiMessages.push({
-                            role: "tool",
-                            tool_call_id: toolCall.id,
-                            content: JSON.stringify({ error: "Invalid JSON arguments" })
-                        });
-                        continue;
-                    }
-
-                    let result;
-                    if (functionName === "search_platform_courses") {
-                        toolLogs.push(`استكشاف الموارد: ${args.query || args.category || ""}`);
-
-                        // Fetch all published courses with their category info
-                        const searchResult = await db.query.courses.findMany({
-                            where: eq(courses.isPublished, true),
-                            with: { category: true },
-                            limit: 50
-                        });
-
-                        // Filter by category slug if provided (STRICT filter for specialization isolation)
-                        let filtered = searchResult;
-                        if (args.category) {
-                            const catSlug = args.category.toLowerCase();
-                            filtered = searchResult.filter(c =>
-                                (c.category?.slug || "").toLowerCase().includes(catSlug) ||
-                                (c.category?.name || "").toLowerCase().includes(catSlug)
-                            );
-                        }
-
-                        // Filter by query keyword matching if provided
-                        if (args.query) {
-                            const q = args.query.toLowerCase();
-                            filtered = filtered.filter(c =>
-                                (c.title && c.title.toLowerCase().includes(q)) ||
-                                (c.description && c.description.toLowerCase().includes(q)) ||
-                                (c.aiDescription && c.aiDescription.toLowerCase().includes(q))
-                            );
-                        }
-
-                        // Filter by level if specified
-                        if (args.level) {
-                            const leveled = filtered.filter(c => c.level === args.level);
-                            if (leveled.length > 0) filtered = leveled;
-                        }
-
-                        // Sort by level: beginner → intermediate → advanced
-                        filtered = sortByLevel(filtered);
-
-                        result = filtered.map((c, idx) => `${idx + 1}. ${c.title}(ID: ${c.id})(المستوى: ${c.level})(التصنيف: ${c.category?.name || 'غير محدد'}): ${c.aiDescription || c.description?.slice(0, 150)}`);
-                    }
-                    else if (functionName === "enroll_student") {
-                        toolLogs.push(`تنفيذ عملية تسجيل: ${args.courseTitle}`);
-                        const [existing] = await db.select().from(enrollments)
-                            .where(
-                                and(
-                                    eq(enrollments.userId, userId!),
-                                    eq(enrollments.courseId, args.courseId)
-                                )
-                            );
-
-                        if (existing) {
-                            result = { success: false, message: "الطالب مسجل بالفعل في هذا الكورس" };
-                        } else {
-                            await db.insert(enrollments).values({
-                                userId: userId!,
-                                courseId: args.courseId,
-                                progress: 0
-                            });
-                            result = { success: true, message: `تم تسجيل الطالب بنجاح في ${args.courseTitle}` };
-                        }
-                    }
-                    else if (functionName === "set_learning_goals") {
-                        toolLogs.push(`تحديث الذاكرة الدائمة: ${args.goal}`);
-                        const updatedPrefs = {
-                            ...(userRecord?.preferences as object || {}),
-                            main_goal: args.goal,
-                            deadline: args.deadline,
-                            interests: args.interests,
-                            lastUpdated: new Date().toISOString()
-                        };
-                        await db.update(users)
-                            .set({ preferences: updatedPrefs })
-                            .where(eq(users.id, userId!));
-                        result = { success: true, message: "تم تحديث الأهداف في الذاكرة" };
-                    }
-                    else if (functionName === "create_study_plan") {
-                        toolLogs.push(`هندسة مسار تعليمي: ${args.title}`);
-
-                        // Fetch all platform courses to match with milestones
-                        let courseQuery = db.query.courses.findMany({
-                            where: eq(courses.isPublished, true),
-                            with: { category: true }
-                        });
-                        const allCoursesRaw = await courseQuery;
-
-                        // Strict filter if categoryHint provided
-                        let allCourses = allCoursesRaw;
-                        if (args.categoryHint) {
-                            const hint = args.categoryHint.toLowerCase();
-                            allCourses = allCoursesRaw.filter(c =>
-                                (c.category?.slug || "").toLowerCase().includes(hint) ||
-                                (c.category?.name || "").toLowerCase().includes(hint) ||
-                                (c.category?.description || "").toLowerCase().includes(hint)
-                            );
-
-                            // NO FALLBACK. If no courses in this category, allCourses remains filtered (empty)
-                            // This forces strict isolation as requested.
-                            if (allCourses.length === 0) {
-                                console.log(`🔒 Isolation Enforced: No courses match categoryHint '${hint}'.`);
-                            }
-                        }
-
-                        // Build enriched milestones with course details, sorted by level
-                        const enrichedMilestones = (args.milestones || []).map((m: any) => {
-                            const milestoneCoursIds = m.courseIds || [];
-                            const matchedCourses = sortByLevel(allCourses.filter(c => milestoneCoursIds.includes(c.id)));
-
-                            return {
-                                title: m.title,
-                                description: m.description,
-                                courses: [
-                                    ...matchedCourses.map(c => ({
-                                        id: c.id,
-                                        title: c.title,
-                                        slug: c.slug,
-                                        level: c.level,
-                                        thumbnail: c.thumbnail
-                                    })),
-                                    ...(m.youtubeLinks || []).map((yl: any) => ({
-                                        youtubeUrl: yl.url,
-                                        title: yl.title || "YouTube Resource",
-                                        level: "external"
-                                    }))
-                                ]
-                            };
-                        });
-
-                        const totalMatched = enrichedMilestones.reduce((sum: number, m: any) => sum + m.courses.length, 0);
-
-                        // Auto-match if needed
-                        if (totalMatched === 0 && allCourses.length > 0) {
-                            const sortedCourses = sortByLevel(allCourses);
-                            let beginnerCourses = sortedCourses.filter(c => c.level === 'beginner');
-                            let intermediateCourses = sortedCourses.filter(c => c.level === 'intermediate');
-                            let advancedCourses = sortedCourses.filter(c => c.level === 'advanced');
-
-                            const courseBuckets = [beginnerCourses, intermediateCourses, advancedCourses];
-
-                            for (let i = 0; i < enrichedMilestones.length; i++) {
-                                const ms = enrichedMilestones[i];
-                                const bucket = courseBuckets[Math.min(i, courseBuckets.length - 1)] || [];
-                                if (bucket.length > 0) {
-                                    const internalIds = new Set(ms.courses?.map((c: any) => c.id).filter(Boolean));
-                                    const newCourses = bucket
-                                        .filter(c => !internalIds.has(c.id))
-                                        .map(c => ({
-                                            id: c.id,
-                                            title: c.title,
-                                            slug: c.slug,
-                                            level: c.level,
-                                            thumbnail: c.thumbnail
-                                        }));
-                                    ms.courses = [...(ms.courses || []), ...newCourses];
-                                }
-                            }
-                        }
-
-                        // Auto-enroll student
-                        const allMatchedCourseIds = new Set<string>();
-                        for (const m of enrichedMilestones) {
-                            for (const c of m.courses) {
-                                if (c.id) allMatchedCourseIds.add(c.id);
-                            }
-                        }
-
-                        for (const courseId of Array.from(allMatchedCourseIds)) {
-                            const [existing] = await db.select().from(enrollments)
-                                .where(and(eq(enrollments.userId, userId!), eq(enrollments.courseId, courseId)));
-                            if (!existing) {
-                                await db.insert(enrollments).values({ userId: userId!, courseId, progress: 0 });
-                            }
-                        }
-
-                        toolLogs.push(`تم ربط ${allMatchedCourseIds.size} كورس من المنصة بالمسار`);
-
-                        // Enforce exactly 3 milestones
-                        const LEVEL_LABELS = ['المستوى الأول - مبتدئ', 'المستوى الثاني - متوسط', 'المستوى الثالث - متقدم'];
-                        let finalMilestones = enrichedMilestones;
-
-                        if (finalMilestones.length > 3) {
-                            const extra = finalMilestones.slice(3);
-                            finalMilestones = finalMilestones.slice(0, 3);
-                            finalMilestones[2].courses = [...(finalMilestones[2].courses || []), ...extra.flatMap((m: any) => m.courses || [])];
-                        } else {
-                            while (finalMilestones.length < 3) {
-                                finalMilestones.push({ title: LEVEL_LABELS[finalMilestones.length], description: '', courses: [] });
-                            }
-                        }
-
-                        finalMilestones = finalMilestones.map((m: any, idx: number) => ({
-                            ...m,
-                            title: LEVEL_LABELS[idx] || m.title
-                        }));
-
-                        const allFlatCourses = finalMilestones.flatMap(m => m.courses || []);
-                        const planDataWithCourses = {
-                            ...args,
-                            milestones: finalMilestones,
-                            courses: allFlatCourses,
-                            linkedCoursesCount: allMatchedCourseIds.size
-                        };
-
-                        const [savedPlan] = await db.insert(studyPlans).values({
-                            userId: userId!,
-                            sessionId: session.id,
-                            title: args.title,
-                            description: args.description,
-                            duration: args.duration,
-                            totalHours: args.totalHours,
-                            planData: planDataWithCourses,
-                            status: "active"
-                        }).returning();
-
-                        // Mark session as completed
-                        await db.update(aiSessions)
-                            .set({ status: "completed", generatedPlan: planDataWithCourses, updatedAt: new Date() })
-                            .where(eq(aiSessions.id, session.id));
-
-                        result = { success: true, planId: savedPlan.id, linkedCourses: allMatchedCourseIds.size };
-                    }
-
-                    openaiMessages.push({
-                        role: "tool",
-                        tool_call_id: toolCall.id,
-                        content: JSON.stringify(result)
-                    });
-                }
-                continue;
+            try {
+                const content = (completion.content[0] as any).text;
+                aiResponse = JSON.parse(content || "{}");
+            } catch (e) {
+                console.error("Claude Parse Error:", e);
             }
-
-            finalResponse = reply.content || "";
-            break;
-        }
-
-        // --- 9. SAFETY GUARDS: CLEAN RESPONSE & ENSURE SUGGESTIONS ---
-
-        // A. Clean EVERYTHING technical from the user view
-        const techPatterns = [
-            /\[SYSTEM_ACT:[^\]]+\]/gi,
-            /\[REDIRECT:[^\]]+\]/gi,
-            /\[(?:المرحلة|Reporting|المسار|الخطة|الحالة|الرسالة|التقرير)[^\]]*\]/gi, // Strip user-seen headers
-            /^-?\s*\[[^\]]+\]/gm, // Strip bullet points starting with brackets
-            /ID:\s*[a-z0-9-]+/gi, // Strip any leaked IDs
-            /\d+[\.\)]\s*\[[^\]]+\]/g // Strip numbered tech blocks
-        ];
-        techPatterns.forEach(p => finalResponse = finalResponse.replace(p, ""));
-
-        // B. DETECT NUMBERED LISTS (1. X 2. Y) and convert to SUGGESTIONS if no pipe-suggestions exist
-        const listRegex = /\d+[\.\)]\s*([^\d\n\r|\[]+)/g;
-        const potentialOptions: string[] = [];
-        let listMatch;
-        while ((listMatch = listRegex.exec(finalResponse)) !== null) {
-            potentialOptions.push(listMatch[1].trim());
-        }
-
-        // C. HARD GUARD: Capture and normalize suggestions
-        const flexibleSuggestionRegex = /\[(?:SUGGESTIONS:\s*)?([^\]\|]+\|[^\]\d][^\]]*|ابدأ الآن)\]/gi;
-        const suggestionsMatches = Array.from(finalResponse.matchAll(flexibleSuggestionRegex));
-
-        let finalSuggestions = "";
-        const lowerResponse = finalResponse.toLowerCase();
-
-        // Smarter phase detection for fallback
-        const isFinalPhase = lowerResponse.includes("جاهز") || lowerResponse.includes("ابدأ") ||
-            lowerResponse.includes("مسار") || lowerResponse.includes("تم تجهيز") ||
-            finalResponse.includes("REDIRECT: /tracks");
-
-        if (suggestionsMatches.length > 0) {
-            const lastMatch = suggestionsMatches[suggestionsMatches.length - 1];
-            finalSuggestions = `\n[SUGGESTIONS: ${lastMatch[1].trim()}]`;
-        } else {
-            // Smart fallback based on conversation phase
-            let contextSuggestions = "الذكاء الاصطناعي 🧠|الأمن السيبراني 🔒|تطوير البرمجيات 💻|علم البيانات 📊|إدارة الشبكات 🌐|الحوسبة السحابية ☁️|تطوير الألعاب 🎮";
-
-            if (isFinalPhase) {
-                contextSuggestions = "ابدأ الآن 🚀";
-            } else if (lowerResponse.includes("ساعة") || lowerResponse.includes("وقت") || lowerResponse.includes("جدولة") || lowerResponse.includes("أسبوع")) {
-                contextSuggestions = "مكثف — أكثر من 20 ساعة ⚡|متوسط — من 10 إلى 20 ساعة 📅|هادئ — أقل من 10 ساعات 🕐";
-            } else if (lowerResponse.includes("مستوى") || lowerResponse.includes("مبتدئ") || lowerResponse.includes("خبرة")) {
-                contextSuggestions = "مبتدئ تماماً 🌱|عندي أساسيات بسيطة 📚|مستوى متوسط 🔥";
-            } else if (lowerResponse.includes("الذكاء الاصطناعي") || lowerResponse.includes("artificial intelligence")) {
-                contextSuggestions = "Machine Learning|Deep Learning|معالجة اللغة الطبيعية NLP|رؤية الحاسوب";
-            } else if (lowerResponse.includes("الأمن السيبراني") || lowerResponse.includes("cybersecurity")) {
-                contextSuggestions = "Ethical Hacking|أمن الشبكات|اختبار الاختراق|تشفير البيانات";
-            } else if (lowerResponse.includes("تطوير البرمجيات") || lowerResponse.includes("software")) {
-                contextSuggestions = "تطوير الويب|تطوير الموبايل|Full Stack|DevOps";
-            } else if (lowerResponse.includes("علم البيانات") || lowerResponse.includes("data science")) {
-                contextSuggestions = "تحليل البيانات|Big Data|Business Intelligence|Data Visualization";
-            } else if (lowerResponse.includes("إدارة الشبكات") || lowerResponse.includes("network")) {
-                contextSuggestions = "Network Admin|Routing & Switching|الشبكات اللاسلكية";
-            } else if (lowerResponse.includes("الحوسبة السحابية") || lowerResponse.includes("cloud")) {
-                contextSuggestions = "Cloud Architecture|Cloud Security|Infrastructure as Code";
-            } else if (lowerResponse.includes("تطوير الألعاب") || lowerResponse.includes("game")) {
-                contextSuggestions = "Game Design|رسوميات ثلاثية الأبعاد|Game Animation";
+        } else if (openai) {
+            const completion = await openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    ...msgs.map(m => ({ role: m.role as any, content: m.content })),
+                    { role: "user", content: userMessage }
+                ],
+                response_format: { type: "json_object" },
+                temperature: 0.7,
+            });
+            try {
+                aiResponse = JSON.parse(completion.choices[0].message.content || "{}");
+            } catch (e) {
+                aiResponse = { message: "عذراً، حدث خطأ في فهم البيانات. هل يمكنك محاولة مرة أخرى؟", suggestions: [] };
             }
-            finalSuggestions = `\n[SUGGESTIONS: ${contextSuggestions}]`;
         }
 
-        // ALWAYS strip ALL brackets from the main message to prevent leaks
-        finalResponse = finalResponse.replace(/\[[^\]]*\]/g, "").trim();
-        finalResponse += finalSuggestions;
+        if (!aiResponse.message) {
+            aiResponse = { message: "عذراً، حدث خطأ في معالجة الطلب. يرجى المحاولة لاحقاً.", suggestions: [] };
+        }
 
-        finalResponse = finalResponse.replace(/\s+/g, " ").trim();
-        const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
-        finalResponse = finalResponse.replace(uuidRegex, "").replace(/\(ID:\s*\)/gi, "").replace(/ID:\s*/gi, "");
+        // 3. Update Profile & Sync
+        const updatedProfile = { ...(session.userProfile as any || {}), ...(aiResponse.collected_data || {}) };
 
+        // 4. Determine Next State based on NEW data
+        let nextState = currentState;
+        if (updatedProfile.sector && currentState === STATES.ONBOARDING_SECTOR) nextState = STATES.ONBOARDING_SPECIALIZATION;
+        if (updatedProfile.specialization && currentState === STATES.ONBOARDING_SPECIALIZATION) nextState = STATES.ONBOARDING_PROFILE;
+        if (updatedProfile.experience && updatedProfile.weekly_hours && currentState === STATES.ONBOARDING_PROFILE) nextState = STATES.ROADMAP_GENERATION;
+        if (aiResponse.action === "redirect") nextState = STATES.ACTIVE_LEARNING;
 
-        // 10. Save the assistant's response in the database
-        await db.insert(aiMessages).values({
-            sessionId: session.id,
-            role: "assistant",
-            content: finalResponse,
-            metadata: toolLogs.length > 0 ? { logs: toolLogs } : null
-        });
-
-
-        // Update message count
+        // 5. Save everything to DB
         await db.update(aiSessions)
             .set({
-                messagesCount: (session.messagesCount || 0) + 2, // user + assistant
+                currentState: nextState as any,
+                userProfile: updatedProfile as any,
                 updatedAt: new Date()
             })
             .where(eq(aiSessions.id, session.id));
-        // 8. Finalize Response and determine step
-        let step = 1;
 
-        if (finalResponse.includes("REDIRECT: /tracks") || finalResponse.includes("التقرير")) {
-            step = 5; // Final Plan
-        } else if (finalResponse.includes("جدولة") || finalResponse.includes("ساعة")) {
-            step = 4; // Schedule
-        } else if (finalResponse.includes("المستوى") || finalResponse.includes("مبتدئ")) {
-            step = 3; // Level
-        } else if (finalResponse.includes("تطوير الويب") || finalResponse.includes("الذكاء الاصطناعي") || finalResponse.includes("تخصص")) {
-            // If it lists specialties or asks for one
-            step = 2; // Specialty
-        } else if (finalResponse.includes("مرحباً") || finalResponse.includes("القطاعات") || finalResponse.includes("مجال")) {
-            step = 1; // Sector/Discovery
-        }
+        // Sync to Students table
+        try {
+            const [user] = await db.select().from(users).where(eq(users.id, userId!)).limit(1);
+            if (user) {
+                const studentData = {
+                    userId: user.id,
+                    name: user.fullName,
+                    email: user.email,
+                    interests: [updatedProfile.sector, updatedProfile.specialization].filter(Boolean),
+                    notes: updatedProfile.experience ? `الخبرة: ${updatedProfile.experience}, ساعات: ${updatedProfile.weekly_hours}` : null,
+                    updatedAt: new Date()
+                };
+                await db.insert(students).values(studentData as any).onConflictDoUpdate({ target: students.userId, set: studentData as any });
+            }
+        } catch (err) { console.error("Sync error:", err); }
 
-
+        await db.insert(aiMessages).values({
+            sessionId: session.id,
+            role: "assistant",
+            content: JSON.stringify(aiResponse), // Important: store full JSON for UI to parse suggestions
+            metadata: { state: nextState } as any
+        });
 
         res.json({
-            message: finalResponse,
-            logs: toolLogs,
-            step: step
+            ...aiResponse,
+            state: nextState,
+            provider: providerUsed,
+            step: [STATES.ONBOARDING_SECTOR, STATES.ONBOARDING_SPECIALIZATION, STATES.ONBOARDING_PROFILE, STATES.ONBOARDING_PREFERENCE, STATES.ROADMAP_GENERATION].indexOf(nextState) + 1
         });
 
-    } catch (error: any) {
-        console.error("CRITICAL [AGENT ERROR]:", error);
-
-        // Log detailed error for admin
-        const errorLog = {
-            message: error.message,
-            status: error.status,
-            type: error.type,
-            code: error.code,
-            time: new Date().toISOString(),
-            userId: req.session.userId
-        };
-
-        console.error("[CHATBOT_LOG]", JSON.stringify(errorLog));
-
-        // Detect specific OpenAI errors
-        let userMessage = "عذراً، المساعد الذكي يواجه تقلبات في الاتصال حالياً. يرجى المحاولة بعد لحظات.";
-        if (error.status === 401) userMessage = "خطأ في المصادقة: لم يتم تهيئة مفتاح الذكاء الاصطناعي بشكل صحيح.";
-        if (error.status === 429) userMessage = "تم تجاوز حد الطلبات للذكاء الاصطناعي. يرجى الانتظار قليلاً.";
-
-        res.status(error.status || 500).json({
-            message: userMessage,
-            detail: error.message,
-            code: error.code || "ERR_AGENT_FLOW"
-        });
+    } catch (error) {
+        console.error("Chatbot loop error:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 });
 

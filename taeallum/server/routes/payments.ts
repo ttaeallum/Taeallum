@@ -30,12 +30,11 @@ router.post("/create-checkout-session", requireAuth, async (req: Request, res: R
         amount = 1000; // $10.00 USD
 
         if (planId === "pro") {
-            title = "اشتراك المساعد الذكي (Smart AI Assistant)";
-            amount = 1000; // $10.00 USD
+            title = "اشتراك منصة تعلّم الشهري";
+            amount = 5000; // $50.00 USD
         } else {
-            // Default to Pro if they try anything else, as it's the only paid plan
-            title = "اشتراك المساعد الذكي (Smart AI Assistant)";
-            amount = 1000;
+            title = "اشتراك منصة تعلّم الشهري";
+            amount = 5000;
         }
 
         if (!stripe) {

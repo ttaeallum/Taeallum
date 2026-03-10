@@ -7,22 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Send,
-  Sparkles,
-  Bot,
-  User,
   Loader2,
   Target,
-  Activity,
-  Brain,
-  CheckCircle2,
   RotateCcw,
-  LayoutDashboard,
-  Compass,
-  Zap,
   ShieldCheck,
-  Cpu,
-  Fingerprint,
-  Layers,
+  Bot,
   ArrowDownCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -62,6 +51,12 @@ export default function AIAgent() {
   const [currentStep, setCurrentStep] = useState(1);
   const [showConfetti, setShowConfetti] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [currentProvider, setCurrentProvider] = useState<string>("claude");
+  const [collectedData, setCollectedData] = useState({
+    goal: "",
+    level: "",
+    weekly_hours: 0
+  });
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -108,16 +103,29 @@ export default function AIAgent() {
 
       const lastAssistantMsg = [...sessionData.messages].reverse().find(m => m.role === "assistant");
       if (lastAssistantMsg) {
-        if (lastAssistantMsg.content.includes("REDIRECT:")) setCurrentStep(5);
-        else if (lastAssistantMsg.content.includes("الخلفية المعرفية")) setCurrentStep(4);
-        else if (lastAssistantMsg.content.includes("تحليل الوقت")) setCurrentStep(3);
-        else if (lastAssistantMsg.content.includes("التحليل النفسي")) setCurrentStep(2);
+        if (sessionData.messages.length > 0) {
+          const lastMsg = [...sessionData.messages].reverse().find(m => m.role === "assistant");
+          if (lastMsg) {
+            try {
+              const parsed = JSON.parse(lastMsg.content);
+              if (parsed.step) setCurrentStep(parsed.step);
+            } catch (e) { }
+          }
+        }
       }
     } else {
       setMessages([{
         id: "init",
         role: "assistant",
-        content: "أهلاً بك في منصة تعلّم! لنبني خطتك الدراسية معاً. أي قطاع تريد الاحتراف فيه؟ [SUGGESTIONS: الذكاء الاصطناعي 🧠|الأمن السيبراني 🔒|تطوير البرمجيات 💻|علم البيانات 📊|إدارة الشبكات 🌐|الحوسبة السحابية ☁️|تطوير الألعاب 🎮]",
+        content: JSON.stringify({
+          message: "أهلاً بك في منصة تعلّم! أنا مستشارك التعليمي الذكي 'تعلّم'. لنبني خطتك الدراسية معاً للوصول إلى هدفك بأقصر طريق. أي مجال يستهويك أكثر؟",
+          suggestions: [
+            "أساسيات تقنية المعلومات 💻",
+            "الذكاء الاصطناعي 🧠",
+            "الأمن السيبراني 🔒",
+            "تطوير البرمجيات 👨‍💻"
+          ]
+        }),
         timestamp: new Date()
       }]);
     }
@@ -130,7 +138,15 @@ export default function AIAgent() {
       setMessages([{
         id: "init",
         role: "assistant",
-        content: "أهلاً بك مجدداً! لنبني خطتك الدراسية من جديد. أي قطاع تريد الاحتراف فيه؟ [SUGGESTIONS: الذكاء الاصطناعي 🧠|الأمن السيبراني 🔒|تطوير البرمجيات 💻|علم البيانات 📊|إدارة الشبكات 🌐|الحوسبة السحابية ☁️|تطوير الألعاب 🎮]",
+        content: JSON.stringify({
+          message: "أهلاً بك مجدداً! لنبدأ رحلة جديدة معاً. اختر المجال الذي تريد التخصص فيه لنقوم بتحليل مستواك وبناء مسارك المخصص:",
+          suggestions: [
+            "أساسيات تقنية المعلومات 💻",
+            "الذكاء الاصطناعي 🧠",
+            "الأمن السيبراني 🔒",
+            "تطوير البرمجيات 👨‍💻"
+          ]
+        }),
         timestamp: new Date()
       }]);
       setActiveLogs([]);
@@ -145,57 +161,80 @@ export default function AIAgent() {
     const text = overrideMessage || inputValue;
     if (!text.trim() || isLoading) return;
 
-    setMessages(prev => [...prev, {
+    const newUserMsg: Message = {
       id: Date.now().toString(),
       role: "user",
       content: text.trim(),
       timestamp: new Date()
-    }]);
+    };
+
+    setMessages(prev => [...prev, newUserMsg]);
     setInputValue("");
     setIsLoading(true);
     setIsAtBottom(true);
 
     try {
-      const response = await fetch("/api/chatbot", {
+      // Prepare conversation history for the API
+      const conversationHistory = messages.map(m => ({
+        role: m.role,
+        content: m.role === "assistant" ? (JSON.parse(m.content).message || m.content) : m.content
+      }));
+
+      const response = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text.trim() }),
+        credentials: "include",
+        body: JSON.stringify({
+          messages: [...conversationHistory, { role: "user", content: text.trim() }],
+          currentProfile: {
+            goal: collectedData.goal,
+            level: collectedData.level,
+            weekly_hours: collectedData.weekly_hours
+          }
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || data.detail || "Connection Error");
+        throw new Error(data.error || "Connection Error");
       }
 
-      if (data.logs) setActiveLogs(prev => [...prev.slice(-5), ...data.logs]);
+      if (data.collected_data) {
+        setCollectedData(prev => ({ ...prev, ...data.collected_data }));
+      }
 
-      const reply = data.reply || data.message || "";
+      const reply = data.message || "";
 
-      // Look for [REDIRECT: ...] in both current and final response
-      const redirectMatch = reply.match(/\[REDIRECT:\s*(.*?)\]/);
-      const isFinalRedirect = reply.includes("/tracks") || text.trim() === "ابدأ الآن";
+      if (data.action === "show_plan") {
+        setCurrentStep(5);
+      }
 
-      if (data.step) setCurrentStep(data.step);
+      if (data.action === "redirect") {
+        setCurrentStep(5);
+      }
 
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: reply,
-        timestamp: new Date(),
-        logs: data.logs
+        content: JSON.stringify(data),
+        timestamp: new Date()
       }]);
 
-      if (redirectMatch?.[1]) {
-        setTimeout(() => setLocation(redirectMatch[1]), 2000);
+      if (data.action === "redirect" && data.redirect_to) {
+        setTimeout(() => setLocation(data.redirect_to!), 2000);
       }
+
     } catch (error: any) {
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: "assistant",
-        content: isRtl
-          ? `⚠️ انقطاع تقني: ${error.message}. يرجى محاولة الإرسال مجدداً.`
-          : `⚠️ Technical Interruption: ${error.message}. Please try sending again.`,
+        content: JSON.stringify({
+          message: isRtl
+            ? `⚠️ انقطاع تقني: ${error.message}. يرجى محاولة الإرسال مجدداً.`
+            : `⚠️ Technical Interruption: ${error.message}. Please try sending again.`,
+          suggestions: [isRtl ? "إعادة المحاولة" : "Try Again"]
+        }),
         timestamp: new Date()
       }]);
     } finally {
@@ -273,9 +312,9 @@ export default function AIAgent() {
                   {[
                     isRtl ? "قطاع" : "Sector",
                     isRtl ? "تخصص" : "Special",
-                    isRtl ? "مستوى" : "Level",
-                    isRtl ? "وقت" : "Time",
-                    isRtl ? "خارطة" : "Plan"
+                    isRtl ? "بروفايل" : "Profile",
+                    isRtl ? "تفضيل" : "Pref",
+                    isRtl ? "خطة" : "Plan"
                   ].map((label, idx) => (
                     <span key={idx} className={cn(
                       "text-[8px] font-black uppercase tracking-tighter transition-colors hidden sm:inline-block",
@@ -297,7 +336,9 @@ export default function AIAgent() {
                     <h2 className="text-lg font-black tracking-tighter">الخطة الدراسية</h2>
                     <div className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
-                      <span className="text-[9px] font-mono text-muted-foreground uppercase opacity-40">Active_Node_4o_Mini</span>
+                      <span className="text-[9px] font-mono text-muted-foreground uppercase opacity-40">
+                        {currentProvider === "anthropic" ? "Active_Node_3_7_Sonnet" : "Active_Node_4o_Mini"}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -314,20 +355,36 @@ export default function AIAgent() {
               >
                 <AnimatePresence initial={false}>
                   {messages.map((msg, i) => {
-                    const flexibleRegex = /\[(?:SUGGESTIONS:\s*)?([^\]]+)\]/i;
-                    const suggestionMatch = msg.content.match(flexibleRegex);
+                    let cleanContent = msg.content;
+                    let suggestionsList: string[] = [];
+                    let redirectTo: string | null = null;
 
-                    // Filter out non-suggestion tags from content
-                    let cleanContent = msg.content
-                      .replace(/\[(?:SUGGESTIONS:\s*)?[^\]]+\]/gi, "")
-                      .replace(/\[REDIRECT:[^\]]+\]/gi, "")
-                      .replace(/\[SYSTEM_ACT:[^\]]+\]/gi, "")
-                      .trim();
+                    if (msg.role === "assistant") {
+                      try {
+                        const parsed = JSON.parse(msg.content);
+                        cleanContent = parsed.message;
+                        suggestionsList = parsed.suggestions || [];
+                        // Handle show_plan as a special link
+                        if (parsed.action === "show_plan") {
+                          redirectTo = "/tracks";
+                        } else {
+                          redirectTo = parsed.redirect_to;
+                        }
+                      } catch (e) {
+                        // Fallback logic for old messages or malformed JSON
+                        const flexibleRegex = /\[(?:SUGGESTIONS:\s*)?([^\]]+)\]/i;
+                        const suggestionMatch = msg.content.match(flexibleRegex);
+                        suggestionsList = suggestionMatch?.[1]?.includes("|")
+                          ? suggestionMatch[1].split("|")
+                          : suggestionMatch?.[1] ? [suggestionMatch[1]] : [];
 
-                    // If it's a redirection button, we handle it specifically
-                    const suggestionsList = suggestionMatch?.[1]?.includes("|")
-                      ? suggestionMatch[1].split("|")
-                      : suggestionMatch?.[1] ? [suggestionMatch[1]] : [];
+                        cleanContent = msg.content
+                          .replace(/\[(?:SUGGESTIONS:\s*)?[^\]]+\]/gi, "")
+                          .replace(/\[REDIRECT:[^\]]+\]/gi, "")
+                          .replace(/\[SYSTEM_ACT:[^\]]+\]/gi, "")
+                          .trim();
+                      }
+                    }
 
                     return (
                       <motion.div
@@ -346,26 +403,30 @@ export default function AIAgent() {
                             {cleanContent}
                           </div>
 
-                          {msg.role === "assistant" && suggestionsList.length > 0 && (
+                          {msg.role === "assistant" && (suggestionsList.length > 0 || redirectTo) && (
                             <div className="mt-4 flex flex-wrap gap-2 justify-end">
                               {suggestionsList.map((suggestion, idx) => (
                                 <motion.button
                                   key={idx}
                                   whileHover={{ y: -2, scale: 1.02 }}
                                   whileTap={{ scale: 0.98 }}
-                                  onClick={() => {
-                                    if (suggestion.trim().includes("ابدأ الآن")) {
-                                      setLocation("/tracks");
-                                    } else {
-                                      handleSendMessage(suggestion.trim());
-                                    }
-                                  }}
+                                  onClick={() => handleSendMessage(suggestion.trim())}
                                   disabled={isLoading || i < messages.length - 1}
                                   className="px-4 py-2 rounded-lg bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 transition-all text-[12px] font-bold shadow-sm hover:shadow-md border border-zinc-200 dark:border-zinc-700 disabled:opacity-40"
                                 >
                                   {suggestion.trim()}
                                 </motion.button>
                               ))}
+                              {redirectTo && (
+                                <motion.button
+                                  whileHover={{ y: -2, scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  onClick={() => setLocation(redirectTo!)}
+                                  className="px-4 py-2 rounded-lg bg-yellow-400 text-zinc-900 transition-all text-[12px] font-bold shadow-sm hover:shadow-md"
+                                >
+                                  {isRtl ? "ابدأ الآن 🚀" : "Start Now 🚀"}
+                                </motion.button>
+                              )}
                             </div>
                           )}
                         </div>

@@ -29,7 +29,7 @@ export default function Privacy() {
             <Card className="p-8 border-border/30 rounded-2xl">
               <h2 className="text-xl font-bold mb-4">مقدمة</h2>
               <p className="text-muted-foreground leading-relaxed text-sm">
-                نحن في منصة تعلّم نقدر خصوصيتك. تشرح هذه السياسة كيف نجمع وننظم ونستخدم معلوماتك الشخصية عند استخدامك لخدماتنا.
+                نحن في منصة تعلّم (taallm.com) نلتزم بحماية خصوصية بيانات طلابنا ومستخدمينا. تعد هذه السياسة جزءاً أساسياً من التزامنا بالأمان والشفافية، حيث توضح كيفية جمع واستخدام وحماية معلوماتك الشخصية بما يتوافق مع المعايير الأمنية العالمية.
               </p>
             </Card>
 
@@ -46,10 +46,16 @@ export default function Privacy() {
             </Card>
 
             <Card className="p-8 border-border/30 rounded-2xl">
-              <h2 className="text-xl font-bold mb-4">2. حماية البيانات</h2>
+              <h2 className="text-xl font-bold mb-4">2. حماية وتأمين البيانات</h2>
               <p className="text-muted-foreground leading-relaxed text-sm">
-                نستخدم تقنيات التشفير المتقدمة لحماية معلوماتك. جميع البيانات المرسلة محمية ببروتوكولات SSL/TLS لضمان أمان تواصلك مع المنصة.
+                نطبق إجراءات أمنية صارمة تشمل:
               </p>
+              <ul className="list-disc list-inside space-y-2 mr-4 text-muted-foreground text-sm mt-4">
+                <li>تشفير البيانات الحساسة باستخدام بروتوكولات SSL/TLS 1.3 المتطورة.</li>
+                <li>تخزين كلمات المرور باستخدام خوارزميات التشفير أحادية الاتجاه (Hashing).</li>
+                <li>عزل قواعد البيانات وتطبيق جدران حماية برمجية لمنع الوصول غير المصرح به.</li>
+                <li>مراجعات دورية للأمان لكشف الثغرات ومعالجتها فوراً.</li>
+              </ul>
             </Card>
 
             <Card className="p-8 border-border/30 rounded-2xl">

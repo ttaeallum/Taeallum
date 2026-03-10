@@ -3,17 +3,14 @@ import { db } from "../db";
 import * as schema from "../db/schema";
 import { asc, desc, eq, sql } from "drizzle-orm";
 import { specializationCategories } from "../lib/specializations";
+import { withCache } from "../db/cache";
 
 const router = Router();
 
-// Get all specializations (categories)
-router.get("/categories", async (req: Request, res: Response) => {
+// Get all specializations (categories) — reads directly from DB, no auto-seed
+// Cache for 10 minutes (categories change rarely)
+router.get("/categories", withCache(600), async (req: Request, res: Response) => {
     try {
-        await db
-            .insert(schema.categories)
-            .values(specializationCategories)
-            .onConflictDoNothing({ target: schema.categories.slug });
-
         const categories = await db
             .select()
             .from(schema.categories)
@@ -41,8 +38,8 @@ router.get("/stats", async (req: Request, res: Response) => {
     }
 });
 
-// Get all published courses
-router.get("/", async (req: Request, res: Response) => {
+// Get all published courses — cache 5 minutes
+router.get("/", withCache(300), async (req: Request, res: Response) => {
     console.log("[ROUTER] Public Courses GET / hit");
     try {
         const allCourses = await db.select({
@@ -52,10 +49,12 @@ router.get("/", async (req: Request, res: Response) => {
             thumbnail: schema.courses.thumbnail,
             price: schema.courses.price,
             instructor: schema.courses.instructor,
+            instructorUrl: schema.courses.instructorUrl,
             level: schema.courses.level,
             createdAt: schema.courses.createdAt,
             categoryId: schema.courses.categoryId,
             categoryName: schema.categories.name,
+            categorySlug: schema.categories.slug,
             lessonsCount: sql<number>`CAST(COUNT(${schema.lessons.id}) AS INTEGER)`,
             totalDuration: sql<number>`CAST(COALESCE(SUM(${schema.lessons.duration}), 0) AS INTEGER)`,
         })
@@ -64,7 +63,7 @@ router.get("/", async (req: Request, res: Response) => {
             .leftJoin(schema.sections, eq(schema.sections.courseId, schema.courses.id))
             .leftJoin(schema.lessons, eq(schema.lessons.sectionId, schema.sections.id))
             .where(eq(schema.courses.isPublished, true))
-            .groupBy(schema.courses.id, schema.categories.name)
+            .groupBy(schema.courses.id, schema.categories.name, schema.categories.slug)
             .orderBy(desc(schema.courses.createdAt));
 
         const coursesWithDetails = allCourses.map(course => ({
@@ -73,7 +72,7 @@ router.get("/", async (req: Request, res: Response) => {
             image: course.thumbnail || "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&q=80",
             category: {
                 name: course.categoryName || "عام",
-                slug: specializationCategories.find(s => s.name === course.categoryName)?.slug || "other",
+                slug: course.categorySlug || "other",
                 id: course.categoryId
             },
             duration: Number(course.totalDuration) || 0,
@@ -87,8 +86,8 @@ router.get("/", async (req: Request, res: Response) => {
     }
 });
 
-// Get featured courses for homepage
-router.get("/featured", async (req: Request, res: Response) => {
+// Get featured courses for homepage — cache 5 minutes
+router.get("/featured", withCache(300), async (req: Request, res: Response) => {
     try {
         const featured = await db.select({
             id: schema.courses.id,
@@ -97,6 +96,7 @@ router.get("/featured", async (req: Request, res: Response) => {
             thumbnail: schema.courses.thumbnail,
             price: schema.courses.price,
             instructor: schema.courses.instructor,
+            instructorUrl: schema.courses.instructorUrl,
             level: schema.courses.level,
             createdAt: schema.courses.createdAt,
             categoryId: schema.courses.categoryId,

@@ -1,13 +1,12 @@
+import 'dotenv/config';
 import path from 'path';
-import dotenv from 'dotenv';
-
-// Load .env from current dir or parent dir
-dotenv.config();
-dotenv.config({ path: path.join(process.cwd(), "..", ".env") });
-
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "./schema";
+
+// Load additional .env from parent if needed (common in nested structures)
+import dotenv from 'dotenv';
+dotenv.config({ path: path.join(process.cwd(), "..", ".env") });
 
 // Universal DB Finder
 const findDbUrl = () => {
@@ -36,7 +35,8 @@ export const pool = new Pool({
     connectionString: cleanDbUrl || undefined,
     ssl: { rejectUnauthorized: false }, // Always SSL for Neon
     connectionTimeoutMillis: 15000,
-    max: 10
+    idleTimeoutMillis: 30000,
+    max: 50
 });
 
 export const db = drizzle(pool, { schema });

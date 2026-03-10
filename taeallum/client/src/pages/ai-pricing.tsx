@@ -8,9 +8,9 @@ import { Check, Sparkles, Zap, ArrowRight, ShieldCheck, Clock, Headphones, Tag, 
 import { motion } from "framer-motion";
 import { pricingTiers } from "@/lib/ai-questions";
 
-const PROMO_CODE = "TAALLUM70";
-const PRICE_FULL = 250;
-const PRICE_DISCOUNTED = 70;
+const PROMO_CODE = "TAALLUM30";
+const PRICE_FULL = 50;
+const PRICE_DISCOUNTED = 35;
 
 // PayTabs links
 const PAYTABS_FULL_LINK = "https://secure-jordan.paytabs.com/payment/link/175686/8515210";
@@ -149,13 +149,15 @@ export default function AIPricing() {
                   </h3>
                   <div className="grid gap-4">
                     {[
-                      "خطة دراسية شخصية مدروسة بالذكاء الاصطناعي",
-                      "المستوى الأول: أساسيات IT المشتركة (مطلوبة لكل تخصص)",
-                      "المستوى الثاني: المواد المشتركة في تخصصك المختار",
-                      "المستوى الثالث: التخصص العميق في مجالك بالضبط",
-                      "مساعد ذكي للإجابة على أسئلتك في أي وقت",
-                      "وصول مدى الحياة للخطة والتحديثات",
-                      "دعم فني متواصل",
+                      "خارطة طريق ذكية مخصصة لمسارك المهني",
+                      "إتقان الجوهر التقني (Core IT) كأساس متين",
+                      "تخصص منهجي متدرج من الصفر حتى الاحتراف",
+                      "التعمق في المهارات الأكثر طلباً في سوق العمل",
+                      "نظام تقييم وتحديات دورية لقياس المستوى",
+                      "شهادات إتمام رقمية موثقة لكل مرحلة",
+                      "مرافقة ذكية ودعم تقني على مدار الساعة",
+                      "استثمار لمرة واحدة مع وصول كامل مدى الحياة",
+                      "تحديثات مستمرة تواكب أحدث تقنيات السوق",
                     ].map((feature, idx) => (
                       <div key={idx} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
                         <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-500/10 flex items-center justify-center">

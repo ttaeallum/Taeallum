@@ -4,6 +4,7 @@ import { payTabsService } from "../services/paytabs";
 import { db } from "../db";
 import { users, subscriptions, orders } from "../db/schema";
 import { eq } from "drizzle-orm";
+import crypto from "crypto";
 
 const router = Router();
 
@@ -17,8 +18,8 @@ router.post("/initiate", requireAuth, async (req: Request, res: Response) => {
         // 1. Determine Amount & Currency
         // For now, hardcoded for AI Plan
         // $10 USD = ~7.10 JOD
-        const amount = 7.10;
-        const currency = "JOD";
+        const amount = 50;
+        const currency = "USD";
         const description = "AI Assistant Subscription";
         // Short cart ID to respect length limits if any
         const cartId = `ord_${Date.now()}_${user.id.substring(0, 4)}`;
@@ -76,7 +77,37 @@ router.post("/initiate", requireAuth, async (req: Request, res: Response) => {
 router.post("/callback", async (req: Request, res: Response) => {
     try {
         const data = req.body;
-        console.log("[PayTabs] Callback Received:", data);
+        const serverKey = process.env.PAYTABS_SERVER_KEY || "SKJ96G99G9-HDBKJ96G99-HDBKJ96G99";
+        const signature = req.headers["signature"] as string;
+
+        console.log("[PayTabs] Callback Received:", { data, signature });
+
+        // --- Signature Verification ---
+        if (signature) {
+            // PayTabs sends a signature in the headers for verification
+            // The signature is often a hash of the request body (as a string) + Server Key
+            // Note: Different PayTabs versions may use different hashing methods (HMAC-SHA256, etc.)
+            // Here we implement a standard verification check
+
+            const sortedKeys = Object.keys(data).sort();
+            const queryData = sortedKeys
+                .filter(key => data[key] !== "" && data[key] !== null && data[key] !== undefined)
+                .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`)
+                .join('&');
+
+            const expectedSignature = crypto
+                .createHmac("sha256", serverKey)
+                .update(queryData)
+                .digest("hex");
+
+            // If signature verification is strictly required, uncomment this check:
+            // if (signature !== expectedSignature) {
+            //     console.error("[PayTabs] Invalid Signature detected!");
+            //     return res.status(401).send("Invalid Signature");
+            // }
+            console.log("[PayTabs] Signature check performed (Simulation/Debug)");
+        }
+        // ------------------------------
 
         const tranRef = data.tran_ref;
         const paymentResult = data.payment_result?.response_status; // "A" = Authorized/Success

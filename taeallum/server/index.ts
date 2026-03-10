@@ -1,13 +1,14 @@
 /** Platform Version: 1.1.4-stable (Resilient Sync) **/
-import * as dotenv from "dotenv";
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import { createServer } from "http";
 import session from "express-session";
 import path from "path";
 import fs from "fs";
-
-// Robust Env Loading
-dotenv.config();
+import cors from "cors";
+import compression from "compression";
+import cluster from "cluster";
+import os from "os";
 
 import adminAuthRouter from "./routes/admin-auth";
 import adminRouter from "./routes/admin";
@@ -24,31 +25,30 @@ import adsRouter from "./routes/ads";
 import payTabsRouter from "./routes/paytabs";
 import youtubeRouter from "./routes/youtube";
 import promoCodesRouter from "./routes/promo-codes";
+import seoRouter from "./routes/seo";
+import aiAnalysisRouter from "./routes/ai-analysis";
+import aiRouter from "./routes/ai";
 
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { serveStatic } from "./static";
 import { registerRoutes } from "./routes";
 
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
+
 const app = express();
 const httpServer = createServer(app);
 
-// Request Logger
-app.use((req, res, next) => {
-  if (req.url.includes("vite") || req.url.includes(".tsx") || req.url.includes(".ts")) {
-    // Shush noisy vite logs in console if needed, but for now we log everything
-  }
-  console.log(`[REQUEST] ${req.method} ${req.url}`);
-  next();
-});
+// 1. Core Midlleware & Security
+app.use(cors({
+  origin: process.env.CLIENT_URL || "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
-// Initialize Vite Early in Development
-let viteInstance: any = null;
-if (process.env.NODE_ENV !== "production") {
-  const { setupVite } = await import("./vite");
-  viteInstance = await setupVite(httpServer, app);
-}
-
+// Response compression (gzip/deflate) — reduces bandwidth ~70% for JSON/HTML
+app.use(compression());
 
 app.use(express.json({
   verify: (req: any, res, buf) => {
@@ -58,7 +58,15 @@ app.use(express.json({
   }
 }));
 app.use(express.urlencoded({ extended: false }));
-app.set("trust proxy", 1); // Render standard for trust proxy
+
+
+app.set("trust proxy", 1);
+
+// Request Logger
+app.use((req, res, next) => {
+  console.log(`[REQUEST] ${req.method} ${req.url}`);
+  next();
+});
 
 // --- Domain & HTTPS Redirect Middleware ---
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -82,75 +90,12 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // --- Session Configuration ---
-import connectPg from "connect-pg-simple";
-import { pool } from "./db";
-
 const PgSession = connectPg(session);
 const sessionStore = new PgSession({
   pool,
   createTableIfMissing: true,
   errorLog: (err: any) => console.error("[SESSION STORE ERROR]", err)
 });
-
-console.log("[SESSION] استخدام مخزن جلسات PostgreSQL");
-
-// Ensure database schema is up to date in production
-(async () => {
-  try {
-    // 1. Session table primary key fix
-    await pool.query(`
-      DO $$
-      BEGIN
-        IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'session') THEN
-          IF NOT EXISTS (SELECT FROM pg_constraint WHERE conrelid = 'session'::regclass AND contype = 'p') THEN
-            ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid");
-          END IF;
-        END IF;
-      END $$;
-    `);
-
-    // 2. Courses table: Add ai_description column if missing
-    await pool.query(`
-      ALTER TABLE "courses" 
-      ADD COLUMN IF NOT EXISTS "ai_description" TEXT;
-    `);
-
-    // 3. Lessons table: Add bunny_video_id, original_youtube_url, and video_owner_url if missing
-    await pool.query(`
-      ALTER TABLE "lessons"
-      ADD COLUMN IF NOT EXISTS "bunny_video_id" TEXT,
-      ADD COLUMN IF NOT EXISTS "original_youtube_url" TEXT,
-      ADD COLUMN IF NOT EXISTS "video_owner_url" TEXT;
-    `);
-
-    // 4. Users table: Add preferences column for AI memory
-    await pool.query(`
-      ALTER TABLE "users"
-      ADD COLUMN IF NOT EXISTS "preferences" JSONB;
-    `);
-    // 5. Create Ads table if missing
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS "ads"(
-      "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      "location" text NOT NULL UNIQUE,
-      "is_active" boolean DEFAULT true NOT NULL,
-      "type" text NOT NULL,
-      "headline" text,
-      "description" text,
-      "primary_text" text,
-      "primary_link" text,
-      "media_url" text,
-      "script_code" text,
-      "created_at" timestamp DEFAULT now() NOT NULL,
-      "updated_at" timestamp DEFAULT now() NOT NULL
-    );
-    `);
-
-    console.log("[DB] Schema synchronization completed successfully.");
-  } catch (err) {
-    console.error("[DB ERROR] Failed during schema synchronization:", err);
-  }
-})();
 
 app.use(
   session({
@@ -171,73 +116,6 @@ app.use(
   })
 );
 
-// --- 1. PRIORITY DEBUG ROUTES ---
-app.get("/api/health-check-v2", async (req, res) => {
-  try {
-    // 1. Check DB Connection & Info
-    const dbInfo = await pool.query("SELECT current_database(), current_user, inet_server_addr(), inet_server_port()");
-
-    // 2. Check Session Table
-    const tableCheck = await pool.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'session'
-      `);
-
-    // 3. Check Session Count
-    const sessionCount = await pool.query("SELECT COUNT(*) FROM session");
-
-    // 4. Check User and Course Count
-    const userCount = await pool.query("SELECT COUNT(*) FROM users");
-    const courseCount = await pool.query("SELECT COUNT(*) FROM courses");
-
-    res.json({
-      status: "ok",
-      database: "connected",
-      dbDetails: {
-        name: dbInfo.rows[0].current_database,
-        // Host info from pool options (masked)
-        host: (pool.options.connectionString as string)?.split("@")[1]?.split("/")[0] || "unknown",
-      },
-      counts: {
-        sessions: sessionCount.rows[0].count,
-        users: userCount.rows[0].count,
-        courses: courseCount.rows[0].count,
-      },
-      env: process.env.NODE_ENV,
-      version: "1.1.2-stable"
-    });
-  } catch (err: any) {
-    console.error("[HEALTH CHECK ERROR]", err);
-    res.status(500).json({ status: "error", message: err.message });
-  }
-});
-
-app.use("/api", (req, res, next) => {
-  if (process.env.NODE_ENV === "production") {
-    console.log(`[API SESSION DEBUG] ${req.method} ${req.url} - SID: ${req.sessionID} - HasUser: ${!!req.session.userId} `);
-  }
-  next();
-});
-
-// --- 1. PRIORITY DEBUG ROUTES ---
-// (Ping moved to top)
-
-app.get("/api/debug/index", async (_req, res) => {
-  try {
-    const indexPath = path.resolve(process.cwd(), "dist", "public", "index.html");
-    if (fs.existsSync(indexPath)) {
-      const content = fs.readFileSync(indexPath, "utf-8");
-      res.set("Content-Type", "text/plain");
-      res.send(content);
-    } else {
-      res.json({ error: "index.html not found", path: indexPath });
-    }
-  } catch (e: any) {
-    res.json({ error: String(e) });
-  }
-});
-
 // --- 2. API MODULES ---
 app.use("/api/auth", authRouter);
 app.use("/api/admin", adminAuthRouter);
@@ -252,54 +130,194 @@ app.use("/api/chatbot", chatbotRouter);
 app.use("/api/ai-engine", aiEngineRouter);
 app.use("/api/paytabs", payTabsRouter);
 app.use("/api/youtube", youtubeRouter);
-
-app.get("/api/debug/env-check", (req, res) => {
-  const allKeys = Object.keys(process.env);
-  const openAIKeys = allKeys.filter(k => k.toLowerCase().includes("openai"));
-
-  // Check config fallback
-  let configFallbackActive = false;
-  try {
-    const { getConfig } = require("./config");
-    const fallbackKey = getConfig("OPENAI_API_KEY");
-    configFallbackActive = !!fallbackKey;
-  } catch (e) {
-    configFallbackActive = false;
-  }
-
-  res.json({
-    serverVersion: "1.1.11",
-    timestamp: new Date().toISOString(),
-    status: "READY",
-    openai: {
-      detected: openAIKeys.length > 0,
-      fallback: configFallbackActive,
-      available: openAIKeys.length > 0 || configFallbackActive || true // Final version always has stealth fallback
-    }
-  });
-});
-
-import { default as seoRouter } from "./routes/seo";
-
 app.use("/api/ads", adsRouter);
 app.use("/api/promo-codes", promoCodesRouter);
+app.use("/api/ai-analysis", aiAnalysisRouter);
+app.use("/api/ai", aiRouter);
 app.use("/", seoRouter);
 
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use("/thumbnails", express.static(path.join(process.cwd(), "client", "public", "thumbnails")));
 app.use(express.static(path.join(process.cwd(), "client", "public")));
 
-// --- 3. SERVER STARTUP ---
-(async () => {
-  const PORT = Number(process.env.PORT) || 5000;
-
-  httpServer.listen(PORT, "0.0.0.0", () => {
-    console.log(`[SERVER] Running on port ${PORT} `);
+// --- 3. CLUSTER & STARTUP ---
+if (cluster.isPrimary && process.env.NODE_ENV === "production") {
+  const numCPUs = os.cpus().length;
+  console.log(`[CLUSTER] Primary ${process.pid} — spawning ${numCPUs} workers`);
+  for (let i = 0; i < numCPUs; i++) cluster.fork();
+  cluster.on("exit", (worker, code, signal) => {
+    console.warn(`[CLUSTER] Worker ${worker.process.pid} died (${signal || code}). Restarting...`);
+    cluster.fork();
   });
+} else {
+  (async () => {
+    console.log("[SESSION] استخدام مخزن جلسات PostgreSQL");
 
-  try {
-    // Ensure ads table exists in database
-    await db.execute(sql`
+    // Initialize Vite Early in Development
+    let viteInstance: any = null;
+    if (process.env.NODE_ENV !== "production") {
+      const { setupVite } = await import("./vite");
+      viteInstance = await setupVite(httpServer, app);
+    }
+
+    const PORT = Number(process.env.PORT) || 5000;
+
+    httpServer.listen(PORT, "0.0.0.0", () => {
+      console.log(`[SERVER] Worker ${process.pid} running on port ${PORT}`);
+    });
+
+    try {
+      // Ensure database schema is up to date in production
+      // 1. Session table primary key fix
+      await pool.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'session') THEN
+          IF NOT EXISTS (SELECT FROM pg_constraint WHERE conrelid = 'session'::regclass AND contype = 'p') THEN
+            ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid");
+          END IF;
+        END IF;
+      END $$;
+    `);
+
+      // 2. Courses table: Add ai_description column if missing
+      await pool.query(`
+      ALTER TABLE "courses"
+      ADD COLUMN IF NOT EXISTS "ai_description" TEXT;
+    `);
+
+      // 3. Lessons table: Add bunny_video_id, original_youtube_url, and video_owner_url if missing
+      await pool.query(`
+      ALTER TABLE "lessons"
+      ADD COLUMN IF NOT EXISTS "bunny_video_id" TEXT,
+      ADD COLUMN IF NOT EXISTS "original_youtube_url" TEXT,
+      ADD COLUMN IF NOT EXISTS "video_owner_url" TEXT;
+    `);
+
+      // 4. Users table: Add preferences column for AI memory
+      await pool.query(`
+      ALTER TABLE "users"
+      ADD COLUMN IF NOT EXISTS "preferences" JSONB;
+    `);
+      // 5. Create Subscriptions table if missing (Needed for AI Sessions)
+      await pool.query(`
+      CREATE TABLE IF NOT EXISTS "subscriptions" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        "user_id" uuid NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+        "plan" text NOT NULL,
+        "status" text NOT NULL DEFAULT 'active',
+        "stripe_customer_id" text,
+        "stripe_subscription_id" text,
+        "current_period_start" timestamp NOT NULL,
+        "current_period_end" timestamp NOT NULL,
+        "cancel_at_period_end" boolean NOT NULL DEFAULT false,
+        "currency" text NOT NULL DEFAULT 'usd',
+        "amount" decimal(10,2) NOT NULL,
+        "created_at" timestamp NOT NULL DEFAULT now(),
+        "updated_at" timestamp NOT NULL DEFAULT now()
+      );
+    `);
+
+      // 6. AI Sessions Table & Columns
+      await pool.query(`
+      CREATE TABLE IF NOT EXISTS "ai_sessions" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        "user_id" uuid NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+        "status" text NOT NULL DEFAULT 'active',
+        "created_at" timestamp NOT NULL DEFAULT now(),
+        "updated_at" timestamp NOT NULL DEFAULT now()
+      );
+      ALTER TABLE "ai_sessions" ADD COLUMN IF NOT EXISTS "current_state" text DEFAULT 'onboarding_goal';
+      ALTER TABLE "ai_sessions" ADD COLUMN IF NOT EXISTS "user_profile" jsonb;
+      ALTER TABLE "ai_sessions" ADD COLUMN IF NOT EXISTS "generated_plan" jsonb;
+      ALTER TABLE "ai_sessions" ADD COLUMN IF NOT EXISTS "subscription_id" uuid REFERENCES "subscriptions"("id");
+      ALTER TABLE "ai_sessions" ADD COLUMN IF NOT EXISTS "session_type" text DEFAULT 'onboarding';
+      ALTER TABLE "ai_sessions" ADD COLUMN IF NOT EXISTS "messages_count" integer DEFAULT 0;
+    `);
+
+      // 7. AI Messages Table
+      await pool.query(`
+      CREATE TABLE IF NOT EXISTS "ai_messages" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        "session_id" uuid NOT NULL REFERENCES "ai_sessions"("id") ON DELETE CASCADE,
+        "role" text NOT NULL,
+        "content" text NOT NULL,
+        "metadata" jsonb,
+        "created_at" timestamp NOT NULL DEFAULT now()
+      );
+    `);
+
+      // 8. Study Plans Table
+      await pool.query(`
+      CREATE TABLE IF NOT EXISTS "study_plans" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        "user_id" uuid NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+        "session_id" uuid REFERENCES "ai_sessions"("id"),
+        "title" text NOT NULL,
+        "description" text,
+        "duration" text NOT NULL,
+        "total_hours" integer NOT NULL,
+        "plan_data" jsonb NOT NULL,
+        "status" text NOT NULL DEFAULT 'active',
+        "progress" integer NOT NULL DEFAULT 0,
+        "created_at" timestamp NOT NULL DEFAULT now(),
+        "updated_at" timestamp NOT NULL DEFAULT now()
+      );
+    `);
+
+      // 9. Adaptive Learning Tables
+      await pool.query(`
+      CREATE TABLE IF NOT EXISTS "students" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        "user_id" uuid UNIQUE NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+        "name" text NOT NULL,
+        "email" text NOT NULL,
+        "age_level" text,
+        "interests" jsonb DEFAULT '[]'::jsonb,
+        "completed_lessons" jsonb DEFAULT '[]'::jsonb,
+        "quiz_performance" text,
+        "notes" text,
+        "updated_at" timestamp NOT NULL DEFAULT now()
+      );
+      CREATE TABLE IF NOT EXISTS "quizzes" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        "lesson_id" uuid NOT NULL REFERENCES "lessons"("id") ON DELETE CASCADE,
+        "questions" jsonb NOT NULL,
+        "difficulty" text NOT NULL DEFAULT 'intermediate',
+        "created_at" timestamp NOT NULL DEFAULT now()
+      );
+      CREATE TABLE IF NOT EXISTS "quiz_submissions" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        "user_id" uuid NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+        "quiz_id" uuid NOT NULL REFERENCES "quizzes"("id") ON DELETE CASCADE,
+        "score" integer NOT NULL,
+        "answers" jsonb NOT NULL,
+        "feedback" text,
+        "created_at" timestamp NOT NULL DEFAULT now()
+      );
+      CREATE TABLE IF NOT EXISTS "student_performance" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        "user_id" uuid NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+        "strengths" jsonb DEFAULT '[]'::jsonb,
+        "weaknesses" jsonb DEFAULT '[]'::jsonb,
+        "last_ai_analysis_at" timestamp,
+        "adaptive_notes" text,
+        "updated_at" timestamp NOT NULL DEFAULT now()
+      );
+    `);
+
+      // 10. Update Lessons Table Columns
+      await pool.query(`
+      ALTER TABLE "lessons" ADD COLUMN IF NOT EXISTS "level" text DEFAULT 'beginner';
+      ALTER TABLE "lessons" ADD COLUMN IF NOT EXISTS "content_type" text DEFAULT 'video';
+      ALTER TABLE "lessons" ADD COLUMN IF NOT EXISTS "content_link" text;
+      ALTER TABLE "lessons" ADD COLUMN IF NOT EXISTS "associated_quiz" text;
+    `);
+
+      console.log("[DB] All education and adaptive learning tables synchronized.");
+
+      // Ensure ads table exists in database
+      await db.execute(sql`
       CREATE TABLE IF NOT EXISTS ads(
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         location TEXT NOT NULL UNIQUE,
@@ -315,44 +333,43 @@ app.use(express.static(path.join(process.cwd(), "client", "public")));
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
       `);
-    console.log("[DB] Ads table ensured.");
+      console.log("[DB] Ads table ensured.");
 
-    await registerRoutes(httpServer, app);
+      await registerRoutes(httpServer, app);
 
-    // --- 4. ERROR HANDLING ---
-    // Handle 404 for API routes specifically
-    app.use("/api/*", (req, res) => {
-      console.warn(`[404] API Route Not Found: ${req.method} ${req.originalUrl}`);
-      res.status(404).json({
-        message: "API Route Not Found",
-        path: req.originalUrl,
-        code: "ERR_API_NOT_FOUND"
+      // --- 4. STATIC FILES (must come before 404 handler) ---
+      if (process.env.NODE_ENV === "production") {
+        serveStatic(app);
+      } else if (viteInstance) {
+        const { serveViteSPA } = await import("./vite");
+        serveViteSPA(viteInstance, app);
+      }
+
+      // --- 5. ERROR HANDLING (after static, only catches unmatched /api routes) ---
+      app.use((req, res, next) => {
+        if (req.path.startsWith("/api")) {
+          return res.status(404).json({
+            error: "Not Found",
+            message: `Cannot ${req.method} ${req.path}`
+          });
+        }
+        next();
       });
-    });
 
-
-    // Global Error Handler (must have 4 arguments for Express)
-    app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
-      console.error("[GLOBAL ERROR]:", err);
-      const status = err.status || err.statusCode || 500;
-      res.status(status).json({
-        message: "حدث خطأ داخلي في الخادم",
-        detail: process.env.NODE_ENV === "production" ? "Internal Server Error" : err.message,
-        code: err.code || "ERR_INTERNAL_SERVER"
+      // Global Error Handler
+      app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+        console.error("[GLOBAL ERROR]:", err);
+        const status = err.status || err.statusCode || 500;
+        res.status(status).json({
+          message: "حدث خطأ داخلي في الخادم",
+          detail: process.env.NODE_ENV === "production" ? "Internal Server Error" : err.message,
+          code: err.code || "ERR_INTERNAL_SERVER"
+        });
       });
-    });
-
-    if (process.env.NODE_ENV === "production") {
-      serveStatic(app);
-    } else if (viteInstance) {
-      const { serveViteSPA } = await import("./vite");
-      serveViteSPA(viteInstance, app);
+    } catch (error) {
+      console.error("[CRITICAL STARTUP ERROR]", error);
     }
-  } catch (error) {
-    console.error("[CRITICAL STARTUP ERROR]", error);
-  }
-
-})();
+  })();
+}
 
 export default app;
-

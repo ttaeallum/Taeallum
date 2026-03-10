@@ -36,6 +36,7 @@ export const courses = pgTable("courses", {
     price: decimal("price", { precision: 10, scale: 2 }).default("0.00").notNull(),
     isPublished: boolean("is_published").default(false).notNull(),
     instructor: text("instructor").notNull(),
+    instructorUrl: text("instructor_url"),
     level: text("level").default("beginner").notNull(), // beginner, intermediate, advanced
     aiDescription: text("ai_description"), // Special description for AI matching
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -55,15 +56,19 @@ export const sections = pgTable("sections", {
 export const lessons = pgTable("lessons", {
     id: uuid("id").defaultRandom().primaryKey(),
     sectionId: uuid("section_id").references(() => sections.id, { onDelete: "cascade" }).notNull(),
-    title: text("title").notNull(),
+    title: text("title").notNull(), // Lesson_Name
     content: text("content"),
-    videoUrl: text("video_url"), // Embed URL for playback
-    bunnyVideoId: text("bunny_video_id"), // Store Bunny.net ID
-    originalYoutubeUrl: text("original_youtube_url"), // Store source for backup/rights
-    videoOwnerUrl: text("video_owner_url"), // رابط صاحب الفيديو
-    duration: integer("duration").default(0), // in seconds
+    level: text("level").default("beginner").notNull(), // Beginner / Intermediate / Advanced
+    contentType: text("content_type").default("video").notNull(), // Video / Article / PDF
+    videoUrl: text("video_url"), // Content_Link
+    contentLink: text("content_link"), // Generic link for PDF/Articles
+    bunnyVideoId: text("bunny_video_id"),
+    originalYoutubeUrl: text("original_youtube_url"),
+    videoOwnerUrl: text("video_owner_url"),
+    duration: integer("duration").default(0),
     order: integer("order").notNull(),
     isFree: boolean("is_free").default(false).notNull(),
+    associatedQuiz: text("associated_quiz"), // Link to quiz or text
     createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -126,6 +131,7 @@ export const aiSessions = pgTable("ai_sessions", {
     subscriptionId: uuid("subscription_id").references(() => subscriptions.id),
     sessionType: text("session_type").default("onboarding").notNull(), // onboarding, chat, consultation
     status: text("status").default("active").notNull(), // active, completed, abandoned
+    currentState: text("current_state").default("onboarding_goal").notNull(), // New: Added for state machine orchestration
     userProfile: jsonb("user_profile"), // Stores user answers
     generatedPlan: jsonb("generated_plan"), // Stores the AI-generated study plan
     messagesCount: integer("messages_count").default(0).notNull(),
@@ -203,7 +209,38 @@ export const promoCodes = pgTable("promo_codes", {
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// 16. Promo Code Usages Table (who used which code)
+// 16. Quizzes Table
+export const quizzes = pgTable("quizzes", {
+    id: uuid("id").defaultRandom().primaryKey(),
+    lessonId: uuid("lesson_id").references(() => lessons.id, { onDelete: "cascade" }).notNull(),
+    questions: jsonb("questions").notNull(), // Array of { q, options, correct_idx }
+    difficulty: text("difficulty").default("intermediate").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// 17. Quiz Submissions (For Analysis)
+export const quizSubmissions = pgTable("quiz_submissions", {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+    quizId: uuid("quiz_id").references(() => quizzes.id, { onDelete: "cascade" }).notNull(),
+    score: integer("score").notNull(), // 0-100
+    answers: jsonb("answers").notNull(), // User choices
+    feedback: text("feedback"), // AI feedback on this specific attempt
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// 18. Student Performance Analysis (Mind Map of strengths/weaknesses)
+export const studentPerformance = pgTable("student_performance", {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+    strengths: jsonb("strengths").default([]), // ["JavaScript", "Logic"]
+    weaknesses: jsonb("weaknesses").default([]), // ["Networking", "CSS"]
+    lastAiAnalysisAt: timestamp("last_ai_analysis_at"),
+    adaptiveNotes: text("adaptive_notes"), // Internal notes for AI to adapt the path
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// 19. Promo Code Usages Table
 export const promoCodeUsages = pgTable("promo_code_usages", {
     id: uuid("id").defaultRandom().primaryKey(),
     promoCodeId: uuid("promo_code_id").references(() => promoCodes.id, { onDelete: "cascade" }).notNull(),
@@ -211,6 +248,47 @@ export const promoCodeUsages = pgTable("promo_code_usages", {
     pricePaid: decimal("price_paid", { precision: 10, scale: 2 }).notNull(),
     originalPrice: decimal("original_price", { precision: 10, scale: 2 }).notNull(),
     usedAt: timestamp("used_at").defaultNow().notNull(),
+});
+
+// 20. Students Table (Specific AI-Ready Profile)
+export const students = pgTable("students", {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).unique().notNull(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    ageLevel: text("age_level"), // مستوى/رقم
+    interests: jsonb("interests").default([]), // نص أو قائمة
+    completedLessons: jsonb("completed_lessons").default([]), // قائمة أو نص
+    quizPerformance: text("quiz_performance"), // نقاط/نص
+    notes: text("notes"), // اختياري
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// 21. Lesson Transcripts Table
+export const lessonTranscripts = pgTable("lesson_transcripts", {
+    id: uuid("id").defaultRandom().primaryKey(),
+    lessonId: uuid("lesson_id").references(() => lessons.id, { onDelete: "cascade" }).notNull(),
+    courseId: uuid("course_id").references(() => courses.id, { onDelete: "cascade" }).notNull(),
+    transcriptText: text("transcript_text").notNull(),
+    timestampsJson: jsonb("timestamps_json"), // Store start/end times for each segment
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// 22. Transcript Chunks Table (for pgvector)
+export const transcriptChunks = pgTable("transcript_chunks", {
+    id: uuid("id").defaultRandom().primaryKey(),
+    lessonId: uuid("lesson_id").references(() => lessons.id, { onDelete: "cascade" }).notNull(),
+    courseId: uuid("course_id").references(() => courses.id, { onDelete: "cascade" }).notNull(),
+    chunkText: text("chunk_text").notNull(),
+    // Note: Drizzle-orm doesn't have built-in "vector" type yet in some versions, 
+    // but we can use customType or just ignore it for now and use raw SQL for insertion if needed.
+    // However, some versions of drizzle-pg-core support it.
+    // Let's assume we'll use a text field or a custom type if available.
+    // For now, I'll use text then modify it with raw SQL to 'vector(1536)'.
+    embedding: text("embedding"),
+    timestampStart: integer("timestamp_start"), // in seconds
+    chunkIndex: integer("chunk_index").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // --- Relations ---
@@ -236,11 +314,12 @@ export const sectionsRelations = relations(sections, ({ one, many }) => ({
     lessons: many(lessons),
 }));
 
-export const lessonsRelations = relations(lessons, ({ one }) => ({
+export const lessonsRelations = relations(lessons, ({ one, many }) => ({
     section: one(sections, {
         fields: [lessons.sectionId],
         references: [sections.id],
     }),
+    quizzes: many(quizzes),
 }));
 
 export const enrollmentsRelations = relations(enrollments, ({ one }) => ({
@@ -265,11 +344,12 @@ export const ordersRelations = relations(orders, ({ one }) => ({
     }),
 }));
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
     enrollments: many(enrollments),
     orders: many(orders),
     subscriptions: many(subscriptions),
     aiSessions: many(aiSessions),
+    studentProfile: one(students),
 }));
 
 export const subscriptionsRelations = relations(subscriptions, ({ one, many }) => ({
@@ -320,5 +400,31 @@ export const consultationSessionsRelations = relations(consultationSessions, ({ 
     subscription: one(subscriptions, {
         fields: [consultationSessions.subscriptionId],
         references: [subscriptions.id],
+    }),
+}));
+
+export const studentsRelations = relations(students, ({ one }) => ({
+    user: one(users, {
+        fields: [students.userId],
+        references: [users.id],
+    }),
+}));
+
+export const lessonTranscriptsRelations = relations(lessonTranscripts, ({ one, many }) => ({
+    lesson: one(lessons, {
+        fields: [lessonTranscripts.lessonId],
+        references: [lessons.id],
+    }),
+    chunks: many(transcriptChunks),
+}));
+
+export const transcriptChunksRelations = relations(transcriptChunks, ({ one }) => ({
+    lesson: one(lessons, {
+        fields: [transcriptChunks.lessonId],
+        references: [lessons.id],
+    }),
+    transcript: one(lessonTranscripts, {
+        fields: [transcriptChunks.lessonId],
+        references: [lessonTranscripts.lessonId],
     }),
 }));

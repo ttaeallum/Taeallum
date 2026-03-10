@@ -39,15 +39,59 @@ router.get("/:courseId/curriculum", async (req: Request, res: Response) => {
 router.post("/lesson/:lessonId/complete", async (req: Request, res: Response) => {
     try {
         const { lessonId } = req.params;
-        const userId = req.session.userId;
+        const userId = (req.session as any).userId as string;
 
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-        // Logic for tracking progress can be expanded here
-        // For now we'll just return success
-        res.json({ success: true });
+        // 1. Update Students table 'completed_lessons'
+        const [studentProfile] = await db.select().from(schema.students).where(eq(schema.students.userId, userId)).limit(1);
+        if (studentProfile) {
+            const completed = Array.isArray(studentProfile.completedLessons) ? studentProfile.completedLessons as string[] : [];
+            if (!completed.includes(lessonId as string)) {
+                completed.push(lessonId as string);
+                await db.update(schema.students)
+                    .set({ completedLessons: completed, updatedAt: new Date() })
+                    .where(eq(schema.students.userId, userId));
+            }
+        }
+
+        res.json({ success: true, message: "تم تسجيل إكمال الدرس بنجاح" });
     } catch (error: any) {
+        console.error("Progress Error:", error);
         res.status(500).json({ message: "Failed to update progress" });
+    }
+});
+
+// Submit Quiz Result
+router.post("/quiz/:quizId/submit", async (req: Request, res: Response) => {
+    try {
+        const { quizId } = req.params;
+        const { score, answers } = req.body;
+        const userId = (req.session as any).userId as string;
+
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+        // 1. Save results
+        await db.insert(schema.quizSubmissions).values({
+            userId: userId,
+            quizId: quizId as string,
+            score: Number(score),
+            answers: answers,
+            createdAt: new Date()
+        });
+
+        // 2. Update Student level logic
+        await db.update(schema.students)
+            .set({
+                quizPerformance: `Last Quiz Score: ${score}%`,
+                updatedAt: new Date()
+            })
+            .where(eq(schema.students.userId, userId));
+
+        res.json({ success: true, message: "تم حفظ النتيجة وفحص أدائك جارٍ من قبل الذكاء الاصطناعي" });
+    } catch (error: any) {
+        console.error("Quiz Submit Error:", error);
+        res.status(500).json({ message: "Failed to submit quiz" });
     }
 });
 

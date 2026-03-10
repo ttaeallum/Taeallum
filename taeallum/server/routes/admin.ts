@@ -255,9 +255,37 @@ router.put("/categories/:id", async (req: Request, res: Response) => {
 });
 
 router.delete("/categories/:id", async (req: Request, res: Response) => {
-    await db.delete(schema.categories).where(eq(schema.categories.id, String(req.params.id)));
-    await logAudit(adminEmail, "DELETE", "Category", req.params.id as string);
-    res.json({ ok: true });
+    try {
+        const categoryId = String(req.params.id);
+
+        // Check if there are courses assigned to this category
+        const [relatedCourses] = await db.select({ count: sql<number>`count(*)` })
+            .from(schema.courses)
+            .where(eq(schema.courses.categoryId, categoryId));
+
+        if (relatedCourses && relatedCourses.count > 0) {
+            return res.status(400).json({
+                message: "لا يمكن حذف هذا التخصص لوجود كورسات مرتبطة به. يرجى نقل أو حذف الكورسات أولاً."
+            });
+        }
+
+        const [deleted] = await db.delete(schema.categories)
+            .where(eq(schema.categories.id, categoryId))
+            .returning();
+
+        if (!deleted) {
+            return res.status(404).json({ message: "التخصص غير موجود" });
+        }
+
+        await logAudit(adminEmail, "DELETE", "Category", categoryId);
+        res.json({ ok: true });
+    } catch (error: any) {
+        console.error("Delete Category Error:", error);
+        res.status(500).json({
+            message: "حدث خطأ أثناء محاولة حذف التخصص. قد يكون التخصص مرتبطاً ببيانات أخرى.",
+            detail: error.message
+        });
+    }
 });
 
 // --- 3. Courses CRUD ---

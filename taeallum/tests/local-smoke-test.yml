@@ -1,0 +1,21 @@
+config:
+  target: "http://localhost:5000"
+  phases:
+    - name: "Local Smoke Test"
+      duration: 10
+      arrivalRate: 20
+  defaults:
+    headers:
+      Content-Type: "application/json"
+  plugins:
+    expect: {}
+
+scenarios:
+  - name: "Homepage & API Test"
+    flow:
+      - get:
+          url: "/"
+      - get:
+          url: "/api/courses"
+          expect:
+            - statusCode: 200

@@ -126,4 +126,40 @@ export async function sendPasswordResetEmail(to: string, code: string) {
         return false;
     }
 }
+export async function sendEducationalNudge(to: string, studentName: string, type: 'congrats' | 'reminder' | 'recommendation', content: string) {
+    const subjects = {
+        congrats: `أحسنت يا ${studentName}! 🎉 إنجاز جديد في منصة تعلّم`,
+        reminder: `نحن نفتقد وجودك يا ${studentName} 🚀`,
+        recommendation: `توصية تعليمية مخصصة لك من المرشد الذكي 💡`
+    };
 
+    const mailOptions = {
+        from: `"المرشد الذكي (Taallm AI)" <${smtpConfig.auth.user}>`,
+        to,
+        subject: subjects[type],
+        html: `
+            <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 15px; background: #fff;">
+                <div style="text-align: center; padding-bottom: 20px;">
+                    <h2 style="color: #4CAF50;">مرحباً ${studentName} 👋</h2>
+                </div>
+                <div style="font-size: 16px; line-height: 1.6; color: #333; text-align: center;">
+                    ${content}
+                </div>
+                <div style="margin-top: 30px; text-align: center;">
+                    <a href="https://taallm.com/ai-agent" style="background: #4CAF50; color: white; padding: 12px 25px; text-decoration: none; border-radius: 8px; font-weight: bold;">تحدث مع مرشدك الذكي الآن</a>
+                </div>
+                <div style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 10px; font-size: 12px; color: #999; text-align: center;">
+                    تم إرسال هذه الرسالة لأنك مشترك في منصة تعلّم للأمن السيبراني والذكاء الاصطناعي.
+                </div>
+            </div>
+        `
+    };
+
+    try {
+        await transporter.sendMail(mailOptions);
+        return true;
+    } catch (error) {
+        console.error("[EMAIL NUDGE ERROR]", error);
+        return false;
+    }
+}

@@ -1,6 +1,7 @@
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Link, useParams, useLocation } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
 import { PlayCircle, CheckCircle, ChevronLeft, ChevronRight, Download, BookOpen, Loader2, Lock, ArrowRight, Video, Sparkles } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/sheet";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
+import { CourseQAWidget } from "@/components/course-qa-widget";
 
 declare global {
     interface Window {
@@ -442,16 +444,23 @@ export default function LearnCourse() {
             <div className="flex-1 flex flex-col md:flex-row relative">
                 <main className="flex-1 bg-[#fcfcfc] dark:bg-black/95 flex flex-col items-center">
                     {/* Centered Lesson Player Area */}
-                    <div className="w-full py-8 md:py-12 px-4 md:px-8 max-w-[1200px] mx-auto overflow-hidden">
-                        <div className="w-full relative pb-[56.25%] h-0 shadow-[0_30px_70px_-10px_rgba(0,0,0,0.3)] dark:shadow-[0_30px_70px_-10px_rgba(0,0,0,0.5)] rounded-2xl md:rounded-3xl border border-border group/player overflow-hidden">
+                    <div className="w-full py-8 md:py-16 px-4 md:px-8 max-w-[1200px] mx-auto overflow-hidden">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="w-full relative pb-[56.25%] h-0 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] rounded-[2rem] md:rounded-[3rem] border border-white/10 group/player overflow-hidden bg-black"
+                        >
+                            {/* Ambient Glow - Syncs with video aura */}
+                            <div className="absolute -inset-10 bg-primary/20 blur-[120px] opacity-40 animate-pulse-glow z-0 pointer-events-none" />
+
                             {/* Player Wrapper */}
                             <div className="absolute inset-0 z-20">
                                 {renderVideoPlayer()}
 
                                 {/* Professional Watermark */}
-                                <div className="absolute top-4 right-4 flex items-center gap-2 text-white/40 text-[9px] font-black pointer-events-none select-none bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5">
-                                    <Lock className="w-3 h-3 opacity-50" />
-                                    <span>{user?.fullName}</span>
+                                <div className="absolute top-6 right-6 flex items-center gap-3 text-white/60 text-[10px] font-black pointer-events-none select-none bg-black/40 backdrop-blur-xl px-5 py-2.5 rounded-full border border-white/10">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                                    <span className="tracking-widest uppercase">{user?.fullName}</span>
                                 </div>
 
                                 {/* Floating Next/Prev Overlays (appear on hover) */}
@@ -459,10 +468,10 @@ export default function LearnCourse() {
                                     {prevLesson && (
                                         <Button
                                             size="icon"
-                                            className="w-12 h-12 rounded-full bg-black/60 backdrop-blur-xl border border-white/10 hover:bg-primary hover:border-primary transition-all pointer-events-auto"
+                                            className="w-16 h-16 rounded-full bg-black/40 backdrop-blur-2xl border border-white/10 hover:bg-primary hover:border-primary transition-all pointer-events-auto shadow-2xl"
                                             onClick={() => setActiveLesson(prevLesson)}
                                         >
-                                            <ChevronRight className="w-6 h-6" />
+                                            <ChevronRight className="w-8 h-8" />
                                         </Button>
                                     )}
                                 </div>
@@ -470,18 +479,15 @@ export default function LearnCourse() {
                                     {nextLesson && (
                                         <Button
                                             size="icon"
-                                            className="w-12 h-12 rounded-full bg-black/60 backdrop-blur-xl border border-white/10 hover:bg-primary hover:border-primary transition-all pointer-events-auto"
+                                            className="w-16 h-16 rounded-full bg-black/40 backdrop-blur-2xl border border-white/10 hover:bg-primary hover:border-primary transition-all pointer-events-auto shadow-2xl"
                                             onClick={() => setActiveLesson(nextLesson)}
                                         >
-                                            <ChevronLeft className="w-6 h-6" />
+                                            <ChevronLeft className="w-8 h-8" />
                                         </Button>
                                     )}
                                 </div>
                             </div>
-
-                            {/* Cinematic Background Glow (Synchronized with Player) */}
-                            <div className="absolute inset-0 bg-primary/10 rounded-full blur-[100px] opacity-30 pointer-events-none z-0" />
-                        </div>
+                        </motion.div>
                     </div>
 
                     {/* Content Section below video */}
@@ -576,6 +582,14 @@ export default function LearnCourse() {
                     </div>
                 </main>
             </div>
+            {/* RAG Chat Widget */}
+            {course && (
+                <CourseQAWidget
+                    courseId={course.id}
+                    lessonId={activeLesson?.id}
+                    courseTitle={course.title}
+                />
+            )}
         </div>
     );
 }

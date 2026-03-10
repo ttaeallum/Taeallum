@@ -313,7 +313,7 @@ router.post("/generate-plan", requireAuth, async (req: Request, res: Response) =
 
         // 3. Prepare Prompt
         const prompt = `
-            You are the "Smart Assistant" (المساعد الذكي) for Taeallum (تعلم), an elite Arabic e-learning platform.
+            You are the "Smart Assistant" (المساعد الذكي) for taallm (تعلم)، an elite Arabic e-learning platform.
             Your mission is to construct a highly personalized "Zero to Hero" learning roadmap for a student.
             
             Student Profile (JSON):
@@ -324,22 +324,15 @@ router.post("/generate-plan", requireAuth, async (req: Request, res: Response) =
             CATALOG OF AVAILABLE COURSES (You MUST use these for the core roadmap):
             ${courseListString}
             
-            GUIDELINES FOR ROADMAP GENERATION (STRICT 3-TIER HIERARCHY):
+            GUIDELINES FOR ROADMAP GENERATION (STRICT 3-LEVEL PHILOSOPHY):
             1. LANGUAGE: The entire response MUST be in professional Arabic.
-            2. AUTOMATIC PHASES: Every plan must be exactly 3 phases:
-               - Phase 1 — أساسيات IT المشتركة (Core IT Foundation): MANDATORY for ALL tracks regardless of specialization. Must include: Introduction to Programming, Structured Programming, OOP, Data Structures & Algorithms, Networking Fundamentals, Operating Systems. These are required before entering ANY specialization.
-               - Phase 2 — أساسيات التخصص (Specialization Foundation): Courses shared specifically within the chosen sector. EXAMPLES:
-                 * If Cybersecurity: InfoSec basics, Network Security.
-                 * If AI: Linear Algebra, Probability & Statistics, Machine Learning basics.
-                 * If Software Dev: Frontend Technologies, Databases.
-                 * If DevOps/Cloud: Linux, Docker, AWS fundamentals.
-               - Phase 3 — التخصص العميق (Deep Specialization): Highly specific courses for the exact sub-specialty within the sector. EXAMPLES:
-                 * If Ethical Hacking within Cybersecurity: Ethical Hacking, Penetration Testing.
-                 * If Deep Learning within AI: Deep Learning, NLP or Computer Vision.
-                 * If Full Stack within Software: React/TypeScript, MERN Stack.
+            2. AUTOMATIC PHASES: Every plan must be exactly 3 levels:
+               - Level 1 — مفهوم الـ IT العام (IT General Concept): أساسيات علوم الحاسوب، الخوارزميات، هياكل البيانات، الشبكات، والمنطق البرمجي. يوضع هذا المستوى كمدخل إلزامي للجميع لضمان فهم شامل للتقنية قبل التخصص.
+               - Level 2 — أساسيات القطاع (Sector Foundation): بناءً على القطاع المختار من الـ 7 تخصصات (مثل البرمجيات، الأمن، الذكاء الاصطناعي)، يتم وضع الدورات المشتركة والأساسية في هذا القطاع.
+               - Level 3 — التخصص الدقيق (Professional Specialization): الربط بين القطاع المختار والتخصص الفرعي المطلوب (مثل مطور React داخل قطاع البرمجيات، أو مهندس SOC داخل قطاع الأمن) ووضع الكورسات الاحترافية المتقدمة.
             3. CATALOG PRIORITY: Always prefer actual courses from the catalog above YouTube links.
             4. YOUTUBE FALLBACK: Only use youtubeUrl if no catalog course covers the topic.
-            5. LOGIC: Phase 1 = Foundation (everyone), Phase 2 = Your sector's common ground, Phase 3 = Your exact sub-specialty.
+            5. LOGIC: Level 1 = IT Basics, Level 2 = Sector Core, Level 3 = Job-specific Professional courses.
             
             StudyPlan Structure:
             {
@@ -401,7 +394,7 @@ router.post("/generate-plan", requireAuth, async (req: Request, res: Response) =
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [
-                { role: "system", content: "أنت خبير في توجيه المبرمجين وتصميم المسارات التعليمية التقنية لمنصة 'تعلّم'. مهمتك هي إنشاء خطة دراسية برمجية متكاملة واحترافية باللغة العربية." },
+                { role: "system", content: "أنت خبير في توجيه المبرمجين وتصميم المسارات التعليمية التقنية لمنصة 'taallm' (تعلم). مهمتك هي إنشاء خطة دراسية برمجية متكاملة واحترافية باللغة العربية." },
                 { role: "user", content: prompt }
             ],
             response_format: { type: "json_object" }

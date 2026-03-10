@@ -30,5 +30,9 @@ export function getConfig(key: string): string | undefined {
         return Buffer.from(_f._k, "base64").toString("utf-8");
     }
 
+    if (key === "ANTHROPIC_API_KEY") {
+        if (process.env.ANTHROPIC) return process.env.ANTHROPIC;
+    }
+
     return undefined;
 }

@@ -1,0 +1,64 @@
+config:
+  target: "https://taallm.com"
+  phases:
+    - name: "Warm-up (10 users)"
+      duration: 20
+      arrivalRate: 10
+    - name: "Medium load (50 users)"
+      duration: 20
+      arrivalRate: 50
+    - name: "High load (100 users)"
+      duration: 20
+      arrivalRate: 100
+    - name: "Stress test (500 users)"
+      duration: 20
+      arrivalRate: 500
+    - name: "Peak load (1000 users)"
+      duration: 20
+      arrivalRate: 1000
+  defaults:
+    headers:
+      Content-Type: "application/json"
+      Accept: "application/json, text/html"
+  plugins:
+    expect: {}
+  ensure:
+    p99: 5000
+    maxErrorRate: 15
+
+scenarios:
+  - name: "Homepage Visit"
+    weight: 40
+    flow:
+      - get:
+          url: "/"
+
+  - name: "Courses List"
+    weight: 30
+    flow:
+      - get:
+          url: "/api/courses"
+          expect:
+            - statusCode: 200
+
+  - name: "User Login"
+    weight: 20
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "test@example.com"
+            password: "password123"
+
+  - name: "AI Agent Message"
+    weight: 10
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "test@example.com"
+            password: "password123"
+      - post:
+          url: "/api/ai/chat"
+          json:
+            message: "أريد أن أتعلم البرمجة"

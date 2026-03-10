@@ -34,13 +34,14 @@ export default function Terms() {
             </Card>
 
             <Card className="p-8 border-border/30 rounded-2xl">
-              <h2 className="text-xl font-bold mb-4">2. استخدام المنصة</h2>
+              <h2 className="text-xl font-bold mb-4">2. استخدام المنصة والمدرب الذكي (AI Coach)</h2>
               <div className="space-y-4 text-muted-foreground text-sm leading-relaxed">
-                <p>أنت توافق على استخدام المنصة فقط للأغراض القانونية والمشروعة. لا يجوز لك:</p>
+                <p>تم تصميم المدرب الذكي لمساعدتك في رحلتك التعليمية. باستخدامك له، أنت توافق على:</p>
                 <ul className="list-disc list-inside space-y-2 mr-4">
-                  <li>انتهاك أي قوانين أو لوائح محلية أو دولية</li>
-                  <li>نسخ أو توزيع محتوى المنصة بدون إذن كتابي</li>
-                  <li>محاولة الوصول غير المصرح به إلى أنظمة المنصة</li>
+                  <li>استخدام الخدمة في الأغراض التعليمية فقط.</li>
+                  <li>عدم محاولة التلاعب بالخوارزميات أو استخراج الكود البرمجي للمنصة.</li>
+                  <li>تحمل المسؤولية الكاملة عن التفاعلات مع النظام الذكي.</li>
+                  <li>إدراك أن ردود الذكاء الاصطناعي هي تعليمية وقد لا تغني عن الاستشارة المهنية المتخصصة في بعض الحالات المعقدة.</li>
                 </ul>
               </div>
             </Card>
@@ -53,13 +54,13 @@ export default function Terms() {
             </Card>
 
             <Card className="p-8 border-border/30 rounded-2xl">
-              <h2 className="text-xl font-bold mb-4">4. الدفع والفواتير</h2>
+              <h2 className="text-xl font-bold mb-4">4. الدفع والأمان المالي</h2>
               <div className="space-y-4 text-muted-foreground text-sm leading-relaxed">
-                <p>عند اختيار خطة مدفوعة، فإنك توافق على:</p>
+                <p>لحمايتك، نستخدم بوابات دفع مشفرة ومتوافقة مع معايير PCI DSS. بتنفيذك لعملية الدفع، أنت توافق على:</p>
                 <ul className="list-disc list-inside space-y-2 mr-4">
-                  <li>دفع الرسوم المحددة في الوقت المحدد</li>
-                  <li>توفير معلومات دفع دقيقة وكاملة</li>
-                  <li>الامتثال لسياسة الاستحقاق الخاصة بنا</li>
+                  <li>أن جميع البيانات المالية تتم معالجتها خارجياً ولا نقوم بتخزين أرقام البطاقات لدينا.</li>
+                  <li>صحة ملكية وسيلة الدفع المستخدمة.</li>
+                  <li>تلقي فواتير إلكترونية عبر بريدك المسجل.</li>
                 </ul>
               </div>
             </Card>

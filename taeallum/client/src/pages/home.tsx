@@ -74,88 +74,96 @@ export default function Home() {
         </script>
       )}
       {/* Hero Section */}
-      <section className="relative min-h-[70vh] md:min-h-[85vh] flex items-center overflow-hidden pt-8 pb-12 md:pt-16 md:pb-16">
-        {/* Futuristic Background Elements */}
+      <section className="relative min-h-[90vh] flex items-center overflow-hidden pt-12 pb-20 bg-mesh-gradient">
+        {/* Cinematic Background Elements */}
         <div className="absolute inset-0 z-0">
-          <div className="absolute top-0 right-[-10%] w-[300px] md:w-[800px] h-[300px] md:h-[800px] bg-primary/20 rounded-full blur-[80px] md:blur-[160px] animate-pulse-slow"></div>
-          <div className="absolute bottom-[-10%] left-[-10%] w-[250px] md:w-[600px] h-[250px] md:h-[600px] bg-emerald-500/10 rounded-full blur-[70px] md:blur-[140px]"></div>
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03]"></div>
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--background))_80%)]"></div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 2 }}
+            className="absolute top-[-20%] right-[-10%] w-[500px] md:w-[1000px] h-[500px] md:h-[1000px] bg-primary/20 rounded-full blur-[120px] md:blur-[220px] animate-pulse-glow"
+          />
+          <div className="absolute bottom-[-10%] left-[-10%] w-[300px] md:w-[700px] h-[300px] md:h-[700px] bg-emerald-500/10 rounded-full blur-[90px] md:blur-[180px]" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
         </div>
 
         <div className="container relative z-10 px-4 md:px-8 max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-10 md:gap-16 items-center">
+          <div className="grid lg:grid-cols-2 gap-12 md:gap-20 items-center">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
+              initial={{ opacity: 0, x: 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               className="text-right"
             >
-              <h1 className="font-black text-4xl sm:text-6xl md:text-7xl lg:text-8xl leading-tight md:leading-[1.1] text-foreground mb-4 md:mb-8 tracking-tighter">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Badge variant="outline" className="mb-6 px-4 py-1.5 border-primary/30 bg-primary/5 text-primary rounded-full font-black tracking-widest uppercase text-xs backdrop-blur-sm">
+                  مستقبل التعليم التقني 2026
+                </Badge>
+              </motion.div>
+
+              <h1 className="font-black text-5xl sm:text-7xl md:text-8xl lg:text-9xl leading-[1] text-foreground mb-8 tracking-tighter">
                 بوابتك لـ <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary via-emerald-500 to-primary animate-gradient-x">
-                  احتراف البرمجة
+                <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary via-emerald-400 to-primary animate-gradient-x text-glow">
+                  احتراف الكود
                 </span>
               </h1>
 
-              <p className="text-base md:text-xl text-muted-foreground mb-6 md:mb-10 max-w-2xl ml-auto leading-relaxed font-medium opacity-80">
-                استثمر في مستقبلك وتعلم مهارات وتقنيات العصر من خلال <span className="text-primary font-bold">دورات مجانية</span> بالكامل ومحتوى عربي احترافي متاح للجميع.
+              <p className="text-lg md:text-2xl text-muted-foreground mb-12 max-w-2xl ml-auto leading-relaxed font-medium opacity-90">
+                حوّل طموحاتك إلى واقع مع <span className="text-primary font-black underline underline-offset-8 decoration-primary/30">دورات مدعومة بالذكاء الاصطناعي</span> ومسارات تعليمية مصممة لأعلى المعايير العالمية.
               </p>
 
-              <div className="flex flex-col sm:flex-row-reverse gap-4 md:gap-6 justify-center sm:justify-start">
+              <div className="flex flex-col sm:flex-row-reverse gap-5 md:gap-8 justify-center sm:justify-start items-center">
                 <Link href="/ai-pricing" className="w-full sm:w-auto">
-                  <Button size="lg" className="h-14 md:h-16 px-6 md:px-10 text-lg md:text-xl font-black shadow-[0_15px_40px_rgba(var(--primary),0.25)] gap-3 rounded-2xl md:rounded-3xl hover:scale-105 active:scale-95 transition-all bg-primary hover:bg-primary/90 w-full sm:w-auto">
-                    احصل على خطتك الرئيسية
+                  <Button size="lg" className="h-16 md:h-20 px-10 md:px-14 text-xl md:text-2xl font-black shadow-[0_20px_50px_rgba(var(--primary),0.3)] gap-4 rounded-[2rem] hover:scale-105 active:scale-95 transition-all bg-primary hover:bg-primary/90 w-full group">
+                    ابدأ رحلتك الآن
+                    <ArrowLeft className="w-6 h-6 group-hover:-translate-x-2 transition-transform" />
                   </Button>
                 </Link>
                 <Link href="/courses" className="w-full sm:w-auto">
-                  <Button size="lg" variant="outline" className="h-14 md:h-16 px-6 md:px-10 text-lg md:text-xl font-black rounded-2xl md:rounded-3xl border-2 backdrop-blur-md hover:bg-primary/5 transition-all w-full sm:w-auto">
-                    تصفح الدورات
+                  <Button size="lg" variant="outline" className="h-16 md:h-20 px-10 md:px-14 text-xl md:text-2xl font-black rounded-[2rem] border-2 backdrop-blur-md hover:bg-primary/5 transition-all w-full border-border/40">
+                    تصفح المكتبة
                   </Button>
                 </Link>
               </div>
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, rotate: 2 }}
-              animate={{ opacity: 1, scale: 1, rotate: 0 }}
-              transition={{ duration: 1, ease: "easeOut" }}
-              className="relative mt-12 lg:mt-0"
+              initial={{ opacity: 0, scale: 0.8, rotateY: 20 }}
+              whileInView={{ opacity: 1, scale: 1, rotateY: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+              className="relative mt-16 lg:mt-0 perspective-1000"
             >
-              <div className="relative z-10 rounded-[2rem] md:rounded-[3.5rem] overflow-hidden shadow-[0_0_100px_-20px_rgba(0,0,0,0.5)] border-2 md:border-[12px] border-background/30 backdrop-blur-xl group">
-                <div className="absolute inset-0 bg-primary/10 group-hover:bg-transparent transition-colors duration-700 z-10" />
+              <div className="relative z-10 rounded-[3rem] md:rounded-[4rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.6)] border border-white/20 backdrop-blur-3xl group">
+                <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-transparent to-emerald-500/10 opacity-60 mix-blend-overlay group-hover:opacity-40 transition-opacity duration-700" />
                 <img
-                  src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1200&q=80"
-                  alt="Modern Learning"
-                  className="w-full h-auto aspect-video sm:aspect-[4/5] object-cover transition-transform duration-1000 group-hover:scale-110"
+                  src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200&q=90"
+                  alt="Future of Tech"
+                  className="w-full h-auto aspect-video sm:aspect-[4/5] object-cover transition-transform duration-1000 group-hover:scale-105"
                 />
-              </div>
 
-              {/* Floating Ultra Elements - Hidden on small mobile, visible on larger screens */}
-              <div className="absolute -bottom-10 -right-4 md:-right-10 z-20 bg-background/90 backdrop-blur-2xl p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl border border-primary/20 max-w-[220px] md:max-w-[280px] hidden sm:block">
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                      <Target className="w-5 h-5 md:w-6 md:h-6" />
+                {/* Floating Micro UI Element */}
+                <div className="absolute bottom-8 left-8 right-8 z-20 glass-card p-6 rounded-3xl border border-white/10 animate-float">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+                      <Sparkles className="w-6 h-6 text-white" />
                     </div>
-                    <p className="font-black text-base md:text-lg">تعلم ذكي</p>
+                    <div className="flex-1 text-right">
+                      <p className="text-white font-black text-sm">مساعد ذكي نشط</p>
+                      <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider">مدعوم بـ GPT-4o</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">توجيه مخصص لكل طالب</p>
-                  {stats?.totalUsers >= 1000 && (
-                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
-                      <Users className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-black">+1000 مستخدم</span>
-                    </div>
-                  )}
                 </div>
               </div>
 
-              <div className="absolute top-10 md:top-20 -left-2 md:-left-16 z-20 bg-primary p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] shadow-2xl shadow-primary/40 rotate-[-8deg] md:rotate-[-12deg] group-hover:rotate-0 transition-transform duration-700 hidden sm:block">
-                <p className="text-primary-foreground font-black text-center leading-none">
-                  <span className="text-xl md:text-4xl block mb-1">Knowledge</span>
-                  <span className="text-[8px] md:text-[10px] uppercase tracking-[0.3em]">Limitless</span>
-                </p>
-              </div>
+              {/* Decorative Rings */}
+              <div className="absolute -inset-10 border border-primary/20 rounded-full blur-sm animate-spin-slow pointer-events-none" />
+              <div className="absolute -inset-20 border border-emerald-500/10 rounded-full blur-md animate-reverse-spin-slow pointer-events-none" />
             </motion.div>
           </div>
         </div>
