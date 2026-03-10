@@ -28,6 +28,7 @@ interface Module {
     title: string;
     description: string;
     lessons: Lesson[];
+    bunnyCollectionId?: string;
     order: number;
 }
 
@@ -124,6 +125,28 @@ export default function AdminAddCourse() {
 
                     const section = await sectionRes.json();
 
+                    // Bunny Collection Import (bulk) — if provided, auto-create lessons from Bunny
+                    const collectionId = String(module.bunnyCollectionId || "").trim();
+                    if (collectionId) {
+                        const importRes = await fetch("/api/admin-panel/import-bunny-collection", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                ...getSessionHeaders()
+                            } as Record<string, string>,
+                            credentials: "include",
+                            body: JSON.stringify({ sectionId: section.id, collectionId })
+                        });
+
+                        const importData = await importRes.json().catch(() => ({} as { message?: string }));
+                        if (!importRes.ok) {
+                            throw new Error(importData?.message || "فشل سحب فيديوهات Bunny لهذه الوحدة");
+                        }
+
+                        // Skip manual lessons for this module (they were imported automatically)
+                        continue;
+                    }
+
                     if (module.lessons?.length) {
                         for (let lessonIndex = 0; lessonIndex < module.lessons.length; lessonIndex++) {
                             const lesson = module.lessons[lessonIndex];
@@ -190,6 +213,7 @@ export default function AdminAddCourse() {
             title: "",
             description: "",
             lessons: [],
+            bunnyCollectionId: "",
             order: modules.length + 1
         };
         setModules([...modules, newModule]);
@@ -514,8 +538,29 @@ export default function AdminAddCourse() {
 
                                             {expandedModule === moduleIndex && (
                                                 <div className="p-6 space-y-4 bg-background">
+                                                    <div className="space-y-2 p-4 rounded-xl border bg-muted/10">
+                                                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                                            <Link2 className="h-4 w-4" />
+                                                            Bunny Collection ID (اختياري)
+                                                        </Label>
+                                                        <Input
+                                                            placeholder="مثال: 1cb00bc1-52ab-4950-825b-f2754e3bd4da"
+                                                            value={module.bunnyCollectionId || ""}
+                                                            onChange={(e) => handleUpdateModule(moduleIndex, "bunnyCollectionId", e.target.value)}
+                                                            className="h-10 bg-background"
+                                                        />
+                                                        <p className="text-xs text-muted-foreground">
+                                                            إذا وضعت Collection ID هنا، سيتم سحب كل فيديوهات المجموعة من Bunny وإنشاء الدروس تلقائياً عند حفظ الكورس.
+                                                        </p>
+                                                    </div>
+
                                                     <div className="space-y-4 mb-6 pb-6 border-b border-dashed">
                                                         <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">الدروس في هذه الوحدة</Label>
+                                                        {String(module.bunnyCollectionId || "").trim() && (
+                                                            <div className="p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-sm text-emerald-700">
+                                                                سيتم استيراد دروس هذه الوحدة تلقائياً من Bunny عند الحفظ. (لن تحتاج لإضافة الدروس يدوياً)
+                                                            </div>
+                                                        )}
                                                         <div className="space-y-3">
                                                             {module.lessons.map((lesson, lessonIndex) => (
                                                                 <div key={lessonIndex} className="p-4 border rounded-xl bg-muted/20 space-y-3 group">

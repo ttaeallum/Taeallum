@@ -684,4 +684,119 @@ router.post("/import-playlist", async (req: Request, res: Response) => {
     }
 });
 
+// --- 12. Bunny Collection Bulk Importer ---
+
+interface BunnyVideoItem {
+    guid: string;
+    title: string;
+    collectionId?: string | null;
+    length?: number; // seconds
+}
+
+const importBunnyCollectionSchema = z.object({
+    sectionId: z.string().uuid(),
+    collectionId: z.string().min(8),
+});
+
+/**
+ * Fetches all Bunny Stream videos in the configured library and filters by collectionId.
+ * Sorting is done by title for stable ordering.
+ */
+async function fetchBunnyVideosByCollection(collectionId: string): Promise<BunnyVideoItem[]> {
+    const libraryId = process.env.BUNNY_LIBRARY_ID;
+    const apiKey = process.env.BUNNY_API_KEY;
+
+    if (!libraryId || !apiKey) {
+        throw new Error("Missing BUNNY_LIBRARY_ID or BUNNY_API_KEY");
+    }
+
+    const all: BunnyVideoItem[] = [];
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore) {
+        const response = await fetch(
+            `https://video.bunnycdn.com/library/${libraryId}/videos?page=${page}&itemsPerPage=100`,
+            { headers: { AccessKey: apiKey, Accept: "application/json" } }
+        );
+        if (!response.ok) {
+            throw new Error(`Failed to fetch Bunny videos: ${await response.text()}`);
+        }
+
+        const data = (await response.json()) as { items?: BunnyVideoItem[] };
+        const items = Array.isArray(data.items) ? data.items : [];
+        all.push(...items);
+
+        if (items.length < 100) hasMore = false;
+        else page++;
+    }
+
+    return all
+        .filter((v) => v.collectionId === collectionId && typeof v.guid === "string" && typeof v.title === "string")
+        .sort((a, b) => a.title.localeCompare(b.title, "en"));
+}
+
+/**
+ * Imports all Bunny videos from a given collectionId as lessons into a target section.
+ * Each lesson will have bunnyVideoId and iframe embed videoUrl populated automatically.
+ */
+router.post("/import-bunny-collection", async (req: Request, res: Response) => {
+    const parsed = importBunnyCollectionSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({ message: "بيانات غير صحيحة. تأكد من sectionId و collectionId." });
+    }
+
+    const { sectionId, collectionId } = parsed.data;
+    const libraryId = process.env.BUNNY_LIBRARY_ID;
+    if (!libraryId) {
+        return res.status(500).json({ message: "إعدادات Bunny غير مكتملة على السيرفر (BUNNY_LIBRARY_ID)." });
+    }
+
+    try {
+        // Ensure section exists
+        const [section] = await db.select().from(schema.sections).where(eq(schema.sections.id, sectionId)).limit(1);
+        if (!section) {
+            return res.status(404).json({ message: "لم يتم العثور على الوحدة (Section)." });
+        }
+
+        const videos = await fetchBunnyVideosByCollection(collectionId);
+        if (videos.length === 0) {
+            return res.status(400).json({ message: "لم يتم العثور على فيديوهات داخل هذا الـ collectionId على Bunny." });
+        }
+
+        // Remove existing lessons in the section to avoid duplicates (optional safety)
+        // If you want to keep existing lessons, comment the next line.
+        await db.delete(schema.lessons).where(eq(schema.lessons.sectionId, sectionId));
+
+        const lessonsToInsert = videos.map((v, index) => ({
+            sectionId,
+            title: v.title,
+            content: "",
+            bunnyVideoId: v.guid,
+            videoUrl: `https://iframe.mediadelivery.net/embed/${libraryId}/${v.guid}`,
+            order: index + 1,
+            isFree: false,
+            duration: typeof v.length === "number" ? v.length : 0,
+        }));
+
+        await db.insert(schema.lessons).values(lessonsToInsert);
+
+        await logAudit(adminEmail, "IMPORT_BUNNY_COLLECTION", "Section", sectionId, {
+            collectionId,
+            count: lessonsToInsert.length,
+        });
+
+        return res.json({
+            success: true,
+            message: `تم استيراد ${lessonsToInsert.length} درس من Bunny بنجاح`,
+            count: lessonsToInsert.length,
+        });
+    } catch (error) {
+        console.error("Bunny import error:", error);
+        return res.status(500).json({
+            message: "فشل استيراد فيديوهات Bunny. تأكد من collectionId ومن إعدادات Bunny على السيرفر.",
+        });
+    }
+});
+
 export default router;

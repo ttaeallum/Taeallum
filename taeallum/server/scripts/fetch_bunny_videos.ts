@@ -1,26 +1,33 @@
-const LIBRARY_ID = '608329';
-const API_KEY = '5bff0354-0c26-4e57-b46ad190cbdf-4744-4858';
-import fs from 'fs';
+import "dotenv/config";
+import fs from "fs";
 
 async function fetchAllVideos() {
-    let allVideos: any[] = [];
+    const libraryId = process.env.BUNNY_LIBRARY_ID;
+    const apiKey = process.env.BUNNY_API_KEY;
+
+    if (!libraryId || !apiKey) {
+        throw new Error("Missing BUNNY_LIBRARY_ID or BUNNY_API_KEY in environment");
+    }
+
+    let allVideos: unknown[] = [];
     let page = 1;
     let hasMore = true;
 
     while (hasMore) {
         console.log(`Fetching page ${page}...`);
-        const response = await fetch(`https://video.bunnycdn.com/library/${LIBRARY_ID}/videos?page=${page}&itemsPerPage=100`, {
-            headers: { 'AccessKey': API_KEY, 'Accept': 'application/json' }
+        const response = await fetch(`https://video.bunnycdn.com/library/${libraryId}/videos?page=${page}&itemsPerPage=100`, {
+            headers: { "AccessKey": apiKey, "Accept": "application/json" }
         });
 
         if (!response.ok) {
             throw new Error(`Failed to fetch videos: ${await response.text()}`);
         }
 
-        const data: any = await response.json();
-        allVideos = allVideos.concat(data.items);
+        const data = (await response.json()) as { items?: unknown[] };
+        const items = Array.isArray(data.items) ? data.items : [];
+        allVideos = allVideos.concat(items);
 
-        if (data.items.length < 100) {
+        if (items.length < 100) {
             hasMore = false;
         } else {
             page++;

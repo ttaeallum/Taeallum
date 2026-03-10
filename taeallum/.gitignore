@@ -11,6 +11,9 @@ coverage
 .vscode
 tmp/
 
+# Bunny operational exports (generated locally)
+server/scripts/existing_bunny_videos.json
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
