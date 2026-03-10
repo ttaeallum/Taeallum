@@ -64,7 +64,17 @@ const TAALLM_COURSES = {
     }
 };
 
-const getOpenAI = () => {
+/** Session shape attached by requireAuth / express-session. */
+interface AuthSession {
+  userId?: string;
+  isAdmin?: boolean;
+}
+
+interface RequestWithAuth extends Request {
+  session: AuthSession;
+}
+
+const getOpenAI = (): OpenAI | null => {
     try {
         const key = getConfig("OPENAI_API_KEY");
         if (!key) {
@@ -77,15 +87,161 @@ const getOpenAI = () => {
     }
 };
 
-const getAnthropic = () => {
+const getAnthropic = (): Anthropic | null => {
     try {
         const key = getConfig("ANTHROPIC_API_KEY");
         if (!key) return null;
         return new Anthropic({ apiKey: key });
-    } catch (err) {
+    } catch {
         return null;
     }
 };
+
+// --- Chatbot response type and validation ---
+interface ChatbotCollectedData {
+    goal?: string;
+    level?: "beginner" | "intermediate" | "advanced";
+    completed_courses?: string[];
+    weekly_hours?: number;
+    sector?: string;
+    specialization?: string;
+    experience?: string;
+}
+
+interface ChatbotPhase {
+    phase: number;
+    title: string;
+    duration_months: number;
+    courses: string[];
+    reason: string;
+}
+
+interface ChatbotStudyPlan {
+    total_months?: number;
+    phases?: ChatbotPhase[];
+}
+
+interface ChatbotAIResponse {
+    message: string;
+    suggestions: string[];
+    action?: "none" | "show_plan" | "redirect";
+    collected_data?: ChatbotCollectedData;
+    study_plan?: ChatbotStudyPlan;
+}
+
+const FALLBACK_RESPONSE: ChatbotAIResponse = {
+    message: "عذراً، حدث خطأ في معالجة الطلب. يرجى المحاولة لاحقاً.",
+    suggestions: [],
+};
+
+const UNCLEAR_FALLBACK_MESSAGE = "لم أفهم إجابتك بشكل كامل. هل يمكنك توضيح ذلك؟ مثلاً: حدّد هدفك بدقّة، أو مستواك (مبتدئ / متوسط / متقدم)، أو عدد الساعات أسبوعياً.";
+
+/**
+ * Builds the structured Arabic system prompt for the chatbot.
+ * Uses فصحى مبسطة (simplified Modern Standard Arabic) for consistency.
+ */
+function buildChatbotSystemPrompt(coursesList: typeof TAALLM_COURSES): string {
+    return `
+أنت "تعلّم" — مستشار تعليمي ذكي على منصة تعلّم. تستخدم العربية الفصحى المبسطة (واضحة، قريبة من المحكية دون عامية).
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+# متى تسأل ومتى تبني الخطة
+━━━━━━━━━━━━━━━━━━━━━━━━
+• اسأل: عندما ينقصك أي من الأربعة: الهدف الدقيق، المستوى الحالي، ما أكمله سابقاً، الساعات الأسبوعية.
+• ابنِ الخطة: فقط عندما تملك الأربعة كاملة وواضحة. لا تبني قبلها.
+• إذا كانت إجابة الطالب غامضة أو غير كاملة: اطلب التوضيح بلطف (مثلاً: "لم أفهم تماماً — هل تقصد أن هدفك X؟" أو "كم ساعة تقريباً في الأسبوع؟").
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+# البيانات الأربعة المطلوبة (بالترتيب)
+━━━━━━━━━━━━━━━━━━━━━━━━
+1. الهدف الدقيق: ماذا يريد أن يصبح (مثال: مطوّر ويب، مهندس ذكاء اصطناعي) — ليس مجرد "أتعلم برمجة".
+2. المستوى: beginner | intermediate | advanced (مبتدئ / متوسط / متقدم).
+3. ما أكمله سابقاً: قائمة كورسات أو مواد — إن لم يدرس شيئاً فاستخدم مصفوفة فارغة.
+4. الساعات الأسبوعية: رقم (مثلاً 10).
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+# الكورسات المتاحة على تعلّم فقط
+━━━━━━━━━━━━━━━━━━━━━━━━
+${JSON.stringify(coursesList, null, 2)}
+⚠️ لا تقترح أي كورس خارج هذه القائمة أبداً.
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+# منطق المسار (3 طبقات)
+━━━━━━━━━━━━━━━━━━━━━━━━
+الطبقة 1 — Core: فقط ما يحتاجه هذا الطالب من أساسيات (مثلاً مطوّر ويب لا يحتاج Linear Algebra).
+الطبقة 2 — Sector: المواد المشتركة لتخصصه.
+الطبقة 3 — Specialized: المواد المتقدمة لهدفه بالضبط.
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+# صيغة الرد — JSON فقط، بدون نص إضافي
+━━━━━━━━━━━━━━━━━━━━━━━━
+يجب أن يكون ردك كائناً JSON صالحاً بالضبط بهذا الشكل. لا تضف تعليقات أو نصاً قبله أو بعده.
+
+مثال صحيح:
+{
+  "message": "ممتاز، فهمت هدفك. ما مستواك الحالي في البرمجة؟",
+  "suggestions": ["مبتدئ تماماً", "لدي أساس", "متوسط", "متقدم"],
+  "action": "none",
+  "collected_data": {
+    "goal": "مطوّر تطبيقات ويب",
+    "level": null,
+    "completed_courses": [],
+    "weekly_hours": null
+  }
+}
+
+عند اكتمال البيانات الأربعة وعند تأكيد الطالب، أرسل:
+{
+  "message": "جاري بناء خطتك...",
+  "suggestions": [],
+  "action": "show_plan",
+  "collected_data": { ... كل الحقول ... },
+  "study_plan": {
+    "total_months": 6,
+    "phases": [
+      { "phase": 1, "title": "أساسيات", "duration_months": 2, "courses": ["كورس 1", "كورس 2"], "reason": "..." }
+    ]
+  }
+}
+
+الحقول الإلزامية في كل رد: "message" (string), "suggestions" (array of strings), "action" (one of: "none", "show_plan", "redirect").
+collected_data اختياري لكن مطلوب عند جمع المعلومات؛ استخدمه لتحديث goal, level, completed_courses, weekly_hours فقط من رسالة الطالب الحالية.
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+# إجابات غامضة أو غير واضحة
+━━━━━━━━━━━━━━━━━━━━━━━━
+إذا لم تستطع استخراج المعلومة المطلوبة (مثلاً الطالب كتب "لا أدري" أو جملة غير ذات صلة):
+• املأ collected_data فقط بما استطعت استنتاجه، واترك الباقي null أو [].
+• في "message" اطلب التوضيح بأدب: "لم أفهم [السؤال]. هل يمكنك أن توضح؟" مع إعادة السؤال بشكل مختصر.
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+# شخصيتك وممنوعات
+━━━━━━━━━━━━━━━━━━━━━━━━
+• فصحى مبسطة، ودود، مختصر، صادق.
+• ممنوع: اقتراح كورس خارج القائمة، إعطاء خطة قبل اكتمال البيانات الأربعة، تكرار سؤال أجاب عنه الطالب، تكرار الترحيب في كل رسالة.
+`;
+}
+
+/**
+ * Parses and validates LLM JSON output into ChatbotAIResponse.
+ * Returns fallback response if parsing fails or message is missing.
+ */
+function parseAndValidateChatbotResponse(raw: string | null | undefined): ChatbotAIResponse {
+    if (!raw || typeof raw !== "string") return FALLBACK_RESPONSE;
+    try {
+        const parsed = JSON.parse(raw) as Record<string, unknown>;
+        if (!parsed || typeof parsed.message !== "string") return FALLBACK_RESPONSE;
+        return {
+            message: parsed.message,
+            suggestions: Array.isArray(parsed.suggestions) ? (parsed.suggestions as string[]) : [],
+            action: parsed.action === "show_plan" || parsed.action === "redirect" ? parsed.action : "none",
+            collected_data: parsed.collected_data as ChatbotCollectedData | undefined,
+            study_plan: parsed.study_plan as ChatbotStudyPlan | undefined,
+        };
+    } catch {
+        return FALLBACK_RESPONSE;
+    }
+}
 
 // --- 1. Constants & Types ---
 const STATES = {
@@ -149,12 +305,22 @@ async function classifyIntent(openai: OpenAI, userInput: string): Promise<{ inte
     return JSON.parse(response.choices[0].message.content || "{}");
 }
 
+/** Session record from DB used for state machine. */
+interface ChatSessionState {
+  currentState: string;
+  userProfile?: Record<string, unknown>;
+}
+
 /**
- * Deterministic State Machine to decide next state and action
+ * Deterministic State Machine to decide next state and action.
  */
-function determineNextAction(session: any, intent: string, confidence: number) {
-    const currentState = session.currentState;
-    const profile = session.userProfile || {};
+function determineNextAction(
+  session: ChatSessionState,
+  intent: string,
+  confidence: number
+): { nextState: string; action: string; requiresLLM: boolean } {
+  const currentState = session.currentState;
+  const profile = session.userProfile || {};
 
     if (confidence < 0.6 && intent !== "greeting") {
         return { nextState: currentState, action: "clarify", requiresLLM: true };
@@ -189,10 +355,10 @@ router.get("/ping", (_req, res) => res.json({ status: "alive" }));
 
 router.get("/session", requireAuth, async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).session.userId;
+        const userId = (req as RequestWithAuth).session.userId;
         const [session] = await db.select()
             .from(aiSessions)
-            .where(and(eq(aiSessions.userId, userId!), eq(aiSessions.status, "active")))
+            .where(and(eq(aiSessions.userId, userId), eq(aiSessions.status, "active")))
             .orderBy(desc(aiSessions.createdAt))
             .limit(1);
 
@@ -211,9 +377,11 @@ router.get("/session", requireAuth, async (req: Request, res: Response) => {
 
 router.post("/reset-session", requireAuth, async (req: Request, res: Response) => {
     try {
+        const userId = (req as RequestWithAuth).session.userId;
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
         await db.update(aiSessions)
             .set({ status: "completed" })
-            .where(and(eq(aiSessions.userId, (req as any).session.userId!), eq(aiSessions.status, "active")));
+            .where(and(eq(aiSessions.userId, userId), eq(aiSessions.status, "active")));
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ message: "Error resetting session" });
@@ -222,8 +390,9 @@ router.post("/reset-session", requireAuth, async (req: Request, res: Response) =
 
 router.post("/", requireAuth, async (req: Request, res: Response) => {
     try {
-        const { message: userMessage } = req.body;
-        const userId = (req as any).session.userId;
+        const { message: userMessage } = req.body as { message?: string };
+        const userId = (req as RequestWithAuth).session.userId;
+        if (!userId) return res.status(401).json({ message: "غير مصرح" });
         const openai = getOpenAI();
         const anthropic = getAnthropic();
 
@@ -231,11 +400,11 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 
         // 1. Session Setup
         let [session] = await db.select().from(aiSessions)
-            .where(and(eq(aiSessions.userId, userId!), eq(aiSessions.status, "active")))
+            .where(and(eq(aiSessions.userId, userId), eq(aiSessions.status, "active")))
             .orderBy(desc(aiSessions.createdAt)).limit(1);
 
         if (!session) {
-            [session] = await db.insert(aiSessions).values({ userId: userId!, currentState: STATES.ONBOARDING_SECTOR }).returning();
+            [session] = await db.insert(aiSessions).values({ userId, currentState: STATES.ONBOARDING_SECTOR }).returning();
         }
 
         await db.insert(aiMessages).values({ sessionId: session.id, role: "user", content: userMessage });
@@ -249,162 +418,52 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
             .where(eq(aiMessages.sessionId, session.id))
             .orderBy(aiMessages.createdAt);
 
-        const systemPrompt = `
-أنت "تعلّم" — مستشار تعليمي ذكي على منصة تعلّم.
-لست chatbot عادي — أنت مدرس شخصي يفكر ويحلل ويتكيف مع كل طالب.
-هدفك الوحيد: توصيل الطالب لهدفه بأقصر طريق ممكن.
+        const systemPrompt = buildChatbotSystemPrompt(TAALLM_COURSES);
 
-━━━━━━━━━━━━━━━━━━━━━━━━
-# مبادئك الأساسية
-━━━━━━━━━━━━━━━━━━━━━━━━
-1. لا تعطي الطالب ما لا يحتاجه أبداً
-2. لا تحفظ مسارات جاهزة — فكّر وحلّل كل طالب من الصفر
-3. كل طالب فريد — خطته فريدة
-4. لا تسأل عن معلومة قدّمها الطالب مسبقاً
-5. كن مختصراً وواضحاً — لا تطول بدون فائدة
-
-━━━━━━━━━━━━━━━━━━━━━━━━
-# الكورسات المتاحة على تعلّم فقط
-━━━━━━━━━━━━━━━━━━━━━━━━
-${JSON.stringify(TAALLM_COURSES, null, 2)}
-
-⚠️ لا تقترح أي كورس خارج هاي القائمة أبداً.
-
-━━━━━━━━━━━━━━━━━━━━━━━━
-# مرحلة الفهم — اسأل قبل ما تبني
-━━━━━━━━━━━━━━━━━━━━━━━━
-قبل أي خطة، لازم تعرف:
-1. شو هدفه الدقيق؟ (مش "تقنية" — بالضبط شو بده يصير)
-2. شو مستواه الحالي؟ (مبتدئ / عنده أساس / متوسط)
-3. شو درس سابقاً؟ (حتى ما تكرر مواد خلصها)
-4. كم ساعة بالأسبوع متاحة عنده؟
-
-━━━━━━━━━━━━━━━━━━━━━━━━
-# منطق بناء المسار (3 طبقات)
-━━━━━━━━━━━━━━━━━━━━━━━━
-بعد ما تفهم الطالب، فكّر هيك:
-
-الطبقة 1 — Core (للكل):
-  حدد بالضبط شو من IT Core يحتاجه
-  مثال:
-  ✅ مطور ويب → يحتاج: Programming, OOP, Data Structures, Databases
-  ❌ مطور ويب → لا يحتاج: Linear Algebra, Numerical Analysis
-
-الطبقة 2 — Shared (للتخصص الرئيسي):
-  المواد المشتركة بين التخصصات المتقاربة
-
-الطبقة 3 — Specialized (للهدف الدقيق):
-  فقط المواد الخاصة بهدفه بالضبط
-
-━━━━━━━━━━━━━━━━━━━━━━━━
-# قواعد المواد المشتركة (ذكاء حقيقي)
-━━━━━━━━━━━━━━━━━━━━━━━━
-إذا الطالب درس مادة في مسار وبعدين أضاف تخصص ثاني:
-→ لا تعد نفس المادة — ابنِ من حيث انتهى
-
-مثال:
-  درس Python للويب ✅
-  بدأ Data Science → تخطى Python مباشرة ✅
-
-━━━━━━━━━━━━━━━━━━━━━━━━
-# قواعد المتابعة
-━━━━━━━━━━━━━━━━━━━━━━━━
-- بعد كل كورس → امتحان قصير
-- نجح (70%+) → الكورس الجاي
-- رسب → حدد وين الضعف بالضبط، أعد المادة المحددة فقط
-- تأخر أكثر من أسبوع → ذكّره وشجعه
-- غيّر هدفه → أعد بناء الخطة من النقطة الحالية
-
-━━━━━━━━━━━━━━━━━━━━━━━━
-# صيغة الرد (JSON فقط)
-━━━━━━━━━━━━━━━━━━━━━━━━
-{
-  "message": "نص الرد — ودود ومختصر",
-  "suggestions": ["خيار 1", "خيار 2", "خيار 3"],
-  "action": "none | show_plan | redirect",
-  "collected_data": {
-    "goal": "الهدف الدقيق للطالب",
-    "level": "beginner | intermediate | advanced",
-    "completed_courses": [],
-    "weekly_hours": 0
-  },
-  "study_plan": {
-    "total_months": 0,
-    "phases": [
-      {
-        "phase": 1,
-        "title": "اسم المرحلة",
-        "duration_months": 0,
-        "courses": ["كورس 1", "كورس 2"],
-        "reason": "ليش هاي المرحلة"
-      }
-    ]
-  }
-}
-
-━━━━━━━━━━━━━━━━━━━━━━━━
-# شخصيتك
-━━━━━━━━━━━━━━━━━━━━━━━━
-- تحكي بالعربي بشكل طبيعي وودود
-- مشجع دائماً لكن صادق
-- مباشر وواضح — لا تطول بدون فائدة
-- تعامل مع الطالب كإنسان مش كرقم
-- إذا الطالب يطلب مادة مش على تعلّم → قوله بصراحة
-
-━━━━━━━━━━━━━━━━━━━━━━━━
-# ممنوع أبداً
-━━━━━━━━━━━━━━━━━━━━━━━━
-❌ لا تقترح كورس مش على تعلّم
-❌ لا تعطي مواد زيادة عن اللي يحتاجها
-❌ لا تعطي نفس المسار لكل الطلاب
-❌ لا تبدأ بالخطة قبل ما تفهم الطالب كامل
-❌ لا تكرر سؤال أجاب عنه الطالب
-❌ لا تكرر الترحيب في كل رسالة
-`;
-
-        let aiResponse: any = {};
-        let providerUsed = "openai";
+        let aiResponse: ChatbotAIResponse = FALLBACK_RESPONSE;
+        let providerUsed: "openai" | "anthropic" = "openai";
 
         if (anthropic) {
             providerUsed = "anthropic";
-            const completion = await anthropic.messages.create({
-                model: "claude-3-7-sonnet-latest",
-                max_tokens: 1024,
-                messages: [{ role: "user", content: `System: ${systemPrompt}\nUser: ${userMessage}` }],
-                system: "Output raw JSON based on the prompt.",
-                temperature: 0.1,
-            });
-
             try {
-                const content = (completion.content[0] as any).text;
-                aiResponse = JSON.parse(content || "{}");
+                const completion = await anthropic.messages.create({
+                    model: "claude-3-7-sonnet-latest",
+                    max_tokens: 1024,
+                    messages: [{ role: "user", content: `System: ${systemPrompt}\nUser: ${userMessage}` }],
+                    system: "Output raw JSON only, no markdown or extra text. Valid JSON object with message, suggestions, action.",
+                    temperature: 0.1,
+                });
+                const contentBlock = completion.content[0];
+                const text = contentBlock && "text" in contentBlock ? contentBlock.text : "";
+                aiResponse = parseAndValidateChatbotResponse(text);
             } catch (e) {
-                console.error("Claude Parse Error:", e);
+                console.error("[CHATBOT] Claude API error:", e);
+                aiResponse = { ...FALLBACK_RESPONSE, message: "عذراً، حدث خطأ في فهم البيانات. هل يمكنك محاولة مرة أخرى؟" };
             }
         } else if (openai) {
-            const completion = await openai.chat.completions.create({
-                model: "gpt-4o",
-                messages: [
-                    { role: "system", content: systemPrompt },
-                    ...msgs.map(m => ({ role: m.role as any, content: m.content })),
-                    { role: "user", content: userMessage }
-                ],
-                response_format: { type: "json_object" },
-                temperature: 0.7,
-            });
             try {
-                aiResponse = JSON.parse(completion.choices[0].message.content || "{}");
+                const completion = await openai.chat.completions.create({
+                    model: "gpt-4o",
+                    messages: [
+                        { role: "system", content: systemPrompt },
+                        ...msgs.map((m) => ({ role: m.role, content: m.content } as { role: "system" | "user" | "assistant"; content: string })),
+                        { role: "user", content: userMessage },
+                    ],
+                    response_format: { type: "json_object" },
+                    temperature: 0.7,
+                });
+                const content = completion.choices[0]?.message?.content;
+                aiResponse = parseAndValidateChatbotResponse(content);
             } catch (e) {
-                aiResponse = { message: "عذراً، حدث خطأ في فهم البيانات. هل يمكنك محاولة مرة أخرى؟", suggestions: [] };
+                console.error("[CHATBOT] OpenAI API error:", e);
+                aiResponse = { ...FALLBACK_RESPONSE, message: "عذراً، حدث خطأ في فهم البيانات. هل يمكنك محاولة مرة أخرى؟" };
             }
-        }
-
-        if (!aiResponse.message) {
-            aiResponse = { message: "عذراً، حدث خطأ في معالجة الطلب. يرجى المحاولة لاحقاً.", suggestions: [] };
         }
 
         // 3. Update Profile & Sync
-        const updatedProfile = { ...(session.userProfile as any || {}), ...(aiResponse.collected_data || {}) };
+        const sessionProfile = (session.userProfile as Record<string, unknown>) || {};
+        const collected = aiResponse.collected_data || {};
+        const updatedProfile = { ...sessionProfile, ...collected };
 
         // 4. Determine Next State based on NEW data
         let nextState = currentState;
@@ -416,33 +475,39 @@ ${JSON.stringify(TAALLM_COURSES, null, 2)}
         // 5. Save everything to DB
         await db.update(aiSessions)
             .set({
-                currentState: nextState as any,
-                userProfile: updatedProfile as any,
-                updatedAt: new Date()
+                currentState: nextState,
+                userProfile: updatedProfile,
+                updatedAt: new Date(),
             })
             .where(eq(aiSessions.id, session.id));
 
         // Sync to Students table
         try {
-            const [user] = await db.select().from(users).where(eq(users.id, userId!)).limit(1);
+            const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
             if (user) {
+                const sector = updatedProfile.sector as string | undefined;
+                const specialization = updatedProfile.specialization as string | undefined;
+                const experience = updatedProfile.experience as string | undefined;
+                const weekly_hours = updatedProfile.weekly_hours as number | undefined;
                 const studentData = {
                     userId: user.id,
                     name: user.fullName,
                     email: user.email,
-                    interests: [updatedProfile.sector, updatedProfile.specialization].filter(Boolean),
-                    notes: updatedProfile.experience ? `الخبرة: ${updatedProfile.experience}, ساعات: ${updatedProfile.weekly_hours}` : null,
-                    updatedAt: new Date()
+                    interests: [sector, specialization].filter(Boolean),
+                    notes: experience && weekly_hours != null ? `الخبرة: ${experience}, ساعات: ${weekly_hours}` : null,
+                    updatedAt: new Date(),
                 };
-                await db.insert(students).values(studentData as any).onConflictDoUpdate({ target: students.userId, set: studentData as any });
+                await db.insert(students).values(studentData).onConflictDoUpdate({ target: students.userId, set: studentData });
             }
-        } catch (err) { console.error("Sync error:", err); }
+        } catch (err) {
+            console.error("[CHATBOT] Sync error:", err);
+        }
 
         await db.insert(aiMessages).values({
             sessionId: session.id,
             role: "assistant",
-            content: JSON.stringify(aiResponse), // Important: store full JSON for UI to parse suggestions
-            metadata: { state: nextState } as any
+            content: JSON.stringify(aiResponse),
+            metadata: { state: nextState },
         });
 
         res.json({

@@ -90,22 +90,111 @@ function getAnthropic(): Anthropic | null {
   return new Anthropic({ apiKey: key });
 }
 
+const PLAN_BUILD_ERROR_AR = "تعذر بناء الخطة الدراسية. يرجى المحاولة لاحقاً أو تعديل بياناتك ثم إعادة المحاولة.";
+
+/**
+ * Filters course IDs to only those that exist in the catalog. Returns validated layers and reasons.
+ */
+function filterValidCourseIds(
+  catalog: CatalogCourse[],
+  raw: { layer1?: string[]; layer2?: string[]; layer3?: string[]; reasons?: Record<string, string> }
+): { layer1: string[]; layer2: string[]; layer3: string[]; reasons: Record<string, string> } {
+  const idSet = new Set(catalog.map((c) => c.id));
+  const filter = (ids: string[] | undefined): string[] =>
+    (ids || []).filter((id) => idSet.has(id));
+  const layer1 = filter(raw.layer1);
+  const layer2 = filter(raw.layer2);
+  const layer3 = filter(raw.layer3);
+  const reasons: Record<string, string> = {};
+  for (const id of [...layer1, ...layer2, ...layer3]) {
+    if (raw.reasons && raw.reasons[id]) reasons[id] = raw.reasons[id];
+  }
+  return { layer1, layer2, layer3, reasons };
+}
+
+/**
+ * Ensures each layer has at least one course by filling from catalog if needed.
+ * Uses a single mutable set so we don't assign the same course to two layers.
+ */
+function ensureMinimumOnePerLayer(
+  catalog: CatalogCourse[],
+  layer1: string[],
+  layer2: string[],
+  layer3: string[],
+  usedIds: Set<string>
+): { layer1: string[]; layer2: string[]; layer3: string[] } {
+  const used = new Set(usedIds);
+  const take = (n: number, preferLevel?: string): string[] => {
+    const out: string[] = [];
+    let rest = catalog.filter((c) => !used.has(c.id));
+    if (preferLevel) rest = rest.filter((c) => (c.level || "").toLowerCase() === preferLevel);
+    for (const c of rest) {
+      if (out.length >= n) break;
+      out.push(c.id);
+      used.add(c.id);
+    }
+    return out;
+  };
+  const l1 = layer1.length >= 1 ? layer1 : take(1, "beginner");
+  l1.forEach((id) => used.add(id));
+  const l2 = layer2.length >= 1 ? layer2 : take(1);
+  l2.forEach((id) => used.add(id));
+  const l3 = layer3.length >= 1 ? layer3 : take(1);
+  l3.forEach((id) => used.add(id));
+  return { layer1: l1, layer2: l2, layer3: l3 };
+}
+
+/**
+ * Builds a minimal 3-layer plan using rule-based selection when AI is unavailable or fails.
+ */
+function buildRuleBasedPlan(
+  profile: StudentProfile,
+  catalog: CatalogCourse[],
+  alreadyCompletedTitles: string[]
+): { layer1: string[]; layer2: string[]; layer3: string[]; reasons: Record<string, string> } {
+  const skipSet = new Set(alreadyCompletedTitles.map((t) => t.toLowerCase()));
+  const available = catalog.filter(
+    (c) => !skipSet.has(c.title.toLowerCase()) && !c.title.split(" ").some((w) => skipSet.has(w))
+  );
+  const byLevel = (level: string) => available.filter((c) => (c.level || "").toLowerCase() === level);
+  const beginner = byLevel("beginner");
+  const intermediate = byLevel("intermediate");
+  const advanced = byLevel("advanced");
+  const layer1 = beginner.slice(0, 3).map((c) => c.id);
+  const layer2 = intermediate.slice(0, 2).map((c) => c.id);
+  const layer3 = advanced.slice(0, 2).map((c) => c.id);
+  const allIds = [...layer1, ...layer2, ...layer3];
+  const reasons: Record<string, string> = {};
+  allIds.forEach((id) => {
+    const c = catalog.find((x) => x.id === id);
+    reasons[id] = c ? `مقترح كجزء من مسارك نحو: ${profile.goal || "هدفك"}` : "";
+  });
+  return { layer1, layer2, layer3, reasons };
+}
+
+/**
+ * Calls Claude to select courses for each layer. Returns validated layers (only IDs that exist in catalog).
+ * Throws on API or parse failure (caller should use rule-based fallback).
+ */
 async function callAIForPlan(
   profile: StudentProfile,
   catalog: CatalogCourse[],
   alreadyCompletedTitles: string[]
 ): Promise<{ layer1: string[]; layer2: string[]; layer3: string[]; reasons: Record<string, string> }> {
-
   const anthropic = getAnthropic();
   if (!anthropic) throw new Error("ANTHROPIC_API_KEY not configured");
 
-  const catalogText = catalog.map(c =>
-    `ID: ${c.id} | Title: "${c.title}" | Category: ${c.category?.name || "General"} | Level: ${c.level} | AI_Note: ${c.aiDescription || "-"}`
-  ).join("\n");
+  const catalogText = catalog
+    .map(
+      (c) =>
+        `ID: ${c.id} | Title: "${c.title}" | Category: ${c.category?.name || "General"} | Level: ${c.level} | AI_Note: ${c.aiDescription || "-"}`
+    )
+    .join("\n");
 
-  const skipText = alreadyCompletedTitles.length > 0
-    ? `\n\nCOURSES TO SKIP (student already completed):\n${alreadyCompletedTitles.map(t => `- "${t}"`).join("\n")}`
-    : "\n\n(Student has no prior completed courses.)";
+  const skipText =
+    alreadyCompletedTitles.length > 0
+      ? `\n\nCOURSES TO SKIP (student already completed):\n${alreadyCompletedTitles.map((t) => `- "${t}"`).join("\n")}`
+      : "\n\n(Student has no prior completed courses.)";
 
   const prompt = `You are a curriculum architect for the Taallm Arabic learning platform.
 
@@ -133,7 +222,7 @@ LAYER 3 — Deep Specialization (advanced courses for the exact role/job the stu
 STRICT RULES:
 1. Only use course IDs from the catalog above — NEVER invent courses
 2. Never include courses from the "COURSES TO SKIP" list
-3. Each layer should have 2–5 courses maximum (quality over quantity)
+3. Each layer must have at least 1 course; 2–5 courses per layer maximum (quality over quantity)
 4. Select courses where the title/description best matches the layer's purpose
 
 Return ONLY this JSON (no extra text):
@@ -153,10 +242,12 @@ Return ONLY this JSON (no extra text):
     messages: [{ role: "user", content: prompt }],
   });
 
-  const text = (resp.content[0] as any).text || "";
+  const contentBlock = resp.content[0];
+  const text = contentBlock && "text" in contentBlock ? contentBlock.text : "";
   const match = text.match(/\{[\s\S]*\}/);
   if (!match) throw new Error("AI returned no JSON");
-  return JSON.parse(match[0]);
+  const parsed = JSON.parse(match[0]) as { layer1?: string[]; layer2?: string[]; layer3?: string[]; reasons?: Record<string, string> };
+  return filterValidCourseIds(catalog, parsed);
 }
 
 // ─── Assemble the plan from AI selections ─────────────────────────────────────
@@ -212,6 +303,11 @@ function buildMilestone(
 
 // ─── Main exported function ───────────────────────────────────────────────────
 
+/**
+ * Builds a 3-layer study plan for the student. Uses AI when available; falls back to rule-based
+ * selection on failure. Validates all course IDs against the database and ensures each layer
+ * has at least one course. Throws with an Arabic error message if the plan cannot be built.
+ */
 export async function buildPlan(
   profile: StudentProfile,
   userId: string,
@@ -220,7 +316,7 @@ export async function buildPlan(
 
   // 1. Fetch real catalog from DB
   const catalog = await fetchCatalog();
-  if (catalog.length === 0) throw new Error("No published courses found in database");
+  if (catalog.length === 0) throw new Error(PLAN_BUILD_ERROR_AR);
 
   // 2. Get courses the user is already enrolled in (treat as completed)
   const enrolledIds = await fetchEnrolledCourseIds(userId);
@@ -244,8 +340,29 @@ export async function buildPlan(
     )
   );
 
-  // 5. Call AI to select course IDs for each layer
-  const aiSelection = await callAIForPlan(profile, availableCatalog, allCompletedTitles);
+  // 5. Call AI to select course IDs; on failure use rule-based fallback
+  let aiSelection: { layer1: string[]; layer2: string[]; layer3: string[]; reasons: Record<string, string> };
+  try {
+    aiSelection = await callAIForPlan(profile, availableCatalog, allCompletedTitles);
+  } catch (e) {
+    console.error("[PLAN_BUILDER] AI plan failed, using rule-based fallback", e);
+    aiSelection = buildRuleBasedPlan(profile, availableCatalog, allCompletedTitles);
+  }
+
+  // 5b. Ensure each layer has at least 1 course (fill from catalog if needed)
+  const usedIds = new Set([
+    ...aiSelection.layer1,
+    ...aiSelection.layer2,
+    ...aiSelection.layer3,
+  ]);
+  const { layer1: l1, layer2: l2, layer3: l3 } = ensureMinimumOnePerLayer(
+    availableCatalog,
+    aiSelection.layer1,
+    aiSelection.layer2,
+    aiSelection.layer3,
+    usedIds
+  );
+  aiSelection = { ...aiSelection, layer1: l1, layer2: l2, layer3: l3 };
 
   // 6. Assemble milestones
   const weeklyHours = profile.weeklyHours || 10;
@@ -285,6 +402,10 @@ export async function buildPlan(
     weekOffset += milestone.durationWeeks;
   }
 
+  if (milestones.length === 0) {
+    throw new Error(PLAN_BUILD_ERROR_AR);
+  }
+
   // 7. Calculate totals
   const totalWeeks = milestones.reduce((sum, m) => sum + m.durationWeeks, 0);
   const totalCourses = milestones.reduce((sum, m) => sum + m.courses.length, 0);
@@ -312,7 +433,7 @@ export async function buildPlan(
       description: plan.description,
       duration: plan.duration,
       totalHours,
-      planData: plan as any,
+      planData: plan as Record<string, unknown>,
       status: "active",
     })
     .returning();
@@ -321,7 +442,7 @@ export async function buildPlan(
   await db
     .update(aiSessions)
     .set({
-      generatedPlan: plan as any,
+      generatedPlan: plan as Record<string, unknown>,
       currentState: "active_learning",
       updatedAt: new Date(),
     })
@@ -332,6 +453,10 @@ export async function buildPlan(
 
 // ─── Rebuild plan from current point (goal change) ───────────────────────────
 
+/**
+ * Builds a new plan from the current point after the student changes goal or profile.
+ * Marks previous plan as abandoned and reuses completed courses as skipped.
+ */
 export async function rebuildPlanFromCurrentPoint(
   userId: string,
   sessionId: string,

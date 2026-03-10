@@ -136,12 +136,48 @@ function getAnthropic(): Anthropic | null {
   }
 }
 
+const VALID_LEVELS: Array<StudentProfile["level"]> = ["beginner", "intermediate", "advanced"];
+
+/**
+ * Validates and normalizes extracted profile data so it is safe to pass to Plan Builder.
+ */
+function validateExtractedData(
+  state: AgentState,
+  raw: Record<string, unknown>
+): Partial<StudentProfile> {
+  const out: Partial<StudentProfile> = {};
+  if (state === "ask_goal" && typeof raw.goal === "string" && raw.goal.trim()) {
+    out.goal = raw.goal.trim();
+  }
+  if (state === "ask_level" && typeof raw.level === "string" && VALID_LEVELS.includes(raw.level as StudentProfile["level"])) {
+    out.level = raw.level as StudentProfile["level"];
+  }
+  if (state === "ask_completed") {
+    if (Array.isArray(raw.completedCourses)) {
+      out.completedCourses = raw.completedCourses.filter((c): c is string => typeof c === "string");
+    } else if (raw.completedCourses === undefined || raw.completedCourses === null) {
+      out.completedCourses = [];
+    }
+  }
+  if (state === "ask_hours" && typeof raw.weeklyHours === "number" && raw.weeklyHours > 0) {
+    out.weeklyHours = Math.min(168, Math.round(raw.weeklyHours));
+  }
+  return out;
+}
+
+/**
+ * Calls Claude API to extract structured data from the user message.
+ * Wrapped in try/catch with one retry; falls back to manual parse on failure or invalid JSON.
+ */
 async function extractFromMessage(
   state: AgentState,
   userMessage: string
 ): Promise<Partial<StudentProfile>> {
   const anthropic = getAnthropic();
-  if (!anthropic) return parseManually(state, userMessage);
+  if (!anthropic) {
+    console.log("[ORCHESTRATOR] No Anthropic client; using manual parse");
+    return parseManually(state, userMessage);
+  }
 
   const extractionPrompts: Record<string, string> = {
     ask_goal: `Extract the student's career goal from this message. Return JSON: { "goal": "exact career goal in Arabic" }. Message: "${userMessage}"`,
@@ -150,17 +186,35 @@ async function extractFromMessage(
     ask_hours: `Extract the weekly study hours from this message. Return JSON: { "weeklyHours": number }. Convert any text to a number (e.g. "5 hours" → 5, "half a day" → 4). Message: "${userMessage}"`,
   };
 
-  try {
+  const prompt = extractionPrompts[state];
+  if (!prompt) return parseManually(state, userMessage);
+
+  const callClaude = async (): Promise<Partial<StudentProfile>> => {
     const resp = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 200,
-      messages: [{ role: "user", content: extractionPrompts[state] || "" }],
+      messages: [{ role: "user", content: prompt }],
     });
-    const text = (resp.content[0] as any).text || "";
+    const contentBlock = resp.content[0];
+    const text = contentBlock && "text" in contentBlock ? contentBlock.text : "";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) return JSON.parse(jsonMatch[0]);
-  } catch (e) {
-    console.error("[ORCHESTRATOR] Extraction failed, using manual parse:", e);
+    if (!jsonMatch) throw new Error("No JSON in response");
+    const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+    const validated = validateExtractedData(state, parsed);
+    if (Object.keys(validated).length === 0) throw new Error("Validation produced no fields");
+    return validated;
+  };
+
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      console.log(`[ORCHESTRATOR] Extraction step=${state} attempt=${attempt}`);
+      const result = await callClaude();
+      console.log(`[ORCHESTRATOR] Extraction success step=${state}`, result);
+      return result;
+    } catch (e) {
+      console.error(`[ORCHESTRATOR] Extraction failed step=${state} attempt=${attempt}`, e);
+      if (attempt === 2) return parseManually(state, userMessage);
+    }
   }
 
   return parseManually(state, userMessage);
@@ -222,6 +276,11 @@ function buildConfirmMessage(profile: StudentProfile): string {
 
 // ─── Main Orchestrator Function ───────────────────────────────────────────────
 
+/**
+ * Runs one turn of the onboarding agent: determines state, extracts data from the user message,
+ * validates it, and returns the next question or build_plan action.
+ * All extracted data is validated before being merged into the profile (safe for Plan Builder).
+ */
 export async function orchestrate(
   sessionId: string,
   userId: string,
@@ -229,15 +288,19 @@ export async function orchestrate(
   currentProfile: StudentProfile,
   currentState: AgentState
 ): Promise<OrchestratorResponse> {
+  console.log("[ORCHESTRATOR] Turn start", { sessionId, currentState, userMessageLength: userMessage.length });
+
   // 1. Determine current state from profile (source of truth)
   const state = nextState(currentState, currentProfile);
+  console.log("[ORCHESTRATOR] Resolved state", state);
 
-  // 2. Extract data from user's message based on current state
+  // 2. Extract data from user's message based on current state (with retry and validation)
   let updatedProfile = { ...currentProfile };
 
   if (state !== "confirm_profile" && state !== "plan_ready" && state !== "active_learning") {
     const extracted = await extractFromMessage(state, userMessage);
     updatedProfile = { ...updatedProfile, ...extracted };
+    console.log("[ORCHESTRATOR] Profile after extraction", updatedProfile);
   }
 
   // 3. Handle confirmation step
@@ -304,6 +367,9 @@ export async function orchestrate(
 
 // ─── Session persistence helpers ──────────────────────────────────────────────
 
+/**
+ * Returns the current active session for the user, or creates one if none exists.
+ */
 export async function getOrCreateSession(userId: string) {
   const [existing] = await db
     .select()
@@ -327,16 +393,31 @@ export async function getOrCreateSession(userId: string) {
   return created;
 }
 
-export async function saveMessage(sessionId: string, role: "user" | "assistant", content: string, metadata?: object) {
-  await db.insert(aiMessages).values({ sessionId, role, content, metadata: metadata as any });
+/**
+ * Persists one message (user or assistant) for the given session.
+ */
+export async function saveMessage(
+  sessionId: string,
+  role: "user" | "assistant",
+  content: string,
+  metadata?: Record<string, unknown>
+): Promise<void> {
+  await db.insert(aiMessages).values({ sessionId, role, content, metadata: metadata ?? undefined });
 }
 
-export async function updateSession(sessionId: string, state: AgentState, profile: StudentProfile) {
+/**
+ * Updates the session's current state and user profile (for Plan Builder consumption).
+ */
+export async function updateSession(
+  sessionId: string,
+  state: AgentState,
+  profile: StudentProfile
+): Promise<void> {
   await db
     .update(aiSessions)
     .set({
       currentState: state,
-      userProfile: profile as any,
+      userProfile: profile,
       updatedAt: new Date(),
     })
     .where(eq(aiSessions.id, sessionId));
