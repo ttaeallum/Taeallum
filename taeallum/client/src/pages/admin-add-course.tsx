@@ -688,7 +688,7 @@ export default function AdminAddCourse() {
                                 <Input
                                     placeholder="مثال: 1cb00bc1-52ab-4950-825b-f2754e3bd4da"
                                     value={bunnyCollectionIdInput}
-                                    onChange={(e) => { setBunnyCollectionIdInput(e.target.value); setBunnyError(\"\"); }}
+                                    onChange={(e) => { setBunnyCollectionIdInput(e.target.value); setBunnyError(""); }}
                                     className="h-12 text-left"
                                     dir="ltr"
                                     disabled={bunnyLoading}
