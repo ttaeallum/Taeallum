@@ -52,11 +52,11 @@ export default function AdminAddCourse() {
     const [modules, setModules] = useState<Module[]>([]);
     const [expandedModule, setExpandedModule] = useState<number | null>(null);
 
-    // YouTube import state
-    const [showYoutubeDialog, setShowYoutubeDialog] = useState(false);
-    const [youtubeUrl, setYoutubeUrl] = useState("");
-    const [youtubeLoading, setYoutubeLoading] = useState(false);
-    const [youtubeError, setYoutubeError] = useState("");
+    // Bunny import state
+    const [showBunnyDialog, setShowBunnyDialog] = useState(false);
+    const [bunnyCollectionIdInput, setBunnyCollectionIdInput] = useState("");
+    const [bunnyLoading, setBunnyLoading] = useState(false);
+    const [bunnyError, setBunnyError] = useState("");
 
     // Auth check
     const { data: user, isLoading: userLoading } = useQuery({
@@ -220,55 +220,50 @@ export default function AdminAddCourse() {
         setExpandedModule(modules.length);
     };
 
-    // YouTube Playlist Import Handler
-    const handleYoutubeImport = async () => {
-        if (!youtubeUrl.trim()) return;
-        setYoutubeLoading(true);
-        setYoutubeError("");
+    // Bunny Collection Import Handler (creates a module bound to the collectionId)
+    const handleBunnyImport = async () => {
+        const collectionId = bunnyCollectionIdInput.trim();
+        if (!collectionId) return;
+        setBunnyLoading(true);
+        setBunnyError("");
 
         try {
-            const res = await fetch("/api/youtube/playlist", {
+            const res = await fetch("/api/admin-panel/preview-bunny-collection", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", ...getSessionHeaders() } as Record<string, string>,
                 credentials: "include",
-                body: JSON.stringify({ url: youtubeUrl.trim() })
+                body: JSON.stringify({ collectionId })
             });
 
-            const data = await res.json();
-
+            const data = await res.json().catch(() => ({} as { message?: string; totalVideos?: number }));
             if (!res.ok) {
-                setYoutubeError(data.message || "فشل جلب البلاي ليست");
+                setBunnyError(data.message || "فشل التحقق من مجموعة Bunny");
                 return;
             }
 
-            // Create a new module with all lessons from the playlist
+            const total = Number(data.totalVideos || 0);
             const newModule: Module = {
-                title: `بلاي ليست يوتيوب (${data.totalVideos} فيديو)`,
+                title: `مجموعة Bunny (${total} فيديو)`,
                 description: "",
                 order: modules.length + 1,
-                lessons: data.lessons.map((lesson: any) => ({
-                    title: lesson.title,
-                    description: "",
-                    videoUrl: lesson.videoUrl,
-                    videoOwnerUrl: lesson.videoOwnerUrl || "",
-                    duration: String(lesson.duration || 0),
-                    order: lesson.order
-                }))
+                lessons: [],
+                bunnyCollectionId: collectionId,
             };
 
-            setModules(prev => [...prev, newModule]);
+            setModules((prev) => [...prev, newModule]);
             setExpandedModule(modules.length);
-            setShowYoutubeDialog(false);
-            setYoutubeUrl("");
+            setShowBunnyDialog(false);
+            setBunnyCollectionIdInput("");
 
             toast({
-                title: `تم استيراد ${data.totalVideos} فيديو بنجاح! 🎉`,
-                description: "تم إضافة كل الفيديوهات كدروس. راجعها وعدّل لو تحتاج."
+                title: `تم ربط مجموعة Bunny بنجاح`,
+                description: `سيتم سحب ${total} فيديو تلقائياً كدروس عند حفظ الكورس.`
             });
-        } catch (err: any) {
-            setYoutubeError(err.message || "حدث خطأ غير متوقع");
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : "حدث خطأ غير متوقع";
+            setBunnyError(msg);
         } finally {
-            setYoutubeLoading(false);
+            setBunnyLoading(false);
         }
     };
 
@@ -490,9 +485,14 @@ export default function AdminAddCourse() {
                                         <Plus className="h-4 w-4" />
                                         وحدة تعليمية جديدة
                                     </Button>
-                                    <Button type="button" onClick={() => setShowYoutubeDialog(true)} variant="outline" className="gap-2 border-red-500/20 hover:bg-red-500/10 text-red-600">
-                                        <Youtube className="h-4 w-4" />
-                                        استيراد من يوتيوب
+                                    <Button
+                                        type="button"
+                                        onClick={() => setShowBunnyDialog(true)}
+                                        variant="outline"
+                                        className="gap-2 border-purple-500/20 hover:bg-purple-500/10 text-purple-700"
+                                    >
+                                        <Link2 className="h-4 w-4" />
+                                        استيراد من Bunny
                                     </Button>
                                 </div>
                             </CardHeader>
@@ -668,71 +668,70 @@ export default function AdminAddCourse() {
                 </div>
             </AdminLayout>
 
-            {/* YouTube Import Dialog */}
-            {
-                showYoutubeDialog && (
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => !youtubeLoading && setShowYoutubeDialog(false)}>
-                        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl max-w-lg w-full p-8" dir="rtl" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center">
-                                    <Youtube className="w-6 h-6 text-red-500" />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold">استيراد بلاي ليست يوتيوب</h3>
-                                    <p className="text-sm text-muted-foreground">الصق رابط البلاي ليست وراح نسحب كل الفيديوهات تلقائياً</p>
-                                </div>
+            {/* Bunny Import Dialog */}
+            {showBunnyDialog && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => !bunnyLoading && setShowBunnyDialog(false)}>
+                    <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl max-w-lg w-full p-8" dir="rtl" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center">
+                                <Link2 className="w-6 h-6 text-purple-700" />
                             </div>
-
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label className="font-bold">رابط البلاي ليست</Label>
-                                    <Input
-                                        placeholder="https://www.youtube.com/playlist?list=PLxxxxxxx"
-                                        value={youtubeUrl}
-                                        onChange={(e) => { setYoutubeUrl(e.target.value); setYoutubeError(""); }}
-                                        className="h-12 text-left" dir="ltr"
-                                        disabled={youtubeLoading}
-                                    />
-                                </div>
-
-                                {youtubeError && (
-                                    <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl text-red-600 text-sm font-medium">
-                                        ⚠️ {youtubeError}
-                                    </div>
-                                )}
-
-                                <div className="flex gap-3 pt-2">
-                                    <Button
-                                        type="button"
-                                        onClick={handleYoutubeImport}
-                                        disabled={!youtubeUrl.trim() || youtubeLoading}
-                                        className="flex-1 h-12 bg-red-500 hover:bg-red-600 text-white font-bold gap-2"
-                                    >
-                                        {youtubeLoading ? (
-                                            <><Loader2 className="h-4 w-4 animate-spin" /> جاري السحب...</>
-                                        ) : (
-                                            <><Youtube className="h-4 w-4" /> سحب الفيديوهات</>
-                                        )}
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        onClick={() => setShowYoutubeDialog(false)}
-                                        disabled={youtubeLoading}
-                                        className="px-6 h-12"
-                                    >
-                                        إلغاء
-                                    </Button>
-                                </div>
-
-                                <p className="text-[11px] text-muted-foreground text-center pt-2">
-                                    💡 تأكد أن البلاي ليست عامة (Public) وليست خاصة
-                                </p>
+                            <div>
+                                <h3 className="text-xl font-bold">استيراد من Bunny (Collection)</h3>
+                                <p className="text-sm text-muted-foreground">الصق Collection ID وسنربط المجموعة كوحدة، وسيتم سحب كل الفيديوهات تلقائياً عند حفظ الكورس</p>
                             </div>
                         </div>
+
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label className="font-bold">Collection ID</Label>
+                                <Input
+                                    placeholder="مثال: 1cb00bc1-52ab-4950-825b-f2754e3bd4da"
+                                    value={bunnyCollectionIdInput}
+                                    onChange={(e) => { setBunnyCollectionIdInput(e.target.value); setBunnyError(\"\"); }}
+                                    className="h-12 text-left"
+                                    dir="ltr"
+                                    disabled={bunnyLoading}
+                                />
+                            </div>
+
+                            {bunnyError && (
+                                <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl text-red-600 text-sm font-medium">
+                                    ⚠️ {bunnyError}
+                                </div>
+                            )}
+
+                            <div className="flex gap-3 pt-2">
+                                <Button
+                                    type="button"
+                                    onClick={handleBunnyImport}
+                                    disabled={!bunnyCollectionIdInput.trim() || bunnyLoading}
+                                    className="flex-1 h-12 bg-purple-700 hover:bg-purple-800 text-white font-bold gap-2"
+                                >
+                                    {bunnyLoading ? (
+                                        <><Loader2 className="h-4 w-4 animate-spin" /> جاري التحقق...</>
+                                    ) : (
+                                        <><Link2 className="h-4 w-4" /> إضافة المجموعة</>
+                                    )}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => setShowBunnyDialog(false)}
+                                    disabled={bunnyLoading}
+                                    className="px-6 h-12"
+                                >
+                                    إلغاء
+                                </Button>
+                            </div>
+
+                            <p className="text-[11px] text-muted-foreground text-center pt-2">
+                                💡 تأكد أن `BUNNY_LIBRARY_ID` و `BUNNY_API_KEY` مضافين على السيرفر (Render/VPS) حتى يتم الاستيراد عند الحفظ
+                            </p>
+                        </div>
                     </div>
-                )
-            }
+                </div>
+            )}
         </>
     );
 }

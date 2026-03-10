@@ -693,6 +693,10 @@ interface BunnyVideoItem {
     length?: number; // seconds
 }
 
+const previewBunnyCollectionSchema = z.object({
+    collectionId: z.string().min(8),
+});
+
 const importBunnyCollectionSchema = z.object({
     sectionId: z.string().uuid(),
     collectionId: z.string().min(8),
@@ -735,6 +739,38 @@ async function fetchBunnyVideosByCollection(collectionId: string): Promise<Bunny
         .filter((v) => v.collectionId === collectionId && typeof v.guid === "string" && typeof v.title === "string")
         .sort((a, b) => a.title.localeCompare(b.title, "en"));
 }
+
+/**
+ * Preview endpoint: validates collectionId and returns the video count (and sample titles)
+ * so the admin UI can confirm the collection before importing.
+ */
+router.post("/preview-bunny-collection", async (req: Request, res: Response) => {
+    const parsed = previewBunnyCollectionSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({ message: "بيانات غير صحيحة. تأكد من collectionId." });
+    }
+
+    const { collectionId } = parsed.data;
+
+    try {
+        const videos = await fetchBunnyVideosByCollection(collectionId);
+        if (videos.length === 0) {
+            return res.status(404).json({ message: "لم يتم العثور على فيديوهات داخل هذا الـ collectionId على Bunny." });
+        }
+
+        return res.json({
+            success: true,
+            collectionId,
+            totalVideos: videos.length,
+            sampleTitles: videos.slice(0, 5).map((v) => v.title),
+        });
+    } catch (error) {
+        console.error("Bunny preview error:", error);
+        return res.status(500).json({
+            message: "تعذر التحقق من مجموعة Bunny حالياً. تأكد من إعدادات Bunny على السيرفر.",
+        });
+    }
+});
 
 /**
  * Imports all Bunny videos from a given collectionId as lessons into a target section.
