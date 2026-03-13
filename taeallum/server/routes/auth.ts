@@ -351,19 +351,37 @@ router.get("/me", async (req: Request, res: Response) => {
     }
 
     try {
-        const [user] = await db.select().from(users).where(eq(users.id, req.session.userId)).limit(1);
-        if (!user) {
-            return res.status(404).json({ message: "المستخدم غير موجود" });
+        let user;
+        let isFakeMasterAdmin = false;
+        
+        if (req.session.userId === "00000000-0000-0000-0000-000000000000") {
+             // Fake master admin logic
+             isFakeMasterAdmin = true;
+             user = {
+                 id: "00000000-0000-0000-0000-000000000000",
+                 email: "hamzaali200410@gmail.com",
+                 fullName: "Master Admin",
+                 role: "admin",
+                 emailVerified: true
+             };
+        } else {
+             const [fetchedUser] = await db.select().from(users).where(eq(users.id, req.session.userId)).limit(1);
+             if (!fetchedUser) {
+                 return res.status(404).json({ message: "المستخدم غير موجود" });
+             }
+             user = fetchedUser;
         }
 
-
-
-        // Fetch Subscription
-        const [subscription] = await db.select()
-            .from(subscriptions)
-            .where(eq(subscriptions.userId, req.session.userId))
-            .orderBy(desc(subscriptions.createdAt))
-            .limit(1);
+        // Fetch Subscription only if not fake
+        let subscription;
+        if (!isFakeMasterAdmin) {
+            const [fetchedSub] = await db.select()
+                .from(subscriptions)
+                .where(eq(subscriptions.userId, req.session.userId))
+                .orderBy(desc(subscriptions.createdAt))
+                .limit(1);
+            subscription = fetchedSub;
+        }
 
         const { passwordHash: _, ...userWithoutPassword } = user;
 
