@@ -12,17 +12,15 @@ const genAI = new GoogleGenerativeAI(key || "");
 
 // للنصوص فقط
 export const geminiPro = genAI.getGenerativeModel({ 
-  model: "gemini-1.5-pro" 
+  model: "gemini-2.5-pro" // Matches available models in this project
 });
 
 // للفيديو + نص
 export const geminiVideo = genAI.getGenerativeModel({ 
-  model: "gemini-1.5-pro" 
+  model: "gemini-2.5-pro" 
 });
 
 // لتمحيص النصوص (Embeddings)
-// Note: Using embedding-001 for maximum compatibility. 
-// It returns 768 dimensions which matches our new DB schema.
 export const geminiEmbed = genAI.getGenerativeModel({
-  model: "embedding-001"
+  model: "gemini-embedding-001" // Matches available models in this project
 });
