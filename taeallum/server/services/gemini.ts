@@ -21,7 +21,8 @@ export const geminiVideo = genAI.getGenerativeModel({
 });
 
 // لتمحيص النصوص (Embeddings)
-// Note: We use 'text-embedding-004' but explicit prefix sometimes help
+// Note: Using embedding-001 for maximum compatibility. 
+// It returns 768 dimensions which matches our new DB schema.
 export const geminiEmbed = genAI.getGenerativeModel({
-  model: "text-embedding-004"
+  model: "embedding-001"
 });
