@@ -1,4 +1,4 @@
-# Taallm Platform (تعلم)
+# Tallm Platform (تعلم)
 
 Professional IT Learning Platform with AI Assistant integration.
 

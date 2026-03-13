@@ -264,17 +264,34 @@ export const students = pgTable("students", {
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// 21. Lesson Transcripts Table
-export const lessonTranscripts = pgTable("lesson_transcripts", {
+// 21. Lecture Transcripts Table (Direct user request)
+export const lectureTranscripts = pgTable("lecture_transcripts", {
     id: uuid("id").defaultRandom().primaryKey(),
     lessonId: uuid("lesson_id").references(() => lessons.id, { onDelete: "cascade" }).notNull(),
-    courseId: uuid("course_id").references(() => courses.id, { onDelete: "cascade" }).notNull(),
-    transcriptText: text("transcript_text").notNull(),
-    timestampsJson: jsonb("timestamps_json"), // Store start/end times for each segment
+    transcript: text("transcript").notNull(),
+    segments: jsonb("segments"), // Text with timestamps
     createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// 22. Transcript Chunks Table (for pgvector)
+// 22. Learning Paths Table (Direct user request)
+export const learningPaths = pgTable("learning_paths", {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+    pathData: jsonb("path_data").notNull(), // courses + order
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// 23. Exams Table (Direct user request)
+export const exams = pgTable("exams", {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+    courseId: uuid("course_id").references(() => courses.id, { onDelete: "cascade" }).notNull(),
+    questions: jsonb("questions").notNull(),
+    score: integer("score"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// 24. Transcript Chunks Table (for pgvector RAG)
 export const transcriptChunks = pgTable("transcript_chunks", {
     id: uuid("id").defaultRandom().primaryKey(),
     lessonId: uuid("lesson_id").references(() => lessons.id, { onDelete: "cascade" }).notNull(),
@@ -410,21 +427,34 @@ export const studentsRelations = relations(students, ({ one }) => ({
     }),
 }));
 
-export const lessonTranscriptsRelations = relations(lessonTranscripts, ({ one, many }) => ({
+export const lectureTranscriptsRelations = relations(lectureTranscripts, ({ one }) => ({
     lesson: one(lessons, {
-        fields: [lessonTranscripts.lessonId],
+        fields: [lectureTranscripts.lessonId],
         references: [lessons.id],
     }),
-    chunks: many(transcriptChunks),
+}));
+
+export const learningPathsRelations = relations(learningPaths, ({ one }) => ({
+    user: one(users, {
+        fields: [learningPaths.userId],
+        references: [users.id],
+    }),
+}));
+
+export const examsRelations = relations(exams, ({ one }) => ({
+    user: one(users, {
+        fields: [exams.userId],
+        references: [users.id],
+    }),
+    course: one(courses, {
+        fields: [exams.courseId],
+        references: [courses.id],
+    }),
 }));
 
 export const transcriptChunksRelations = relations(transcriptChunks, ({ one }) => ({
     lesson: one(lessons, {
         fields: [transcriptChunks.lessonId],
         references: [lessons.id],
-    }),
-    transcript: one(lessonTranscripts, {
-        fields: [transcriptChunks.lessonId],
-        references: [lessonTranscripts.lessonId],
     }),
 }));

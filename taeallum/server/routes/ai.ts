@@ -26,7 +26,7 @@ import {
   updatePerformanceProfile,
   getDashboard,
 } from "../services/progress.tracker";
-import { askCourseQuestion } from "../services/course-qa.service";
+import { lectureAgent } from "../services/lecture-agent.service";
 import { db } from "../db";
 import { studyPlans } from "../db/schema";
 import { eq, desc, and } from "drizzle-orm";
@@ -289,7 +289,7 @@ router.post("/course-qa", requireAuth, async (req: Request, res: Response) => {
       return res.status(400).json({ message: "question and courseId are required" });
     }
 
-    const response = await askCourseQuestion({ question, courseId, lessonId });
+    const response = await lectureAgent.ask({ question, courseId, lessonId });
     res.json(response);
   } catch (err: any) {
     console.error("[AI ROUTES] course-qa error:", err);

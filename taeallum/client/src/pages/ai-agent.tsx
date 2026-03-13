@@ -37,10 +37,16 @@ export default function AIAgent() {
   const { data: user, isLoading: authLoading } = useQuery({
     queryKey: ["auth-me"],
     queryFn: async () => {
-      const res = await fetch("/api/auth/me");
-      if (!res.ok) return null;
-      return res.json();
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "include" });
+        if (!res.ok) return null;
+        return res.json();
+      } catch (error) {
+        return null;
+      }
     },
+    retry: false,
+    staleTime: 1000 * 60 * 5
   });
 
   const [messages, setMessages] = useState<Message[]>([]);

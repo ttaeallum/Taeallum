@@ -41,10 +41,16 @@ export default function Home() {
   const { data: user } = useQuery({
     queryKey: ["auth-me"],
     queryFn: async () => {
-      const res = await fetch("/api/auth/me", { credentials: "include" });
-      if (!res.ok) return null;
-      return res.json();
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "include" });
+        if (!res.ok) return null;
+        return res.json();
+      } catch (error) {
+        return null;
+      }
     },
+    retry: false,
+    staleTime: 1000 * 60 * 5
   });
 
   const isSubscribed = user?.isSubscribed || user?.role === "admin";
@@ -58,15 +64,15 @@ export default function Home() {
     "provider": {
       "@type": "Organization",
       "name": "منصة تعلّم",
-      "sameAs": "https://taallm.com"
+      "sameAs": "https://tallm.com"
     }
   }));
 
   return (
     <Layout>
       <Seo
-        title="تعلّم (Taallm) | احترف البرمجة مجاناً"
-        description="منصة تعلّم (Taallm) هي وجهتك الأولى لاحتراف البرمجة والتقنيات الأكثر طلباً في سوق العمل من خلال دورات مجانية واحترافية باللغة العربية."
+        title="تعلّم (Tallm) | احترف البرمجة مجاناً"
+        description="منصة تعلّم (Tallm) هي وجهتك الأولى لاحتراف البرمجة والتقنيات الأكثر طلباً في سوق العمل من خلال دورات مجانية واحترافية باللغة العربية."
       />
       {coursesSchema && (
         <script type="application/ld+json">

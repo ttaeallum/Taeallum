@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/accordion";
 
 const VALID_CODES: Record<string, number> = {
-  "TAALLM20": 20,
+  "TALLM20": 20,
   "WELCOME10": 10,
   "JORDAN25": 25,
 };

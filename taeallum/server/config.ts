@@ -34,5 +34,9 @@ export function getConfig(key: string): string | undefined {
         if (process.env.ANTHROPIC) return process.env.ANTHROPIC;
     }
 
+    if (key === "GEMINI_API_KEY") {
+        if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
+    }
+
     return undefined;
 }

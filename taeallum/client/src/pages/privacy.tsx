@@ -29,7 +29,7 @@ export default function Privacy() {
             <Card className="p-8 border-border/30 rounded-2xl">
               <h2 className="text-xl font-bold mb-4">مقدمة</h2>
               <p className="text-muted-foreground leading-relaxed text-sm">
-                نحن في منصة تعلّم (taallm.com) نلتزم بحماية خصوصية بيانات طلابنا ومستخدمينا. تعد هذه السياسة جزءاً أساسياً من التزامنا بالأمان والشفافية، حيث توضح كيفية جمع واستخدام وحماية معلوماتك الشخصية بما يتوافق مع المعايير الأمنية العالمية.
+                نحن في منصة تعلّم (tallm.com) نلتزم بحماية خصوصية بيانات طلابنا ومستخدمينا. تعد هذه السياسة جزءاً أساسياً من التزامنا بالأمان والشفافية، حيث توضح كيفية جمع واستخدام وحماية معلوماتك الشخصية بما يتوافق مع المعايير الأمنية العالمية.
               </p>
             </Card>
 
@@ -75,7 +75,7 @@ export default function Privacy() {
             <Card className="p-8 border-border/30 rounded-2xl">
               <h2 className="text-xl font-bold mb-4">5. التواصل</h2>
               <p className="text-muted-foreground leading-relaxed text-sm italic">
-                لأي استفسارات بخصوص الخصوصية والبيانات، يرجى مراسلتنا على: info@taallm.com
+                لأي استفسارات بخصوص الخصوصية والبيانات، يرجى مراسلتنا على: info@tallm.com
               </p>
             </Card>
           </motion.div>

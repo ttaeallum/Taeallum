@@ -1,5 +1,5 @@
 import { pool } from "../db";
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getConfig } from "../config";
 
 /** Confidence below this: we say "I'm not sure" and still cite source. */
@@ -35,11 +35,11 @@ interface TranscriptChunkRow {
   confidence: number;
 }
 
-function getOpenAI(): OpenAI | null {
+function getGemini(): GoogleGenerativeAI | null {
   try {
-    const key = getConfig("OPENAI_API_KEY");
+    const key = getConfig("GEMINI_API_KEY") || getConfig("OPENAI_API_KEY");
     if (!key) return null;
-    return new OpenAI({ apiKey: key });
+    return new GoogleGenerativeAI(key);
   } catch {
     return null;
   }
@@ -57,25 +57,22 @@ function formatCitation(lessonTitle: string, timestampStart: number): string {
 
 /**
  * Answers a student's question about a course using vector search on transcript chunks
- * and GPT-4o. Returns a graceful Arabic message when no content is found or confidence
- * is low; always cites lecture and timestamp when an answer is given. Retries the API
- * once on failure before returning an Arabic error message.
+ * and Gemini. Returns a graceful Arabic message when no content is found or confidence
+ * is low; always cites lecture and timestamp when an answer is given.
  */
 export async function askCourseQuestion(req: QARequest): Promise<QAResult> {
   const { question, courseId, lessonId } = req;
-  const openai = getOpenAI();
-  if (!openai) {
+  const genAI = getGemini();
+  if (!genAI) {
     return { answer: ERROR_MESSAGE_AR, confidence: 0 };
   }
 
   // 1. Generate embedding for the question
   let embedding: number[];
   try {
-    const embeddingResponse = await openai.embeddings.create({
-      model: "text-embedding-3-small",
-      input: question,
-    });
-    embedding = embeddingResponse.data[0].embedding;
+    const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+    const result = await model.embedContent(question);
+    embedding = result.embedding.values;
   } catch (e) {
     console.error("[COURSE_QA] Embedding failed", e);
     return { answer: ERROR_MESSAGE_AR, confidence: 0 };
@@ -121,7 +118,7 @@ export async function askCourseQuestion(req: QARequest): Promise<QAResult> {
     )
     .join("\n\n---\n\n");
 
-  const systemPrompt = `أنت مساعد تعليمي لمنصة taallm.com. أجب على سؤال الطالب من محتوى الدورة المزود فقط.
+  const systemInstruction = `أنت مساعد تعليمي لمنصة taallm.com. أجب على سؤال الطالب من محتوى الدورة المزود فقط.
 إذا السؤال غير موجود في المحتوى المزود فقل بوضوح: "هذا السؤال غير مغطى في الدورة."
 في نهاية كل إجابة، اذكر دائماً رقم المحاضرة (أو عنوانها) والدقيقة:ثانية بشكل واضح، مثال: (المصدر: المحاضرة «عنوان المحاضرة» — الدقيقة 5:30).
 تحدث باللغة العربية بلهجة ودودة ومهنية.`;
@@ -131,29 +128,26 @@ ${contextText}
 
 سؤال الطالب: ${question}`;
 
-  const callGPT = async (): Promise<string> => {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0.1,
+  const callGemini = async (): Promise<string> => {
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      systemInstruction: systemInstruction
     });
-    const content = completion.choices[0]?.message?.content;
-    if (!content || typeof content !== "string") throw new Error("Empty GPT response");
+    const result = await model.generateContent(userPrompt);
+    const content = result.response.text();
+    if (!content || typeof content !== "string") throw new Error("Empty Gemini response");
     return content;
   };
 
   let answer: string;
   try {
-    answer = await callGPT();
+    answer = await callGemini();
   } catch (e) {
-    console.error("[COURSE_QA] GPT first attempt failed", e);
+    console.error("[COURSE_QA] Gemini first attempt failed", e);
     try {
-      answer = await callGPT();
+      answer = await callGemini();
     } catch (retryErr) {
-      console.error("[COURSE_QA] GPT retry failed", retryErr);
+      console.error("[COURSE_QA] Gemini retry failed", retryErr);
       return { answer: ERROR_MESSAGE_AR, confidence: topConfidence };
     }
   }
@@ -176,3 +170,4 @@ ${contextText}
     confidence: topConfidence,
   };
 }
+

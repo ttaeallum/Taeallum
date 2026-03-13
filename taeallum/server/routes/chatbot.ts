@@ -390,13 +390,9 @@ router.post("/reset-session", requireAuth, async (req: Request, res: Response) =
 
 router.post("/", requireAuth, async (req: Request, res: Response) => {
     try {
-        const { message: userMessage } = req.body as { message?: string };
+        const { message: userMessage } = req.body as { message: string };
         const userId = (req as RequestWithAuth).session.userId;
-        if (!userId) return res.status(401).json({ message: "غير مصرح" });
-        const openai = getOpenAI();
-        const anthropic = getAnthropic();
-
-        if ((!openai && !anthropic) || !userMessage) return res.status(400).json({ message: "Invalid request (Check API Keys)" });
+        if (!userId || !userMessage) return res.status(400).json({ message: "يجب إرسال رسالة" });
 
         // 1. Session Setup
         let [session] = await db.select().from(aiSessions)
@@ -421,43 +417,27 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
         const systemPrompt = buildChatbotSystemPrompt(TAALLM_COURSES);
 
         let aiResponse: ChatbotAIResponse = FALLBACK_RESPONSE;
-        let providerUsed: "openai" | "anthropic" = "openai";
+        let providerUsed: "gemini" | "openai" | "anthropic" = "gemini";
 
-        if (anthropic) {
-            providerUsed = "anthropic";
-            try {
-                const completion = await anthropic.messages.create({
-                    model: "claude-3-7-sonnet-latest",
-                    max_tokens: 1024,
-                    messages: [{ role: "user", content: `System: ${systemPrompt}\nUser: ${userMessage}` }],
-                    system: "Output raw JSON only, no markdown or extra text. Valid JSON object with message, suggestions, action.",
-                    temperature: 0.1,
-                });
-                const contentBlock = completion.content[0];
-                const text = contentBlock && "text" in contentBlock ? contentBlock.text : "";
-                aiResponse = parseAndValidateChatbotResponse(text);
-            } catch (e) {
-                console.error("[CHATBOT] Claude API error:", e);
-                aiResponse = { ...FALLBACK_RESPONSE, message: "عذراً، حدث خطأ في فهم البيانات. هل يمكنك محاولة مرة أخرى؟" };
-            }
-        } else if (openai) {
-            try {
-                const completion = await openai.chat.completions.create({
-                    model: "gpt-4o",
-                    messages: [
-                        { role: "system", content: systemPrompt },
-                        ...msgs.map((m) => ({ role: m.role, content: m.content } as { role: "system" | "user" | "assistant"; content: string })),
-                        { role: "user", content: userMessage },
-                    ],
-                    response_format: { type: "json_object" },
+        try {
+            const chat = geminiPro.startChat({
+                history: msgs.slice(0, -1).map(m => ({
+                    role: m.role === "assistant" ? "model" : "user",
+                    parts: [{ text: m.content }]
+                })),
+                generationConfig: { 
                     temperature: 0.7,
-                });
-                const content = completion.choices[0]?.message?.content;
-                aiResponse = parseAndValidateChatbotResponse(content);
-            } catch (e) {
-                console.error("[CHATBOT] OpenAI API error:", e);
-                aiResponse = { ...FALLBACK_RESPONSE, message: "عذراً، حدث خطأ في فهم البيانات. هل يمكنك محاولة مرة أخرى؟" };
-            }
+                    responseMimeType: "application/json"
+                }
+            });
+
+            const result = await chat.sendMessage(`System: ${systemPrompt}\n\nUser: ${userMessage}`);
+            const text = result.response.text();
+            aiResponse = parseAndValidateChatbotResponse(text);
+        } catch (e) {
+            console.error("[CHATBOT] Gemini API error:", e);
+            // Fallback to OpenAI if Gemini fails? For now, just error
+            aiResponse = { ...FALLBACK_RESPONSE, message: "عذراً، حدث خطأ في فهم البيانات. هل يمكنك محاولة مرة أخرى؟" };
         }
 
         // 3. Update Profile & Sync

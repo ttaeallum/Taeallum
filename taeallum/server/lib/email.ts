@@ -31,7 +31,7 @@ transporter.verify(function (error, success) {
 
 export async function sendVerificationEmail(to: string, code: string) {
     const mailOptions = {
-        from: `"منصة تعلّم (Taallm)" <${smtpConfig.auth.user}>`,
+        from: `"منصة تعلّم (Tallm)" <${smtpConfig.auth.user}>`,
         to,
         subject: `${code} هو رمز التحقق الخاص بك في منصة تعلّم`,
         priority: "high" as const,
@@ -41,14 +41,14 @@ export async function sendVerificationEmail(to: string, code: string) {
             "Importance": "high",
             "List-Unsubscribe": `<mailto:${smtpConfig.auth.user}?subject=unsubscribe>`,
             "X-Entity-Ref-ID": Date.now().toString(),
-            "Feedback-ID": "otp:taallm:platform"
+            "Feedback-ID": "otp:tallm:platform"
         },
         text: `مرحباً بك في منصة تعلّم.\n\nرمز التحقق الخاص بك هو: ${code}\n\nهذا الرمز صالح لمدة 10 دقائق فقط.\n\nإذا لم تطلب هذا الرمز، يمكنك تجاهل هذا البريد.\n\nمع تحيات فريق تعلّم.`,
         html: `
             <div dir="rtl" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; padding: 0; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; background-color: #ffffff;">
                 <div style="background-color: #f8f9fa; padding: 30px 20px; text-align: center; border-bottom: 2px solid #4CAF50;">
-                    <img src="https://taallm.com/brand/logo.png" alt="Taallm Logo" style="max-width: 140px; height: auto; display: block; margin: 0 auto 15px;">
-                    <h1 style="margin: 0; color: #333; font-size: 24px;">منصة تعلّم (Taallm)</h1>
+                    <img src="https://tallm.com/brand/logo.png" alt="Tallm Logo" style="max-width: 140px; height: auto; display: block; margin: 0 auto 15px;">
+                    <h1 style="margin: 0; color: #333; font-size: 24px;">منصة تعلّم (Tallm)</h1>
                 </div>
                 <div style="padding: 40px 30px;">
                     <h2 style="color: #4CAF50; text-align: center; margin-top: 0;">مرحباً بك في رحلة التعلّم!</h2>
@@ -63,7 +63,7 @@ export async function sendVerificationEmail(to: string, code: string) {
                     <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
                     <p style="font-size: 13px; color: #666; margin: 0;">© 2026 منصة تعلّم. جميع الحقوق محفوظة.</p>
                     <div style="margin-top: 10px;">
-                        <a href="https://taallm.com" style="color: #4CAF50; text-decoration: none; font-size: 12px;">موقعنا الإلكتروني</a>
+                        <a href="https://tallm.com" style="color: #4CAF50; text-decoration: none; font-size: 12px;">موقعنا الإلكتروني</a>
                     </div>
                 </div>
             </div>
@@ -83,7 +83,7 @@ export async function sendVerificationEmail(to: string, code: string) {
 
 export async function sendPasswordResetEmail(to: string, code: string) {
     const mailOptions = {
-        from: `"منصة تعلّم (Taallm)" <${smtpConfig.auth.user}>`,
+        from: `"منصة تعلّم (Tallm)" <${smtpConfig.auth.user}>`,
         to,
         subject: "إعادة تعيين كلمة المرور - منصة تعلّم",
         priority: "high" as const,
@@ -92,13 +92,13 @@ export async function sendPasswordResetEmail(to: string, code: string) {
             "X-MSMail-Priority": "High",
             "Importance": "high",
             "List-Unsubscribe": `<mailto:${smtpConfig.auth.user}?subject=unsubscribe>`,
-            "Feedback-ID": "reset:taallm:platform"
+            "Feedback-ID": "reset:tallm:platform"
         },
         text: `طلب إعادة تعيين كلمة المرور.\n\nرمز إعادة التعيين الخاص بك هو: ${code}\n\nهذا الرمز ضروري لإكمال عملية استعادة الحساب.\n\nإذا لم تطلب هذا الطلب، يرجى تأمين حسابك فوراً.\n\nمع تحيات فريق تعلّم.`,
         html: `
             <div dir="rtl" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; padding: 0; border: 1px solid #f0f0f0; border-radius: 16px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
                 <div style="background-color: #ffffff; padding: 30px 20px; text-align: center; border-bottom: 3px solid #FF9800;">
-                    <img src="https://taallm.com/brand/logo.png" alt="Taallm Logo" style="max-width: 120px; height: auto; display: block; margin: 0 auto 15px;">
+                    <img src="https://tallm.com/brand/logo.png" alt="Tallm Logo" style="max-width: 120px; height: auto; display: block; margin: 0 auto 15px;">
                     <h1 style="margin: 0; color: #333; font-size: 22px; font-weight: 800;">استعادة الحساب</h1>
                 </div>
                 <div style="padding: 40px 30px;">
@@ -134,7 +134,7 @@ export async function sendEducationalNudge(to: string, studentName: string, type
     };
 
     const mailOptions = {
-        from: `"المرشد الذكي (Taallm AI)" <${smtpConfig.auth.user}>`,
+        from: `"المرشد الذكي (Tallm AI)" <${smtpConfig.auth.user}>`,
         to,
         subject: subjects[type],
         html: `
@@ -146,7 +146,7 @@ export async function sendEducationalNudge(to: string, studentName: string, type
                     ${content}
                 </div>
                 <div style="margin-top: 30px; text-align: center;">
-                    <a href="https://taallm.com/ai-agent" style="background: #4CAF50; color: white; padding: 12px 25px; text-decoration: none; border-radius: 8px; font-weight: bold;">تحدث مع مرشدك الذكي الآن</a>
+                    <a href="https://tallm.com/ai-agent" style="background: #4CAF50; color: white; padding: 12px 25px; text-decoration: none; border-radius: 8px; font-weight: bold;">تحدث مع مرشدك الذكي الآن</a>
                 </div>
                 <div style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 10px; font-size: 12px; color: #999; text-align: center;">
                     تم إرسال هذه الرسالة لأنك مشترك في منصة تعلّم للأمن السيبراني والذكاء الاصطناعي.

@@ -43,15 +43,23 @@ export default function LearnCourse() {
     const { data: user } = useQuery({
         queryKey: ["auth-me"],
         queryFn: async () => {
-            const res = await fetch("/api/auth/me", {
-                credentials: "include"
-            });
-            if (!res.ok) {
-                setLocation(`/auth?next=/learn/${courseId}`);
+            try {
+                const res = await fetch("/api/auth/me", {
+                    credentials: "include"
+                });
+                if (!res.ok) {
+                    if (res.status === 401 || res.status === 403) {
+                        setLocation(`/auth?next=/learn/${courseId}`);
+                    }
+                    return null;
+                }
+                return res.json();
+            } catch (error) {
                 return null;
             }
-            return res.json();
-        }
+        },
+        retry: false,
+        staleTime: 1000 * 60 * 5
     });
 
     const { data: access, isLoading: accessLoading } = useQuery({

@@ -7,6 +7,7 @@ import { specializationCategories } from "../lib/specializations";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { transcriptionService } from "../services/transcription.service";
 
 const router = Router();
 
@@ -711,7 +712,7 @@ async function fetchBunnyVideosByCollection(collectionId: string): Promise<Bunny
     const apiKey = process.env.BUNNY_API_KEY;
 
     if (!libraryId || !apiKey) {
-        throw new Error("Missing BUNNY_LIBRARY_ID or BUNNY_API_KEY");
+        throw new Error("Missing BUNNY_LIBRARY_ID or BUNNY_API_KEY in environment variables");
     }
 
     const all: BunnyVideoItem[] = [];
@@ -719,12 +720,15 @@ async function fetchBunnyVideosByCollection(collectionId: string): Promise<Bunny
     let hasMore = true;
 
     while (hasMore) {
+        // Optimized: Only fetch videos from the specific collection via API
         const response = await fetch(
-            `https://video.bunnycdn.com/library/${libraryId}/videos?page=${page}&itemsPerPage=100`,
+            `https://video.bunnycdn.com/library/${libraryId}/videos?page=${page}&itemsPerPage=100&collection=${collectionId}`,
             { headers: { AccessKey: apiKey, Accept: "application/json" } }
         );
         if (!response.ok) {
-            throw new Error(`Failed to fetch Bunny videos: ${await response.text()}`);
+            const errText = await response.text();
+            console.error(`[Bunny] HTTP ${response.status}: ${errText}`);
+            throw new Error(`Bunny API error ${response.status}: ${errText}`);
         }
 
         const data = (await response.json()) as { items?: BunnyVideoItem[] };
@@ -735,8 +739,9 @@ async function fetchBunnyVideosByCollection(collectionId: string): Promise<Bunny
         else page++;
     }
 
+    // Sort by title for logical order in the curriculum
     return all
-        .filter((v) => v.collectionId === collectionId && typeof v.guid === "string" && typeof v.title === "string")
+        .filter((v) => typeof v.guid === "string" && typeof v.title === "string")
         .sort((a, b) => a.title.localeCompare(b.title, "en"));
 }
 
@@ -766,8 +771,9 @@ router.post("/preview-bunny-collection", async (req: Request, res: Response) => 
         });
     } catch (error) {
         console.error("Bunny preview error:", error);
+        const errMsg = error instanceof Error ? error.message : String(error);
         return res.status(500).json({
-            message: "تعذر التحقق من مجموعة Bunny حالياً. تأكد من إعدادات Bunny على السيرفر.",
+            message: `تعذر التحقق من مجموعة Bunny: ${errMsg}`,
         });
     }
 });
@@ -829,9 +835,73 @@ router.post("/import-bunny-collection", async (req: Request, res: Response) => {
         });
     } catch (error) {
         console.error("Bunny import error:", error);
+        const errMsg = error instanceof Error ? error.message : String(error);
         return res.status(500).json({
-            message: "فشل استيراد فيديوهات Bunny. تأكد من collectionId ومن إعدادات Bunny على السيرفر.",
+            message: `فشل استيراد فيديوهات Bunny: ${errMsg}`,
         });
+    }
+});
+
+// --- DEBUG: Test Bunny Connection ---
+router.get("/test-bunny-connection", async (req: Request, res: Response) => {
+    const libraryId = process.env.BUNNY_LIBRARY_ID;
+    const apiKey = process.env.BUNNY_API_KEY;
+
+    if (!libraryId || !apiKey) {
+        return res.json({
+            ok: false,
+            error: "Missing env vars",
+            BUNNY_LIBRARY_ID: libraryId ? "✅ set" : "❌ missing",
+            BUNNY_API_KEY: apiKey ? "✅ set" : "❌ missing",
+        });
+    }
+
+    try {
+        const response = await fetch(
+            `https://video.bunnycdn.com/library/${libraryId}/videos?page=1&itemsPerPage=5`,
+            { headers: { AccessKey: apiKey, Accept: "application/json" } }
+        );
+        const text = await response.text();
+        let parsed: any = null;
+        try { parsed = JSON.parse(text); } catch { }
+
+        return res.json({
+            ok: response.ok,
+            status: response.status,
+            BUNNY_LIBRARY_ID: libraryId,
+            BUNNY_API_KEY: apiKey.slice(0, 8) + "...",
+            totalItems: parsed?.totalItems,
+            itemsCount: parsed?.items?.length,
+            rawSnippet: text.slice(0, 300),
+        });
+    } catch (err: any) {
+        return res.json({ ok: false, error: err.message });
+    }
+});
+
+
+// --- 5. Transcription Pipeline ---
+router.post("/lessons/:lessonId/transcribe", async (req: Request, res: Response) => {
+    const { lessonId } = req.params;
+    const { courseId, videoUrl } = req.body;
+
+    if (!lessonId || !courseId || !videoUrl) {
+        return res.status(400).json({ message: "lessonId, courseId, and videoUrl are required" });
+    }
+
+    try {
+        // Trigger async transcription
+        // Note: In a production environment, this should be a background job
+        transcriptionService.processLesson(courseId, lessonId, videoUrl)
+            .catch(err => console.error(`[ADMIN] Background transcription failed for ${lessonId}:`, err));
+
+        res.json({
+            success: true,
+            message: "بدأت عملية تحويل الفيديو إلى نص في الخلفية. ستتوفر النتائج قريباً.",
+        });
+    } catch (err: any) {
+        console.error("Transcription trigger error:", err);
+        res.status(500).json({ message: "فشل بدء عملية التحويل" });
     }
 });
 

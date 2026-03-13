@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: taallm-platform
+    name: tallm-platform
     env: node
     plan: free # Can be changed to 'starter' or higher for better performance
     buildCommand: npm install && npm run build

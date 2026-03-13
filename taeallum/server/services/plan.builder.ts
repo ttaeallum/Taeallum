@@ -491,3 +491,86 @@ export async function rebuildPlanFromCurrentPoint(
 
   return buildPlan(updatedProfile, userId, sessionId);
 }
+
+/**
+ * Builds a StudyPlan from the direct output of the PathAgent.
+ * This bypasses AI selection and uses the IDs specifically picked by the agent.
+ */
+export async function buildPlanFromAgentOutput(
+  agentOutput: any,
+  userId: string,
+  sessionId: string
+): Promise<{ plan: StudyPlan; planId: string }> {
+  const catalog = await fetchCatalog();
+  const HOURS_PER_COURSE = 40;
+
+  const lp = agentOutput.learning_path || [];
+  const planCourses: PlanCourse[] = [];
+  let currentWeek = 1;
+
+  for (const item of lp) {
+    const c = catalog.find((x) => x.id === item.course_id);
+    if (!c) continue;
+
+    const weeks = item.estimated_weeks || 2;
+    planCourses.push({
+      id: c.id,
+      title: c.title,
+      slug: c.slug,
+      thumbnail: c.thumbnail,
+      level: c.level,
+      categoryName: c.category?.name || "عام",
+      totalHours: HOURS_PER_COURSE,
+      startWeek: currentWeek,
+      endWeek: currentWeek + weeks - 1,
+      reason: item.reason || "",
+    });
+    currentWeek += weeks;
+  }
+
+  const plan: StudyPlan = {
+    title: `خطتك التعليمية لبناء مسار ${lp[0]?.course_name || "الاحتراف"}`,
+    description: agentOutput.encouragement_message || "خطة دراسية مخصصة مبنية على أهدافك.",
+    duration: agentOutput.total_duration || `${currentWeek - 1} أسابيع`,
+    totalHours: planCourses.length * HOURS_PER_COURSE,
+    totalWeeks: currentWeek - 1,
+    weeklyHours: 10, // Default for now
+    milestones: [
+      {
+        layer: 1,
+        title: "المسار التعليمي الشامل",
+        description: "جميع الكورسات المطلوبة للوصول لهدفك",
+        courses: planCourses,
+        weeklyHours: 10,
+        durationWeeks: currentWeek - 1,
+      },
+    ],
+  };
+
+  // Persist to DB
+  const [savedPlan] = await db
+    .insert(studyPlans)
+    .values({
+      userId,
+      sessionId,
+      title: plan.title,
+      description: plan.description,
+      duration: plan.duration,
+      totalHours: plan.totalHours,
+      planData: plan as Record<string, unknown>,
+      status: "active",
+    })
+    .returning();
+
+  // Update session
+  await db
+    .update(aiSessions)
+    .set({
+      generatedPlan: plan as Record<string, unknown>,
+      currentState: "active_learning",
+      updatedAt: new Date(),
+    })
+    .where(eq(aiSessions.id, sessionId));
+
+  return { plan, planId: savedPlan.id };
+}

@@ -344,6 +344,9 @@ router.post("/logout", (req: Request, res: Response) => {
 
 router.get("/me", async (req: Request, res: Response) => {
     if (!req.session || !req.session.userId) {
+        if (req.path === '/me') {
+            console.log("[AUTH-ME] No active session found for /me");
+        }
         return res.status(401).json({ message: "لم يتم العثور على جلسة نشطة" });
     }
 

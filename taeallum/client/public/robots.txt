@@ -14,4 +14,4 @@ Allow: /
 User-agent: ClaudeBot
 Allow: /
 
-Sitemap: https://taallm.com/sitemap.xml
+Sitemap: https://tallm.com/sitemap.xml

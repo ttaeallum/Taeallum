@@ -19,16 +19,25 @@ export default function AccountPage() {
     const { data: user, isLoading } = useQuery({
         queryKey: ["auth-me"],
         queryFn: async () => {
-            const res = await fetch("/api/auth/me", {
-                credentials: "include",
-                headers: getSessionHeaders(),
-            });
-            if (!res.ok) {
-                setLocation("/auth");
+            try {
+                const res = await fetch("/api/auth/me", {
+                    credentials: "include",
+                    headers: getSessionHeaders(),
+                });
+                if (!res.ok) {
+                    // Only redirect if explicitly not ok (401/403)
+                    if (res.status === 401 || res.status === 403) {
+                        setLocation("/auth");
+                    }
+                    return null;
+                }
+                return res.json();
+            } catch (error) {
                 return null;
             }
-            return res.json();
-        }
+        },
+        retry: false,
+        staleTime: 1000 * 60 * 5
     });
 
     const logoutMutation = useMutation({

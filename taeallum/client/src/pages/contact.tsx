@@ -66,8 +66,8 @@ export default function Contact() {
                   <Mail className="w-5 h-5 text-primary" />
                 </div>
                 <h3 className="font-semibold mb-2">البريد الإلكتروني</h3>
-                <a href="mailto:info@taallm.com" className="text-sm text-primary hover:underline">
-                  info@taallm.com
+                <a href="mailto:info@tallm.com" className="text-sm text-primary hover:underline">
+                  info@tallm.com
                 </a>
               </Card>
             </motion.div>
@@ -78,8 +78,8 @@ export default function Contact() {
                   <Globe className="w-5 h-5 text-primary" />
                 </div>
                 <h3 className="font-semibold mb-2">الموقع الإلكتروني</h3>
-                <a href="https://taallm.com" target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">
-                  taallm.com
+                <a href="https://tallm.com" target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">
+                  tallm.com
                 </a>
               </Card>
             </motion.div>

@@ -30,14 +30,19 @@ export function Navbar() {
   const { data: user } = useQuery({
     queryKey: ["auth-me"],
     queryFn: async () => {
-      const res = await fetch("/api/auth/me", {
-        credentials: "include",
-        headers: getSessionHeaders() as Record<string, string>,
-      });
-      if (!res.ok) return null;
-      return res.json();
+      try {
+        const res = await fetch("/api/auth/me", {
+          credentials: "include",
+          headers: getSessionHeaders() as Record<string, string>,
+        });
+        if (!res.ok) return null;
+        return res.json();
+      } catch (error) {
+        return null;
+      }
     },
-    retry: false
+    retry: false,
+    staleTime: 1000 * 60 * 5
   });
 
   const logoutMutation = useMutation({
@@ -280,10 +285,16 @@ export function Footer() {
   const { data: user } = useQuery({
     queryKey: ["auth-me"],
     queryFn: async () => {
-      const res = await fetch("/api/auth/me", { credentials: "include" });
-      if (!res.ok) return null;
-      return res.json();
-    }
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "include" });
+        if (!res.ok) return null;
+        return res.json();
+      } catch (error) {
+        return null;
+      }
+    },
+    retry: false,
+    staleTime: 1000 * 60 * 5
   });
 
   const isSubscribed = user?.isSubscribed || user?.role === "admin";
@@ -300,7 +311,7 @@ export function Footer() {
               <Logo className="scale-125" />
             </Link>
             <p className="text-muted-foreground leading-relaxed text-sm italic">
-              إذا كان لديك أي أسئلة، يرجى التواصل معنا على البريد الرسمي: info@taallm.com
+              إذا كان لديك أي أسئلة، يرجى التواصل معنا على البريد الرسمي: info@tallm.com
             </p>
             <p className="text-muted-foreground text-sm leading-relaxed">
               منصتك الأولى لاحتراف البرمجة والتقنيات الأكثر طلباً في سوق العمل. انضم إلينا وابدأ رحلة مستقبلك اليوم.
@@ -336,9 +347,9 @@ export function Footer() {
             <h4 className="font-bold text-foreground">تواصل معنا</h4>
 
             {/* Email */}
-            <a href="mailto:info@taallm.com" className="flex items-center gap-3 justify-end group">
+            <a href="mailto:info@tallm.com" className="flex items-center gap-3 justify-end group">
               <div className="text-right">
-                <p className="text-sm text-muted-foreground group-hover:text-primary transition-colors">info@taallm.com</p>
+                <p className="text-sm text-muted-foreground group-hover:text-primary transition-colors">info@tallm.com</p>
                 <p className="text-xs text-muted-foreground/60">البريد الرسمي للدعم</p>
               </div>
               <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all shrink-0">
@@ -349,9 +360,9 @@ export function Footer() {
             </a>
 
             {/* Instagram */}
-            <a href="https://www.instagram.com/taallm.jo/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 justify-end group">
+            <a href="https://www.instagram.com/tallm.jo/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 justify-end group">
               <div className="text-right">
-                <p className="text-sm text-muted-foreground group-hover:text-pink-500 transition-colors">@taallm.jo</p>
+                <p className="text-sm text-muted-foreground group-hover:text-pink-500 transition-colors">@tallm.jo</p>
                 <p className="text-xs text-muted-foreground/60">تابعنا على إنستغرام</p>
               </div>
               <div className="w-9 h-9 rounded-xl bg-pink-500/10 flex items-center justify-center group-hover:bg-pink-500 transition-all shrink-0">

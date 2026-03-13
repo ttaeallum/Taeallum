@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(node:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm list:*)",
+      "Bash(npm install:*)",
+      "Bash(artillery version:*)",
+      "Bash(artillery run:*)"
+    ]
+  }
+}

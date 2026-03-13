@@ -22,7 +22,7 @@ import {
     Loader2,
     Video,
     ChevronRight,
-    Youtube
+    Link2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
@@ -54,19 +54,27 @@ export default function AdminCurriculum() {
     const [selectedLesson, setSelectedLesson] = useState<any>(null);
     const [targetSectionId, setTargetSectionId] = useState<string | null>(null);
     const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-    const [importPlaylistUrl, setImportPlaylistUrl] = useState("");
+    const [importCollectionId, setImportCollectionId] = useState("");
+    const [importLoading, setImportLoading] = useState(false);
+    const [importError, setImportError] = useState("");
 
     // Auth check
     const { data: user, isLoading: userLoading } = useQuery({
         queryKey: ["auth-me"],
         queryFn: async () => {
-            const res = await fetch("/api/auth/me", {
-                credentials: "include",
-                headers: getSessionHeaders() as Record<string, string>
-            });
-            if (!res.ok) return null;
-            return res.json();
-        }
+            try {
+                const res = await fetch("/api/auth/me", {
+                    credentials: "include",
+                    headers: getSessionHeaders() as Record<string, string>
+                });
+                if (!res.ok) return null;
+                return res.json();
+            } catch (error) {
+                return null;
+            }
+        },
+        retry: false,
+        staleTime: 1000 * 60 * 5
     });
 
     const { data: curriculum, isLoading: curriculumLoading } = useQuery({
@@ -147,34 +155,41 @@ export default function AdminCurriculum() {
         }
     });
 
-    const importPlaylistMutation = useMutation({
-        mutationFn: async (data: { playlistUrl: string, sectionId: string }) => {
-            const res = await fetch("/api/admin-panel/import-playlist", {
+    const handleBunnyCollectionImport = async () => {
+        const collectionId = importCollectionId.trim();
+        if (!collectionId || !targetSectionId) return;
+        setImportLoading(true);
+        setImportError("");
+        try {
+            const res = await fetch("/api/admin-panel/import-bunny-collection", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     ...getSessionHeaders()
                 } as Record<string, string>,
                 credentials: "include",
-                body: JSON.stringify(data),
+                body: JSON.stringify({ sectionId: targetSectionId, collectionId }),
             });
+            const data = await res.json().catch(() => ({} as { message?: string; count?: number }));
             if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.message || "Failed to import playlist");
+                setImportError(data.message || "فشل استيراد مجموعة Bunny");
+                return;
             }
-            return res.json();
-        },
-        onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ["admin-curriculum", courseId] });
             queryClient.invalidateQueries({ queryKey: ["course-curriculum", courseId] });
             setIsImportDialogOpen(false);
-            setImportPlaylistUrl("");
-            toast({ title: "تم الاستيراد ✅", description: data.message });
-        },
-        onError: (error: any) => {
-            toast({ title: "خطأ ❌", description: error.message, variant: "destructive" });
+            setImportCollectionId("");
+            toast({
+                title: "تم الاستيراد ✅",
+                description: data.message || `تم سحب فيديوهات مجموعة Bunny بنجاح`
+            });
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : "حدث خطأ غير متوقع";
+            setImportError(msg);
+        } finally {
+            setImportLoading(false);
         }
-    });
+    };
 
     const deleteMutation = useMutation({
         mutationFn: async ({ type, id }: { type: 'sections' | 'lessons', id: string }) => {
@@ -230,12 +245,14 @@ export default function AdminCurriculum() {
                                     <CardTitle className="text-lg">{section.title}</CardTitle>
                                 </div>
                                 <div className="flex gap-2">
-                                    <Button variant="outline" size="sm" className="gap-2 border-primary/20 text-primary hover:bg-primary/5" onClick={() => {
+                                    <Button variant="outline" size="sm" className="gap-2 border-purple-500/20 text-purple-700 hover:bg-purple-500/10" onClick={() => {
                                         setTargetSectionId(section.id);
+                                        setImportCollectionId("");
+                                        setImportError("");
                                         setIsImportDialogOpen(true);
                                     }}>
-                                        <Youtube className="h-4 w-4" />
-                                        استيراد من YouTube
+                                        <Link2 className="h-4 w-4" />
+                                        استيراد من Bunny
                                     </Button>
                                     <Button variant="ghost" size="sm" onClick={() => {
                                         setTargetSectionId(section.id);
@@ -403,47 +420,70 @@ export default function AdminCurriculum() {
                 </DialogContent>
             </Dialog>
 
-            {/* YouTube Import Dialog */}
-            <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+            {/* Bunny Collection Import Dialog */}
+            <Dialog open={isImportDialogOpen} onOpenChange={(open) => { if (!importLoading) setIsImportDialogOpen(open); }}>
                 <DialogContent dir="rtl">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <Youtube className="h-5 w-5 text-red-600" />
-                            استيراد قائمة تشغيل من YouTube
+                            <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                                <Link2 className="h-4 w-4 text-purple-700" />
+                            </div>
+                            استيراد من Bunny Collection
                         </DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4 pt-4">
+                    <div className="space-y-4 pt-2">
+                        <p className="text-sm text-muted-foreground">
+                            الصق <strong>Collection ID</strong> من حسابك في Bunny.net وسيتم سحب كل الفيديوهات الموجودة في المجموعة وإنشاء الدروس تلقائياً.
+                        </p>
                         <div className="space-y-2">
-                            <Label>رابط قائمة التشغيل (Playlist URL)</Label>
+                            <Label className="font-bold">Collection ID</Label>
                             <Input
-                                placeholder="https://www.youtube.com/playlist?list=..."
-                                value={importPlaylistUrl}
-                                onChange={(e) => setImportPlaylistUrl(e.target.value)}
+                                placeholder="مثال: 1cb00bc1-52ab-4950-825b-f2754e3bd4da"
+                                value={importCollectionId}
+                                onChange={(e) => { setImportCollectionId(e.target.value); setImportError(""); }}
                                 dir="ltr"
+                                disabled={importLoading}
+                                className="h-11"
                             />
-                            <p className="text-xs text-muted-foreground">تأكد من أن قائمة التشغيل عامة (Public) لكي يتمكن النظام من سحب البيانات.</p>
                         </div>
-                        <DialogFooter>
+
+                        {importError && (
+                            <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl text-red-600 text-sm font-medium">
+                                ⚠️ {importError}
+                            </div>
+                        )}
+
+                        <DialogFooter className="gap-2">
                             <Button
-                                className="w-full bg-red-600 hover:bg-red-700 text-white"
-                                disabled={importPlaylistMutation.isPending || !importPlaylistUrl}
-                                onClick={() => {
-                                    if (targetSectionId) {
-                                        importPlaylistMutation.mutate({
-                                            playlistUrl: importPlaylistUrl,
-                                            sectionId: targetSectionId
-                                        });
-                                    }
-                                }}
+                                type="button"
+                                variant="ghost"
+                                onClick={() => setIsImportDialogOpen(false)}
+                                disabled={importLoading}
+                                className="px-6"
                             >
-                                {importPlaylistMutation.isPending ? (
+                                إلغاء
+                            </Button>
+                            <Button
+                                className="flex-1 bg-purple-700 hover:bg-purple-800 text-white font-bold gap-2"
+                                disabled={importLoading || !importCollectionId.trim()}
+                                onClick={handleBunnyCollectionImport}
+                            >
+                                {importLoading ? (
                                     <>
-                                        <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                                        جاري الاستيراد...
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        جاري السحب...
                                     </>
-                                ) : "بدء الاستيراد الآن"}
+                                ) : (
+                                    <>
+                                        <Link2 className="h-4 w-4" />
+                                        سحب الفيديوهات الآن
+                                    </>
+                                )}
                             </Button>
                         </DialogFooter>
+                        <p className="text-[11px] text-muted-foreground text-center">
+                            💡 تأكد أن `BUNNY_LIBRARY_ID` و `BUNNY_API_KEY` مضافين في متغيرات البيئة
+                        </p>
                     </div>
                 </DialogContent>
             </Dialog>

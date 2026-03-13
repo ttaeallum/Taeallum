@@ -8,7 +8,7 @@ const router = Router();
 // Sitemap.xml
 router.get("/sitemap.xml", async (req, res) => {
     try {
-        const baseUrl = "https://taallm.com";
+        const baseUrl = "https://tallm.com";
 
         // Fetch dynamic content
         const allCourses = await db.query.courses.findMany({
@@ -72,7 +72,7 @@ router.get("/robots.txt", (req, res) => {
     const robots = `User-agent: *
 Allow: /
 
-Sitemap: https://taallm.com/sitemap.xml
+Sitemap: https://tallm.com/sitemap.xml
 `;
     res.header("Content-Type", "text/plain");
     res.send(robots);

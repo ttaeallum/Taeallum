@@ -13,14 +13,14 @@
 
 import type { Request, Response } from "express";
 import {
-  orchestrate,
   getOrCreateSession,
   saveMessage,
   updateSession,
   type StudentProfile,
   type AgentState,
 } from "./agent.orchestrator";
-import { buildPlan } from "./plan.builder";
+import { buildPlan, buildPlanFromAgentOutput } from "./plan.builder";
+import { pathAgent } from "./path-agent.service";
 
 // ─── Main chat handler (POST /api/ai/chat) ────────────────────────────────────
 
@@ -59,34 +59,34 @@ export const chat = async (req: Request, res: Response) => {
     let responsePayload: any;
 
     if (ONBOARDING_STATES.includes(sessionState) || sessionState === "plan_ready") {
-      // ── Onboarding: run orchestrator ──────────────────────────────────────
-      const result = await orchestrate(
-        sessionId,
-        userId,
-        userMessage,
-        sessionProfile,
-        sessionState
-      );
+      // ── Onboarding: run Path Agent ──────────────────────────────────────
+      const result = await pathAgent.process(userId, sessionId, userMessage);
 
-      // Persist updated state and profile
-      await updateSession(sessionId, result.state, result.profile);
+      // Persist updated state and profile (if applicable)
+      // Note: PathAgent is fluid, so we might stay in the same state or move to plan_ready
+      const nextState: AgentState = result.action === "build_plan" ? "plan_ready" : sessionState;
+      
+      await updateSession(sessionId, nextState, sessionProfile);
       await saveMessage(sessionId, "assistant", result.message, {
-        state: result.state,
+        state: nextState,
         action: result.action,
+        suggestions: result.suggestions
       });
 
-      // If orchestrator says it's time to build the plan → do it now
-      if (result.action === "build_plan" || result.state === "plan_ready") {
+      // If Path Agent says it's time to build the plan → do it now
+      if (result.action === "build_plan" || nextState === "plan_ready") {
         try {
-          const { plan, planId } = await buildPlan(result.profile, userId, sessionId);
-          await saveMessage(sessionId, "assistant", "تم بناء خطتك بنجاح! 🎉", {
+          const { plan, planId } = await buildPlanFromAgentOutput(result.learning_path, userId, sessionId);
+          
+          const finalMsg = "تم بناء خطتك بنجاح! 🎉";
+          await saveMessage(sessionId, "assistant", finalMsg, {
             planId,
             action: "plan_built",
           });
 
           responsePayload = {
-            message: `🎉 خطتك الدراسية جاهزة!\n\n${plan.description}\n\n📅 المدة: ${plan.duration}\n⏱️ إجمالي الساعات: ${plan.totalHours} ساعة\n📚 عدد الكورسات: ${plan.milestones.reduce((s, m) => s + m.courses.length, 0)} كورس`,
-            suggestions: ["ابدأ المستوى الأول الآن", "عرض تفاصيل الخطة", "تعديل هدفي"],
+            message: `${result.message}\n\n🎉 خطتك الدراسية جاهزة!\n\n${plan.description}\n\n📅 المدة: ${plan.duration}\n⏱️ إجمالي الساعات: ${plan.totalHours} ساعة`,
+            suggestions: ["ابدأ المستوى الأول الآن 🚀", "عرض تفاصيل الخطة 🎯"],
             action: "show_plan",
             state: "active_learning",
             study_plan: plan,
@@ -94,7 +94,6 @@ export const chat = async (req: Request, res: Response) => {
           };
         } catch (planErr: any) {
           console.error("[AI SERVICE] Plan build failed:", planErr);
-          // Return the orchestrator result but with an error note
           responsePayload = {
             ...result,
             message: result.message + "\n\n⚠️ حدث خطأ أثناء بناء الخطة. يرجى المحاولة مرة أخرى.",
@@ -102,7 +101,12 @@ export const chat = async (req: Request, res: Response) => {
           };
         }
       } else {
-        responsePayload = result;
+        responsePayload = {
+          message: result.message,
+          suggestions: result.suggestions,
+          action: result.action,
+          state: nextState
+        };
       }
 
     } else {
