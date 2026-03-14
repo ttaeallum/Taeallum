@@ -11,39 +11,18 @@ import { Check, Sparkles, Zap, ArrowRight, ShieldCheck, Clock, Headphones, Tag, 
 import { motion } from "framer-motion";
 import { pricingTiers } from "@/lib/ai-questions";
 
-const PROMO_CODE = "TAALLUM30";
 const PRICE_FULL = 50;
-const PRICE_DISCOUNTED = 35;
 
 // PayTabs links
 const PAYTABS_FULL_LINK = "https://secure-jordan.paytabs.com/payment/link/175686/8515210";
 const PAYTABS_DISCOUNTED_LINK = "https://secure-jordan.paytabs.com/payment/link/175686/8515210"; // TODO: replace with $70 link
 
 export default function AIPricing() {
-  const [promoInput, setPromoInput] = useState("");
-  const [discountApplied, setDiscountApplied] = useState(false);
-  const [promoError, setPromoError] = useState("");
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const currentPrice = discountApplied ? PRICE_DISCOUNTED : PRICE_FULL;
-  const paymentLink = discountApplied ? PAYTABS_DISCOUNTED_LINK : PAYTABS_FULL_LINK;
-
-  const handleApplyPromo = () => {
-    if (promoInput.trim().toUpperCase() === PROMO_CODE) {
-      setDiscountApplied(true);
-      setPromoError("");
-    } else {
-      setPromoError("كود الخصم غير صحيح. تأكد من الكود وحاول مجدداً.");
-    }
-  };
-
-  const handleRemovePromo = () => {
-    setDiscountApplied(false);
-    setPromoInput("");
-    setPromoError("");
-  };
+  const currentPrice = PRICE_FULL;
 
   return (
     <Layout>
@@ -90,49 +69,10 @@ export default function AIPricing() {
 
                   {/* Price */}
                   <div className="flex items-baseline gap-2 my-4 justify-center">
-                    {discountApplied && (
-                      <span className="text-2xl font-bold text-muted-foreground line-through opacity-50">
-                      ${PRICE_FULL}
-                    </span>
-                  )}
-                  <span className="text-5xl font-black text-primary">${currentPrice}</span>
-                </div>
+                    <span className="text-5xl font-black text-primary">${currentPrice}</span>
+                  </div>
 
-                {discountApplied && (
-                  <Badge className="mb-4 bg-green-500/10 text-green-600 border-green-500/20 font-bold">
-                    🎉 وفّرت ${PRICE_FULL - PRICE_DISCOUNTED}!
-                  </Badge>
-                )}
 
-                  {/* Promo Code Input */}
-                  {!discountApplied ? (
-                    <div className="w-full space-y-2 mb-4">
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="كود الخصم"
-                          value={promoInput}
-                          onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
-                          className="text-center font-bold tracking-widest"
-                          onKeyDown={(e) => e.key === "Enter" && handleApplyPromo()}
-                        />
-                        <Button variant="outline" size="sm" onClick={handleApplyPromo} className="shrink-0">
-                          <Tag className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      {promoError && (
-                        <p className="text-xs text-red-500 font-bold">{promoError}</p>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="w-full mb-4">
-                      <div className="flex items-center justify-center gap-2 bg-green-500/10 border border-green-500/20 rounded-lg p-2">
-                        <span className="text-green-600 text-sm font-black">{PROMO_CODE}</span>
-                        <button onClick={handleRemovePromo} className="text-muted-foreground hover:text-foreground">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
 
                   <div className="w-full space-y-3 mt-6">
                     <Button 
