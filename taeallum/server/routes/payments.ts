@@ -100,19 +100,29 @@ async function generatePayPalAccessToken() {
 
 router.post("/paypal/create-order", requireAuth, async (req: Request, res: Response) => {
     try {
-        const { courseId } = req.body; // Actually using planId, but frontend might send courseId
+        const { courseId } = req.body; 
         const planId = req.body.planId || courseId; 
         const userId = req.session.userId;
         
-        if (!planId) return res.status(400).json({ message: "Plan ID is required" });
+        console.log(`[PAYPAL] Creating order for user ${userId}, plan ${planId}`);
+
+        if (!planId) {
+            console.error("[PAYPAL] Plan ID missing");
+            return res.status(400).json({ message: "Plan ID is required" });
+        }
 
         let title = "اشتراك المساعد الذكي (Smart AI)";
         let amount = "10.00"; // USD
 
-        if (planId === "pro") {
+        if (planId === "pro" || planId === "subscription") {
             title = "اشتراك منصة تعلّم الشهري";
             amount = "50.00"; // USD
+        } else if (planId === "subscription_discounted") {
+            title = "اشتراك منصة تعلّم الشهري (خصم)";
+            amount = "35.00"; // USD
         }
+
+        console.log(`[PAYPAL] Order details: title="${title}", amount="${amount}"`);
 
         const accessToken = await generatePayPalAccessToken();
         
@@ -143,7 +153,7 @@ router.post("/paypal/create-order", requireAuth, async (req: Request, res: Respo
         }
         res.json({ id: data.id });
     } catch (error: any) {
-        console.error("PayPal Create Order Error:", error);
+        console.error("[PAYPAL ERROR] Create Order:", error.message);
         res.status(500).json({ message: error.message });
     }
 });

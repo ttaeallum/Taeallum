@@ -47,7 +47,7 @@ export default function AIPricing() {
   };
 
   return (
-    <PayPalScriptProvider options={{ clientId: "AWIukiVVZaHXiMRjZz9kNtnMxYVBuzf9BitSgltroDI0RqVgtFNdqwxZwT6Po9RSGtvJ2fhcBZDXMjaV", "enable-funding": "paypal,applepay", components: "buttons,applepay" }}>
+    <PayPalScriptProvider options={{ clientId: "AWIukiVVZaHXiMRjZz9kNtnMxYVBuzf9BitSgltroDI0RqVgtFNdqwxZwT6Po9RSGtvJ2fhcBZDXMjaV", "enable-funding": "paypal" }}>
       <Layout>
       <div className="min-h-screen py-16 md:py-24" dir="rtl">
         <div className="max-w-5xl mx-auto px-4 md:px-8">
@@ -140,6 +140,7 @@ export default function AIPricing() {
                     <PayPalButtons
                       style={{ layout: "vertical", shape: "rect", color: "blue", label: "pay" }}
                       createOrder={async () => {
+                        console.log("PayPal createOrder initiated");
                         try {
                           const courseId = discountApplied ? "subscription_discounted" : "subscription";
                           const res = await fetch("/api/payments/paypal/create-order", {
@@ -173,7 +174,8 @@ export default function AIPricing() {
                         }
                       }}
                       onError={(err) => {
-                        toast({ title: "خطأ", description: "حدث خطأ أثناء عملية الدفع. يرجى المحاولة مجدداً.", variant: "destructive" });
+                        console.error("PayPal SDK Error:", err);
+                        toast({ title: "خطأ", description: "حدث خطأ أثناء الاتصال بـ PayPal. يرجى المحاولة لاحقاً.", variant: "destructive" });
                       }}
                     />
                   </div>
