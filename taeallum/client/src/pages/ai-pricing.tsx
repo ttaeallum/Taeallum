@@ -47,7 +47,7 @@ export default function AIPricing() {
   };
 
   return (
-    <PayPalScriptProvider options={{ clientId: "AWIukiVVZaHXiMRjZz9kNtnMxYVBuzf9BitSgltroDI0RqVgtFNdqwxZwT6Po9RSGtvJ2fhcBZDXMjaV", "enable-funding": "paypal" }}>
+    <PayPalScriptProvider options={{ clientId: "AWIukiVVZaHXiMRjZz9kNtnMxYVBuzf9BitSgltroDI0RqVgtFNdqwxZwT6Po9RSGtvJ2fhcBZDXMjaV", "enable-funding": "paypal", currency: "EUR" }}>
       <Layout>
       <div className="min-h-screen py-16 md:py-24" dir="rtl">
         <div className="max-w-5xl mx-auto px-4 md:px-8">
@@ -94,17 +94,17 @@ export default function AIPricing() {
                   <div className="flex items-baseline gap-2 my-4 justify-center">
                     {discountApplied && (
                       <span className="text-2xl font-bold text-muted-foreground line-through opacity-50">
-                        ${PRICE_FULL}
-                      </span>
-                    )}
-                    <span className="text-5xl font-black text-primary">${currentPrice}</span>
-                  </div>
-
-                  {discountApplied && (
-                    <Badge className="mb-4 bg-green-500/10 text-green-600 border-green-500/20 font-bold">
-                      🎉 وفّرت ${PRICE_FULL - PRICE_DISCOUNTED}!
-                    </Badge>
+                      €{PRICE_FULL}
+                    </span>
                   )}
+                  <span className="text-5xl font-black text-primary">€{currentPrice}</span>
+                </div>
+
+                {discountApplied && (
+                  <Badge className="mb-4 bg-green-500/10 text-green-600 border-green-500/20 font-bold">
+                    🎉 وفّرت €{PRICE_FULL - PRICE_DISCOUNTED}!
+                  </Badge>
+                )}
 
                   {/* Promo Code Input */}
                   {!discountApplied ? (

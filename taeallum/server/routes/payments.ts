@@ -141,7 +141,7 @@ router.post("/paypal/create-order", requireAuth, async (req: Request, res: Respo
                         custom_id: `${userId}|${planId}`,
                         description: title,
                         amount: {
-                            currency_code: "USD",
+                            currency_code: "EUR",
                             value: amount,
                         },
                     },
