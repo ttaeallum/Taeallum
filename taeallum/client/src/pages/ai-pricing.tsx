@@ -1,4 +1,8 @@
 import { useState } from "react";
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+import { useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -20,6 +24,9 @@ export default function AIPricing() {
   const [promoInput, setPromoInput] = useState("");
   const [discountApplied, setDiscountApplied] = useState(false);
   const [promoError, setPromoError] = useState("");
+  const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const currentPrice = discountApplied ? PRICE_DISCOUNTED : PRICE_FULL;
   const paymentLink = discountApplied ? PAYTABS_DISCOUNTED_LINK : PAYTABS_FULL_LINK;
@@ -40,7 +47,8 @@ export default function AIPricing() {
   };
 
   return (
-    <Layout>
+    <PayPalScriptProvider options={{ clientId: "AWIukiVVZaHXiMRjZz9kNtnMxYVBuzf9BitSgltroDI0RqVgtFNdqwxZwT6Po9RSGtvJ2fhcBZDXMjaV", "enable-funding": "card" }}>
+      <Layout>
       <div className="min-h-screen py-16 md:py-24" dir="rtl">
         <div className="max-w-5xl mx-auto px-4 md:px-8">
           {/* Header */}
@@ -128,14 +136,47 @@ export default function AIPricing() {
                     </div>
                   )}
 
-                  <Button
-                    size="lg"
-                    className="w-full h-14 text-lg font-bold rounded-xl shadow-lg shadow-primary/25 hover:scale-105 transition-transform"
-                    onClick={() => window.location.href = paymentLink}
-                  >
-                    احصل على خطتك الرئيسية
-                    <ArrowRight className="w-5 h-5 mr-2 rotate-180" />
-                  </Button>
+                  <div className="w-full relative z-0 mt-4">
+                    <PayPalButtons
+                      style={{ layout: "vertical", shape: "rect", color: "blue", label: "pay" }}
+                      createOrder={async () => {
+                        try {
+                          const courseId = discountApplied ? "subscription_discounted" : "subscription";
+                          const res = await fetch("/api/payments/paypal/create-order", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ courseId }),
+                          });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data.message || "Failed to create order");
+                          return data.id;
+                        } catch (err: any) {
+                          toast({ title: "خطأ", description: err.message, variant: "destructive" });
+                          throw err;
+                        }
+                      }}
+                      onApprove={async (data, actions) => {
+                        try {
+                          const res = await fetch("/api/payments/paypal/capture-order", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ orderID: data.orderID }),
+                          });
+                          const captureData = await res.json();
+                          if (!res.ok) throw new Error(captureData.message || "Failed to capture order");
+                          
+                          toast({ title: "نجاح", description: "تم الدفع بنجاح! جاري إعداد خطتك..." });
+                          await queryClient.invalidateQueries({ queryKey: ["auth-me"] });
+                          window.location.href = `/dashboard?session_id=${data.orderID}&plan=subscription&gateway=paypal`;
+                        } catch (err: any) {
+                          toast({ title: "خطأ", description: err.message, variant: "destructive" });
+                        }
+                      }}
+                      onError={(err) => {
+                        toast({ title: "خطأ", description: "حدث خطأ أثناء عملية الدفع. يرجى المحاولة مجدداً.", variant: "destructive" });
+                      }}
+                    />
+                  </div>
                   <p className="text-xs text-muted-foreground mt-4">
                     دفعة واحدة — بدون رسوم شهرية
                   </p>
@@ -193,5 +234,6 @@ export default function AIPricing() {
         </div>
       </div>
     </Layout>
+    </PayPalScriptProvider>
   );
 }

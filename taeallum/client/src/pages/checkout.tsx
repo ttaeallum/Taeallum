@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation, Link } from "wouter";
 import { Layout } from "@/components/layout";
@@ -115,8 +116,9 @@ export default function CheckoutPage() {
     }
 
     return (
-        <Layout>
-            <div className="container py-12 px-4 md:px-8 max-w-4xl" dir="rtl">
+        <PayPalScriptProvider options={{ clientId: "AWIukiVVZaHXiMRjZz9kNtnMxYVBuzf9BitSgltroDI0RqVgtFNdqwxZwT6Po9RSGtvJ2fhcBZDXMjaV", "enable-funding": "card" }}>
+            <Layout>
+                <div className="container py-12 px-4 md:px-8 max-w-4xl" dir="rtl">
                 <h1 className="text-3xl font-heading font-black mb-8 text-right">إتمام شراء الكورس</h1>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-right">
@@ -197,6 +199,49 @@ export default function CheckoutPage() {
                                         </>
                                     ) : "الدفع بالبطاقة الآن"}
                                 </Button>
+
+                                <div className="mt-4 relative z-0">
+                                    <PayPalButtons
+                                        style={{ layout: "vertical", shape: "rect", color: "blue", label: "pay" }}
+                                        createOrder={async () => {
+                                            try {
+                                                const res = await fetch("/api/payments/paypal/create-order", {
+                                                    method: "POST",
+                                                    headers: { "Content-Type": "application/json" },
+                                                    body: JSON.stringify({ courseId }),
+                                                });
+                                                const data = await res.json();
+                                                if (!res.ok) throw new Error(data.message || "Failed to create order");
+                                                return data.id;
+                                            } catch (err: any) {
+                                                toast({ title: "خطأ", description: err.message, variant: "destructive" });
+                                                throw err;
+                                            }
+                                        }}
+                                        onApprove={async (data, actions) => {
+                                            try {
+                                                const res = await fetch("/api/payments/paypal/capture-order", {
+                                                    method: "POST",
+                                                    headers: { "Content-Type": "application/json" },
+                                                    body: JSON.stringify({ orderID: data.orderID }),
+                                                });
+                                                const captureData = await res.json();
+                                                if (!res.ok) throw new Error(captureData.message || "Failed to capture order");
+                                                
+                                                toast({ title: "نجاح", description: "تم الدفع بنجاح! جاري التوجيه..." });
+                                                // After success, invalidate user query and redirect
+                                                await queryClient.invalidateQueries({ queryKey: ["auth-me"] });
+                                                window.location.href = `/dashboard?session_id=${data.orderID}&plan=${courseId}&gateway=paypal`;
+                                            } catch (err: any) {
+                                                toast({ title: "خطأ", description: err.message, variant: "destructive" });
+                                            }
+                                        }}
+                                        onError={(err) => {
+                                            toast({ title: "خطأ", description: "حدث خطأ أثناء الاتصال الدفع عبر PayPal", variant: "destructive" });
+                                        }}
+                                    />
+                                </div>
+
                                 <div className="flex items-center gap-2 text-[10px] text-muted-foreground justify-center">
                                     <ShieldCheck className="w-3 h-3" />
                                     تشفير آمن وحماية كاملة للبيانات
@@ -207,5 +252,6 @@ export default function CheckoutPage() {
                 </div>
             </div>
         </Layout>
+        </PayPalScriptProvider>
     );
 }
