@@ -47,7 +47,7 @@ export default function AIPricing() {
   };
 
   return (
-    <PayPalScriptProvider options={{ clientId: "AWIukiVVZaHXiMRjZz9kNtnMxYVBuzf9BitSgltroDI0RqVgtFNdqwxZwT6Po9RSGtvJ2fhcBZDXMjaV", "enable-funding": "card" }}>
+    <PayPalScriptProvider options={{ clientId: "AWIukiVVZaHXiMRjZz9kNtnMxYVBuzf9BitSgltroDI0RqVgtFNdqwxZwT6Po9RSGtvJ2fhcBZDXMjaV", "enable-funding": "paypal,applepay", components: "buttons,applepay" }}>
       <Layout>
       <div className="min-h-screen py-16 md:py-24" dir="rtl">
         <div className="max-w-5xl mx-auto px-4 md:px-8">
