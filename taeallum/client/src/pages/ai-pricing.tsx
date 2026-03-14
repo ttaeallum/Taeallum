@@ -143,13 +143,21 @@ export default function AIPricing() {
                         console.log("PayPal createOrder initiated");
                         try {
                           const courseId = discountApplied ? "subscription_discounted" : "subscription";
+                          console.log("[DEBUG] Fetching /api/payments/paypal/create-order with courseId:", courseId);
                           const res = await fetch("/api/payments/paypal/create-order", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ courseId }),
                           });
+                          
+                          if (!res.ok) {
+                            const errorText = await res.text();
+                            console.error("[DEBUG] Backend error response:", errorText);
+                            throw new Error(`Server error: ${res.status} ${errorText}`);
+                          }
+
                           const data = await res.json();
-                          if (!res.ok) throw new Error(data.message || "Failed to create order");
+                          console.log("[DEBUG] PayPal order created successfully:", data.id);
                           return data.id;
                         } catch (err: any) {
                           toast({ title: "خطأ", description: err.message, variant: "destructive" });

@@ -77,6 +77,8 @@ const PAYPAL_SECRET_KEY = process.env.PAYPAL_SECRET_KEY;
 const PAYPAL_MODE = process.env.PAYPAL_MODE || "sandbox";
 const paypalBaseUrl = PAYPAL_MODE === "live" ? "https://api-m.paypal.com" : "https://api-m.sandbox.paypal.com";
 
+console.log(`[PAYPAL CONFIG] Mode: ${PAYPAL_MODE}, ClientID: ${PAYPAL_CLIENT_ID ? 'LOADED' : 'MISSING'}, Secret: ${PAYPAL_SECRET_KEY ? 'LOADED' : 'MISSING'}`);
+
 async function generatePayPalAccessToken() {
     if (!PAYPAL_CLIENT_ID || !PAYPAL_SECRET_KEY) {
         throw new Error("PayPal API keys not configured");
