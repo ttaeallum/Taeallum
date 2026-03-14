@@ -138,6 +138,7 @@ export default function AIPricing() {
 
                   <div className="w-full relative z-0 mt-4">
                     <PayPalButtons
+                      fundingSource="paypal"
                       style={{ layout: "vertical", shape: "rect", color: "blue", label: "pay" }}
                       createOrder={async () => {
                         console.log("PayPal createOrder initiated");
